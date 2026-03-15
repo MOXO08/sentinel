@@ -1,4 +1,4 @@
-# 🛡 sentinel-scan (v1.2.1)
+# 🛡 sentinel-scan (v1.2.3)
 
 **Deterministic AI compliance infrastructure for the EU AI Act. 100% offline. Zero-Egress. Driven by a high-performance Rust engine.**
 
