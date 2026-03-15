@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "name": "eu-ai-act-high-risk",
+  "description": "EU AI Act high-risk system documentation requirements",
+  "rules": {
+    "required_documents": [
+      "docs/compliance/risk_assessment.md",
+      "docs/compliance/data_governance.md",
+      "docs/compliance/human_oversight.md",
+      "docs/compliance/technical_documentation.md",
+      "docs/compliance/post_market_monitoring.md"
+    ]
+  }
+}

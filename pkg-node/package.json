@@ -1,0 +1,14 @@
+{
+  "name": "sentinel-core",
+  "collaborators": [
+    "Sentinel"
+  ],
+  "version": "1.1.0",
+  "files": [
+    "sentinel_core_bg.wasm",
+    "sentinel_core.js",
+    "sentinel_core.d.ts"
+  ],
+  "main": "sentinel_core.js",
+  "types": "sentinel_core.d.ts"
+}

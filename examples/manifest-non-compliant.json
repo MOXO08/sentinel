@@ -1,0 +1,11 @@
+{
+    "app_name": "dark-social-scorer",
+    "version": "1.0.0",
+    "risk_category": "Minimal",
+    "app_description": "Citizen scoring and tracking platform.",
+    "declared_flags": [
+        "subliminal_techniques",
+        "social_scoring"
+    ],
+    "fallback_ai_verification": false
+}

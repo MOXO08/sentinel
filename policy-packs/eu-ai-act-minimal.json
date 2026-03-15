@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "name": "eu-ai-act-minimal",
+  "description": "Minimal EU AI Act compliance requirements for AI repositories",
+  "rules": {
+    "required_documents": [
+      "docs/compliance/risk_assessment.md",
+      "docs/compliance/data_governance.md",
+      "docs/compliance/human_oversight.md"
+    ]
+  }
+}

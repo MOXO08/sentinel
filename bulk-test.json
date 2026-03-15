@@ -1,0 +1,25 @@
+[
+    {
+        "app_name": "hr-bot-1",
+        "version": "1.0.0",
+        "risk_category": "High",
+        "declared_flags": [
+            "human_oversight_enabled",
+            "bias_assessment_performed"
+        ]
+    },
+    {
+        "app_name": "social-scoring-test",
+        "version": "1.0.0",
+        "risk_category": "Unacceptable",
+        "declared_flags": [
+            "social_scoring"
+        ]
+    },
+    {
+        "app_name": "customer-service-bot",
+        "version": "2.1.0",
+        "risk_category": "Minimal",
+        "declared_flags": []
+    }
+]

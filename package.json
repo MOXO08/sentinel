@@ -1,0 +1,68 @@
+{
+  "name": "@radu_api/sentinel-scan",
+  "version": "1.2.2",
+  "description": "Deterministic AI compliance infrastructure for the EU AI Act. Offline WebAssembly CLI that audits AI systems, manifests, and technical documentation for regulatory alignment.",
+  "main": "bin/sentinel-scan.js",
+  "bin": {
+    "sentinel-scan": "bin/sentinel-scan.js",
+    "sentinel": "bin/sentinel-scan.js"
+  },
+  "keywords": [
+    "ai-compliance",
+    "eu-ai-act",
+    "devsecops",
+    "ai-governance",
+    "sarif",
+    "github-actions",
+    "audit",
+    "policy-engine",
+    "wasm",
+    "offline-scanner",
+    "trustworthy-ai"
+  ],
+  "author": "Sentinel Authority",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MOXO08/sentinel"
+  },
+  "homepage": "https://gettingsentinel.com",
+  "bugs": {
+    "url": "https://github.com/MOXO08/sentinel/issues"
+  },
+  "scripts": {
+    "obfuscate": "javascript-obfuscator bin/sentinel-scan.js --output dist/index.js --compact true --self-defending false --string-array true --string-array-encoding base64 --string-array-threshold 1 --rename-globals true --control-flow-flattening false --control-flow-flattening-threshold 0 --reserved-strings \"fs,path,cli-progress,https,../pkg-node/sentinel_core.js,../package.json\"",
+    "build:bin": "npm run obfuscate && pkg dist/index.js --config package.json --target node18-win-x64 --out-path bin-builds",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "pkg": {
+    "scripts": [
+      "dist/index.js",
+      "pkg-node/sentinel_core.js",
+      "node_modules/cli-progress/**/*.js"
+    ],
+    "assets": [
+      "pkg-node/sentinel_engine.wasm",
+      "examples/**/*",
+      "package.json"
+    ]
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "bin/",
+    "pkg-node/",
+    "examples/",
+    "README.md",
+    "LICENSE",
+    "terminal-demo.png"
+  ],
+  "dependencies": {
+    "cli-progress": "^3.12.0"
+  },
+  "devDependencies": {
+    "javascript-obfuscator": "^5.3.0",
+    "pkg": "^5.8.1"
+  }
+}

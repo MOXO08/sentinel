@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "rules": {
+    "required_documents": [
+      "docs/compliance/risk_assessment.md",
+      "docs/compliance/data_governance.md",
+      "docs/compliance/human_oversight.md"
+    ]
+  },
+  "ci": {
+    "fail_on_violation": true
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "rules": [
+    {
+      "id": "EUAI-TECH-001",
+      "name": "Model Disclosure Missing",
+      "severity": "high",
+      "description": "AI systems must disclose the model used.",
+      "regulation": "EU AI Act Article 52"
+    },
+    {
+      "id": "EUAI-GOV-001",
+      "name": "Risk Classification Missing",
+      "severity": "critical",
+      "description": "High-risk AI systems must declare risk classification.",
+      "regulation": "EU AI Act Article 6"
+    },
+    {
+      "id": "EUAI-GOV-002",
+      "name": "Human Oversight Missing",
+      "severity": "high",
+      "description": "High-risk systems must include human oversight mechanisms.",
+      "regulation": "EU AI Act Article 14"
+    },
+    {
+      "id": "EUAI-TECH-002",
+      "name": "Logging Missing",
+      "severity": "medium",
+      "description": "AI systems must provide logging for traceability.",
+      "regulation": "EU AI Act Article 12"
+    },
+    {
+      "id": "EUAI-GOV-003",
+      "name": "Incident Reporting Missing",
+      "severity": "medium",
+      "description": "Serious incidents must be reportable.",
+      "regulation": "EU AI Act Article 62"
+    }
+  ]
+}

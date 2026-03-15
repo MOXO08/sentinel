@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "packs": [
+    {
+      "name": "eu-ai-act-minimal",
+      "file": "eu-ai-act-minimal.json",
+      "description": "Minimal EU AI Act compliance requirements for AI repositories",
+      "category": "eu-ai-act"
+    },
+    {
+      "name": "eu-ai-act-high-risk",
+      "file": "eu-ai-act-high-risk.json",
+      "description": "EU AI Act high-risk system documentation requirements",
+      "category": "eu-ai-act"
+    }
+  ]
+}

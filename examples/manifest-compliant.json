@@ -1,0 +1,17 @@
+{
+    "app_name": "hr-cv-screener",
+    "version": "3.1.0",
+    "risk_category": "High",
+    "app_description": "Automated CV and recruitment screening assistant for enterprise hiring departments.",
+    "declared_flags": [
+        "human_oversight_enabled",
+        "human_interrupt_capability",
+        "bias_assessment_performed",
+        "data_governance_policy_documented",
+        "user_notification_ai_interaction",
+        "transparency_disclosure_provided",
+        "explainability_mechanism_present",
+        "conformity_assessment_completed"
+    ],
+    "fallback_ai_verification": false
+}

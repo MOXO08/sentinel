@@ -1,0 +1,13 @@
+{
+    "app_name": "sentinel-demo",
+    "version": "1.0.0",
+    "risk_category": "Minimal",
+    "app_description": "Marketplace demo AI system.",
+    "declared_flags": [
+        "human_oversight_enabled",
+        "bias_assessment_performed",
+        "data_governance_policy_documented",
+        "user_notification_ai_interaction"
+    ],
+    "fallback_ai_verification": false
+}
