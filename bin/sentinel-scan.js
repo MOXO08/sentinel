@@ -117,9 +117,14 @@ async function reportError(err) {
   } catch (e) {}
 }
 
-async function runRemote(manifest, apiKey, endpoint) {
+async function runRemote(manifest, apiKey, endpoint, telemetry = {}) {
   const https = require('https');
-  const body = JSON.stringify(manifest);
+  const body = JSON.stringify({
+    ...manifest,
+    anonymous_client_id: telemetry.clientId,
+    scan_id: telemetry.scanId,
+    project_hash: telemetry.projectHash,
+  });
   const url = new URL(endpoint);
 
   const pkg = require('../package.json');
@@ -148,6 +153,43 @@ async function runRemote(manifest, apiKey, endpoint) {
     });
     req.on('error', reject); req.write(body); req.end();
   });
+}
+
+function getOrCreateClientId() {
+  const os = require('os');
+  const configDir = path.join(os.homedir(), '.sentinel');
+  const configPath = path.join(configDir, 'config.json');
+  
+  if (!fs.existsSync(configDir)) fs.mkdirSync(configDir, { recursive: true });
+  
+  let config = {};
+  if (fs.existsSync(configPath)) {
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+    } catch (e) {}
+  }
+  
+  if (!config.anonymous_client_id) {
+    const crypto = require('crypto');
+    config.anonymous_client_id = crypto.randomBytes(16).toString('hex');
+    fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+  }
+  
+  return config.anonymous_client_id;
+}
+
+function computeProjectHash() {
+  const crypto = require('crypto');
+  const cwd = process.cwd();
+  let signals = [cwd];
+  
+  try {
+    const { execSync } = require('child_process');
+    const remote = execSync('git remote get-url origin', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim();
+    if (remote) signals.push(remote);
+  } catch (e) {}
+  
+  return crypto.createHash('sha256').update(signals.join('|')).digest('hex');
 }
 
 function getGitMetadata() {
@@ -1047,13 +1089,23 @@ async function main() {
       });
       if (!isJson && !isSarif) bar.start(manifest.length, 0);
       results = [];
+      const telemetry = {
+        clientId: getOrCreateClientId(),
+        scanId: require('crypto').randomBytes(8).toString('hex'),
+        projectHash: computeProjectHash()
+      };
       for (const item of manifest) {
-        results.push(isRemote ? await runRemote(item, apiKey, endpoint) : await runOffline(item));
+        results.push(isRemote ? await runRemote(item, apiKey, endpoint, telemetry) : await runOffline(item));
         if (!isJson && !isSarif) bar.increment();
       }
       if (!isJson && !isSarif) bar.stop();
     } else {
-      results = isRemote ? await runRemote(manifest, apiKey, endpoint) : await runOffline(manifest);
+      const telemetry = {
+        clientId: getOrCreateClientId(),
+        scanId: require('crypto').randomBytes(8).toString('hex'),
+        projectHash: computeProjectHash()
+      };
+      results = isRemote ? await runRemote(manifest, apiKey, endpoint, telemetry) : await runOffline(manifest);
     }
 
     let policy;
