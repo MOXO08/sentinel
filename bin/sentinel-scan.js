@@ -124,6 +124,7 @@ async function runRemote(manifest, apiKey, endpoint, telemetry = {}) {
     anonymous_client_id: telemetry.clientId,
     scan_id: telemetry.scanId,
     project_hash: telemetry.projectHash,
+    execution_context: telemetry.executionContext,
   });
   const url = new URL(endpoint);
 
@@ -190,6 +191,19 @@ function computeProjectHash() {
   } catch (e) {}
   
   return crypto.createHash('sha256').update(signals.join('|')).digest('hex');
+}
+
+function detectExecutionContext() {
+  if (process.env.GITHUB_ACTIONS === 'true') return 'github_actions';
+  if (process.env.GITLAB_CI === 'true') return 'gitlab_ci';
+  
+  try {
+    const fs = require('fs');
+    if (fs.existsSync('/.dockerenv')) return 'docker';
+    if (fs.readFileSync('/proc/self/cgroup', 'utf8').includes('docker')) return 'docker';
+  } catch (e) {}
+  
+  return 'local';
 }
 
 function getGitMetadata() {
@@ -1092,7 +1106,8 @@ async function main() {
       const telemetry = {
         clientId: getOrCreateClientId(),
         scanId: require('crypto').randomBytes(8).toString('hex'),
-        projectHash: computeProjectHash()
+        projectHash: computeProjectHash(),
+        executionContext: detectExecutionContext()
       };
       for (const item of manifest) {
         results.push(isRemote ? await runRemote(item, apiKey, endpoint, telemetry) : await runOffline(item));
@@ -1103,7 +1118,8 @@ async function main() {
       const telemetry = {
         clientId: getOrCreateClientId(),
         scanId: require('crypto').randomBytes(8).toString('hex'),
-        projectHash: computeProjectHash()
+        projectHash: computeProjectHash(),
+        executionContext: detectExecutionContext()
       };
       results = isRemote ? await runRemote(manifest, apiKey, endpoint, telemetry) : await runOffline(manifest);
     }
