@@ -1,9 +1,8 @@
 {
   "name": "@radu_api/sentinel-scan",
-  "version": "1.2.11",
+  "version": "1.2.12",
   "description": "Deterministic AI compliance infrastructure for the EU AI Act. Offline WebAssembly CLI that audits AI systems, manifests, and technical documentation for regulatory alignment.",
   "main": "bin/sentinel-scan.js",
-  
   "bin": {
     "sentinel-scan": "bin/sentinel-scan.js",
     "sentinel": "bin/sentinel-scan.js"
