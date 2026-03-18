@@ -363,49 +363,12 @@ async function reportError(err) {
   } catch (e) {}
 }
 
-async function runDemo() {
-  console.log(`\n${C.cyan}${C.bold}🚀 Running Sentinel Demo Scan...${C.reset}\n`);
-  const demoManifest = {
-    schema: "sentinel.manifest.v1",
-    project_name: "Sentinel Demo",
-    risk_category: "High",
-    modules: [
-      {
-        id: "demo-module",
-        risk_level: "High",
-        status: "active",
-        evidence: "docs/compliance/risk_management.md"
-      }
-    ],
-    human_oversight: {
-      type: "active_monitor",
-      description: "Human reviewer audits all high-confidence results"
-    },
-    logging_capabilities: {
-      retention: "90d"
-    },
-    declared_flags: ["transparency_disclosure_provided"]
-  };
-  
-  // Use real validation logic for the demo to ensure consistency
-  const evidenceFindings = validateEvidence(demoManifest, process.cwd());
-  const results = await runOffline(demoManifest);
-  
-  const finalReport = {
-    verdict: computeVerdict(computeEvidenceScore(evidenceFindings), evidenceFindings),
-    score: computeEvidenceScore(evidenceFindings),
-    mapped_articles: determineVerifiedArticles(evidenceFindings),
-    violations: (results.violations || []).concat(evidenceFindings.map(f => ({
-      rule_id: f.rule_id,
-      description: f.description,
-      source: "evidence",
-      hard_fail: f.hard_fail
-    })))
-  };
-
-  printResult(finalReport, false, false, "demo-mode");
-  console.log(`\n${C.yellow}${C.bold}💡 Insight:${C.reset} Demo mode now utilizes the exact same zero-trust validation engine as production.`);
-  console.log(`${C.gray}To audit your own project, run 'npx sentinel-scan init' then 'npx sentinel-scan'.${C.reset}`);
+function printOnboarding() {
+  console.log(`\n${C.yellow}${C.bold}⚠  No sentinel.manifest.json found in the current directory.${C.reset}`);
+  console.log(`${C.gray}Compliance cannot be evaluated until a manifest exists.${C.reset}\n`);
+  console.log(`${C.cyan}${C.bold}How to initialize:${C.reset}`);
+  console.log(`Run: ${C.white}npx @radu_api/sentinel-scan init${C.reset}`);
+  console.log(`\n${C.gray}This will create a template manifest you can use to document your AI compliance.${C.reset}\n`);
 }
 
 function runInit() {
@@ -1479,7 +1442,7 @@ async function main() {
   }
 
   if (args.length === 0 && !manifestPath) {
-    await runDemo();
+    printOnboarding();
     process.exit(0);
   }
 
@@ -1519,7 +1482,7 @@ async function main() {
   const endpoint = endpointIdx !== -1 ? args[endpointIdx + 1] : 'https://api.gettingsentinel.com/v1';
 
   if (!manifestPath || manifestPath.startsWith('-')) {
-    await runDemo();
+    printOnboarding();
     process.exit(0);
   }
 
