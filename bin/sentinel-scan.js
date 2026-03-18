@@ -116,10 +116,23 @@ function validateEvidence(manifest, manifestDir) {
     } else {
       findings.push({
         article: 'Art. 9', rule_id: 'EUAI-RISK-002',
-        description: 'risk_category is missing from manifest — risk level unassessed',
-        deduction: 10, severity: 'medium', hard_fail: false, source: 'evidence'
+        description: 'risk_category is missing from manifest — compliance level cannot be assessed',
+        deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence'
       });
     }
+  }
+
+  // ── 1.1 Minimum Compliance Signal check ──
+  const hasTransparency = !!manifest.evidence_path || declaredFlags.includes('transparency_disclosure_provided');
+  const hasOversight = !!manifest.human_oversight || !!manifest.oversight_evidence_path;
+  const hasLogging = !!manifest.logging_capabilities || !!manifest.logging_evidence_path;
+
+  if (!hasTransparency && !hasOversight && !hasLogging) {
+    findings.push({
+      article: 'General', rule_id: 'EUAI-MIN-001',
+      description: 'Minimum compliance structure missing: Manifest must declare at least one control (Transparency, Oversight, or Logging)',
+      deduction: 30, severity: 'critical', hard_fail: true, source: 'evidence'
+    });
   }
 
   // ── 2. evidence_path: Art. 13 Transparency && disclosure-config semantics ──
@@ -355,17 +368,43 @@ async function runDemo() {
   const demoManifest = {
     schema: "sentinel.manifest.v1",
     project_name: "Sentinel Demo",
-    ai_components: [
+    risk_category: "High",
+    modules: [
       {
-        name: "Demo AI Service",
-        risk_category: "High",
-        declared_flags: ["subliminal_techniques", "social_scoring"]
+        id: "demo-module",
+        risk_level: "High",
+        status: "active",
+        evidence: "docs/compliance/risk_management.md"
       }
-    ]
+    ],
+    human_oversight: {
+      type: "active_monitor",
+      description: "Human reviewer audits all high-confidence results"
+    },
+    logging_capabilities: {
+      retention: "90d"
+    },
+    declared_flags: ["transparency_disclosure_provided"]
   };
+  
+  // Use real validation logic for the demo to ensure consistency
+  const evidenceFindings = validateEvidence(demoManifest, process.cwd());
   const results = await runOffline(demoManifest);
-  printResult(results, false, false, "demo-mode");
-  console.log(`\n${C.yellow}${C.bold}💡 Insight:${C.reset} This demo shows how Sentinel detects prohibited AI practices like social scoring.`);
+  
+  const finalReport = {
+    verdict: computeVerdict(computeEvidenceScore(evidenceFindings), evidenceFindings),
+    score: computeEvidenceScore(evidenceFindings),
+    mapped_articles: determineVerifiedArticles(evidenceFindings),
+    violations: (results.violations || []).concat(evidenceFindings.map(f => ({
+      rule_id: f.rule_id,
+      description: f.description,
+      source: "evidence",
+      hard_fail: f.hard_fail
+    })))
+  };
+
+  printResult(finalReport, false, false, "demo-mode");
+  console.log(`\n${C.yellow}${C.bold}💡 Insight:${C.reset} Demo mode now utilizes the exact same zero-trust validation engine as production.`);
   console.log(`${C.gray}To audit your own project, run 'npx sentinel-scan init' then 'npx sentinel-scan'.${C.reset}`);
 }
 
@@ -788,6 +827,25 @@ function loadPolicy(policyPath = "sentinel.policy.json") {
   const resolvedPath = path.resolve(process.cwd(), policyPath);
 
   if (!fs.existsSync(resolvedPath)) {
+    if (policyPath === "sentinel.policy.json") {
+      const defaultPath = path.resolve(__dirname, '../configs/default.policy.json');
+      if (fs.existsSync(defaultPath)) {
+        console.log(`${C.yellow}⚠  Using default Sentinel policy (no local policy file found)${C.reset}`);
+        
+        try {
+          const raw = fs.readFileSync(defaultPath, "utf8");
+          const config = JSON.parse(raw);
+          return {
+            path: 'default.policy.json',
+            config,
+            error: null
+          };
+        } catch (error) {
+          return { path: policyPath, config: null, error: `Invalid default policy file: (${error.message})` };
+        }
+      }
+    }
+
     return {
       path: policyPath,
       config: null,
@@ -1414,7 +1472,13 @@ async function main() {
     process.exit(0);
   }
 
-  if (args.length === 0) {
+  // Prefer local sentinel.manifest.json if no argument provided
+  let manifestPath = args.find(a => !a.startsWith('-'));
+  if (!manifestPath && fs.existsSync(path.join(process.cwd(), 'sentinel.manifest.json'))) {
+    manifestPath = 'sentinel.manifest.json';
+  }
+
+  if (args.length === 0 && !manifestPath) {
     await runDemo();
     process.exit(0);
   }
@@ -1424,7 +1488,6 @@ async function main() {
     process.exit(0);
   }
 
-  const manifestPath = args.find(a => !a.startsWith('-'));
   const isRemote = args.includes('--remote');
   const isJson = args.includes('--json');
   const isSarif = args.includes('--sarif');
