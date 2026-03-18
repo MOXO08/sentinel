@@ -866,27 +866,27 @@ function printFailure(missingFiles, policyPath) {
   console.log("");
 }
 
+function loadDefaultPolicy() {
+  const defaultPath = path.resolve(__dirname, '../configs/default.policy.json');
+  if (!fs.existsSync(defaultPath)) return null;
+  try {
+    const raw = fs.readFileSync(defaultPath, "utf8");
+    return JSON.parse(raw);
+  } catch (e) {
+    return null;
+  }
+}
+
 function loadPolicy(policyPath = "sentinel.policy.json") {
   const resolvedPath = path.resolve(process.cwd(), policyPath);
 
   if (!fs.existsSync(resolvedPath)) {
     if (policyPath === "sentinel.policy.json") {
-      const defaultPath = path.resolve(__dirname, '../configs/default.policy.json');
-      if (fs.existsSync(defaultPath)) {
-        console.log(`${C.yellow}⚠  Using default Sentinel policy (no local policy file found)${C.reset}`);
-        
-        try {
-          const raw = fs.readFileSync(defaultPath, "utf8");
-          const config = JSON.parse(raw);
-          return {
-            path: 'default.policy.json',
-            config,
-            error: null
-          };
-        } catch (error) {
-          return { path: policyPath, config: null, error: `Invalid default policy file: (${error.message})` };
-        }
-      }
+      return {
+        path: policyPath,
+        config: loadDefaultPolicy(),
+        warning: `Using default Sentinel policy (no local policy file found)`
+      };
     }
 
     return {
@@ -1711,6 +1711,10 @@ async function main() {
       };
     } else {
       policy = loadPolicy(policyPath);
+
+      if (policy.warning && !isJson && !isSarif) {
+        console.log(`${C.yellow}⚠  ${policy.warning}${C.reset}`);
+      }
 
       if (policy.error) {
         console.error("");
