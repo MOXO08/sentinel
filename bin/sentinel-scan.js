@@ -883,7 +883,7 @@ function loadPolicy(policyPath = "sentinel.policy.json") {
   if (!fs.existsSync(resolvedPath)) {
     if (policyPath === "sentinel.policy.json") {
       return {
-        path: policyPath,
+        path: 'default.policy.json',
         config: loadDefaultPolicy(),
         warning: `Using default Sentinel policy (no local policy file found)`
       };
@@ -1418,6 +1418,11 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
       console.log(`${C.bold}Required Controls: ${C.gray}${auditMetadata.required_articles?.join(', ') || 'Art. 13'}${C.reset}`);
       console.log(`${C.bold}Verified Controls: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
       console.log(`${C.bold}Verified Articles: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
+
+      if (policyPath) {
+        console.log("");
+        console.log(`${C.gray}Sentinel policy: ${policyPath}${C.reset}`);
+      }
       console.log("");
     }
   }
