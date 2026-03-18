@@ -1,0 +1,14 @@
+{
+  "schema": "sentinel.manifest.v1",
+  "project_name": "init-test",
+  "ai_components": [
+    {
+      "name": "Core Engine",
+      "risk_category": "High",
+      "declared_flags": [
+        "human_oversight_enabled",
+        "bias_assessment_performed"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "schema": "sentinel.manifest.v1",
+  "app_name": "init-test-2",
+  "risk_category": "minimal",
+  "modules": [],
+  "transparency_disclosure_provided": true
+}

@@ -1,0 +1,10 @@
+{
+  "policies": [
+    {
+      "id": "EUAI-TECH-001",
+      "status": "compliant",
+      "evidence_type": "ui_notification_active",
+      "description": "AI Awareness Active"
+    }
+  ]
+}
