@@ -1,3 +1,5 @@
+Viewed README.md:1-117
+
 # Sentinel Scan
 
 ![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Sentinel%20Verified-blue)
@@ -88,7 +90,7 @@ Sentinel implements a risk-aware requirement matrix:
 Sentinel uses a tiered policy resolution system:
 
 1. **Local Policy**: Looks for `sentinel.policy.json` in the working directory.
-2. **Fallback**: Automatically uses the internal `default.policy.json` if no local file is found.
+2. **Fallback**: Automatically uses the internal [default.policy.json](cci:7://file:///d:/AI%20Act%20Compliance%20API/sentinel-cli/configs/default.policy.json:0:0-0:0) if no local file is found.
 
 The CLI is designed to run in empty or clean environments (like Docker or CI) without requiring manual configuration of a policy file for basic audits.
 
