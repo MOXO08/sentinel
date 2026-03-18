@@ -101,37 +101,56 @@ function validateEvidence(manifest, manifestDir) {
   const findings = [];
   const modules = Array.isArray(manifest.modules) ? manifest.modules : [];
   const declaredFlags = Array.isArray(manifest.declared_flags) ? manifest.declared_flags : [];
+  
+  const riskCat = (manifest.risk_category || "").toLowerCase();
+  const isHighRisk = riskCat === 'high';
+  const isLimited = riskCat === 'limited';
+  const isUnacceptable = riskCat === 'unacceptable';
+  
   const hasHighRiskModules = modules.some(m => 
-    m.risk_level === 'High' || m.risk_level === 'Unacceptable'
+    m.risk_level === 'High' || m.risk_level === 'Unacceptable' || m.risk_category === 'High'
   );
+  const strictEnforcement = isHighRisk || hasHighRiskModules;
+
+  // ── 0. Unacceptable Risk: Immediate Hard Fail ──
+  if (isUnacceptable) {
+    findings.push({
+      article: 'General', rule_id: 'EUAI-UNACCEPTABLE-001',
+      description: 'System declared as "unacceptable" risk — prohibited under the EU AI Act.',
+      deduction: 100, severity: 'critical', hard_fail: true, source: 'evidence'
+    });
+    return findings; // No scoring for unacceptable
+  }
 
   // ── 1. risk_category: NEVER silently default to Minimal ──
   if (!manifest.risk_category) {
-    if (hasHighRiskModules) {
-      findings.push({
-        article: 'Art. 9', rule_id: 'EUAI-RISK-001',
-        description: 'High-risk modules present but no risk_category defined at manifest level',
-        deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence'
-      });
-    } else {
-      findings.push({
-        article: 'Art. 9', rule_id: 'EUAI-RISK-002',
-        description: 'risk_category is missing from manifest — compliance level cannot be assessed',
-        deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence'
-      });
-    }
+    findings.push({
+      article: 'Art. 9', rule_id: 'EUAI-RISK-002',
+      description: 'risk_category is missing from manifest — compliance level cannot be assessed',
+      deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence'
+    });
   }
 
   // ── 1.1 Minimum Compliance Signal check ──
-  const hasTransparency = !!manifest.evidence_path || declaredFlags.includes('transparency_disclosure_provided');
+  const hasTransparencyFlag = declaredFlags.includes('transparency_disclosure_provided');
+  const hasTransparencyFile = !!manifest.evidence_path;
   const hasOversight = !!manifest.human_oversight || !!manifest.oversight_evidence_path;
   const hasLogging = !!manifest.logging_capabilities || !!manifest.logging_evidence_path;
 
-  if (!hasTransparency && !hasOversight && !hasLogging) {
+  if (!hasTransparencyFlag && !hasTransparencyFile && !hasOversight && !hasLogging) {
     findings.push({
       article: 'General', rule_id: 'EUAI-MIN-001',
       description: 'Minimum compliance structure missing: Manifest must declare at least one control (Transparency, Oversight, or Logging)',
       deduction: 30, severity: 'critical', hard_fail: true, source: 'evidence'
+    });
+  }
+
+  // ── 1.2 Limited Risk Stricter Transparency check ──
+  if (isLimited && hasTransparencyFlag && !hasTransparencyFile) {
+    findings.push({
+      article: 'Art. 13', rule_id: 'EUAI-TRANS-002',
+      description: 'Limited-risk apps require explicit transparency evidence (e.g. evidence_path), not just a flag.',
+      deduction: 20, severity: 'high', hard_fail: false, source: 'evidence'
     });
   }
 
@@ -265,7 +284,7 @@ function validateEvidence(manifest, manifestDir) {
   }
 
   // ── 5. Human oversight: Art. 14 (Must not pass from flag alone) ──
-  if (hasHighRiskModules) {
+  if (strictEnforcement) {
     const hasOversightObj = manifest.human_oversight && typeof manifest.human_oversight === 'object' && Object.keys(manifest.human_oversight).length > 0;
     let hasValidOversightFile = false;
     if (manifest.oversight_evidence_path) {
@@ -283,7 +302,7 @@ function validateEvidence(manifest, manifestDir) {
   }
 
   // ── 6. Logging / Traceability: Art. 20 (Must not pass from flag alone) ──
-  if (hasHighRiskModules) {
+  if (strictEnforcement) {
     const hasLoggingObj = manifest.logging_capabilities && typeof manifest.logging_capabilities === 'object' && Object.keys(manifest.logging_capabilities).length > 0;
     let hasValidLoggingFile = false;
     if (manifest.logging_evidence_path) {
@@ -303,39 +322,78 @@ function validateEvidence(manifest, manifestDir) {
   return findings;
 }
 
-function computeEvidenceScore(findings) {
-  let score = 100;
-  for (const f of findings) {
-    score -= (f.deduction || 0);
-  }
-  return Math.max(0, Math.min(100, score));
+function determineVerifiedArticles(findings, manifest) {
+  const verified = [];
+  const failedArticles = new Set(findings.filter(f => f.article).map(f => f.article));
+  
+  const modules = Array.isArray(manifest.modules) ? manifest.modules : [];
+  const declaredFlags = Array.isArray(manifest.declared_flags) ? manifest.declared_flags : [];
+
+  const hasTransparency = !!manifest.evidence_path || declaredFlags.includes('transparency_disclosure_provided');
+  const hasOversight = (manifest.human_oversight && Object.keys(manifest.human_oversight).length > 0) || !!manifest.oversight_evidence_path;
+  const hasLogging = (manifest.logging_capabilities && Object.keys(manifest.logging_capabilities).length > 0) || !!manifest.logging_evidence_path;
+  const hasRiskManagement = modules.length > 0 && modules.some(m => m.evidence);
+
+  if (hasTransparency && !failedArticles.has('Art. 13')) verified.push('Art. 13');
+  if (hasOversight && !failedArticles.has('Art. 14')) verified.push('Art. 14');
+  if (hasLogging && !failedArticles.has('Art. 20')) verified.push('Art. 20');
+  if (hasRiskManagement && !failedArticles.has('Art. 9')) verified.push('Art. 9');
+
+  return verified;
 }
 
-function determineVerifiedArticles(findings) {
-  // An article is verified ONLY if ALL checks for that article PASSED
-  // and no hard fail is related to that article
-  const allArticles = ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'];
-  const failedArticles = new Set();
+function computeEvidenceScore(findings, manifest) {
+  const riskCat = (manifest.risk_category || "minimal").toLowerCase();
+  let required = ['Art. 13'];
+  if (riskCat === 'high') {
+    required = ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'];
+  } else if (riskCat === 'limited') {
+    required = ['Art. 13'];
+  } else if (riskCat === 'unacceptable') {
+    return { baseScore: 0, deductions: 0, finalScore: 0 };
+  }
 
+  const verified = determineVerifiedArticles(findings, manifest);
+  const verifiedRequired = required.filter(a => verified.includes(a));
+  
+  if (required.length === 0) return { baseScore: 0, deductions: 0, finalScore: 0 };
+  
+  // Base Score = % of required controls satisfied
+  const baseScore = Math.round((verifiedRequired.length / required.length) * 100);
+  
+  let totalDeductions = 0;
+  // Subtract deductions for required articles if they have findings
   for (const f of findings) {
-    if (f.article) {
-      failedArticles.add(f.article);
+    if (required.includes(f.article)) {
+      totalDeductions += (f.deduction || 0) / required.length;
     }
   }
 
-  return allArticles.filter(a => !failedArticles.has(a));
+  const finalScore = Math.max(0, Math.min(100, Math.round(baseScore - totalDeductions)));
+  return {
+    baseScore,
+    deductions: Math.round(totalDeductions),
+    finalScore
+  };
 }
 
 function hasHardFail(findings) {
   return findings.some(f => f.hard_fail === true);
 }
 
-function computeVerdict(score, findings) {
-  // Hard fails always force NON_COMPLIANT regardless of score
-  if (hasHardFail(findings)) {
-    return 'NON_COMPLIANT';
+function computeVerdict(score, findings, manifest) {
+  if (hasHardFail(findings)) return 'NON_COMPLIANT';
+  
+  const riskCat = (manifest.risk_category || "minimal").toLowerCase();
+  let required = ['Art. 13'];
+  if (riskCat === 'high') {
+    required = ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'];
   }
-  if (score >= 85) return 'COMPLIANT';
+  
+  const verified = determineVerifiedArticles(findings, manifest);
+  const allRequiredVerified = required.every(a => verified.includes(a));
+
+  if (allRequiredVerified && score >= 85) return 'COMPLIANT';
   if (score >= 60) return 'PARTIAL';
   return 'NON_COMPLIANT';
 }
@@ -374,23 +432,45 @@ function printOnboarding() {
 function runInit() {
   const manifestPath = path.resolve(process.cwd(), 'sentinel.manifest.json');
   if (fs.existsSync(manifestPath)) {
-    console.log(`${C.yellow}⚠️  sentinel.manifest.json already exists.${C.reset}`);
+    console.log(`\n${C.yellow}⚠️  sentinel.manifest.json already exists.${C.reset}\n`);
     return;
   }
+  
   const sampleManifest = {
     schema: "sentinel.manifest.v1",
-    project_name: path.basename(process.cwd()),
-    ai_components: [
-      {
-        name: "Core Engine",
-        risk_category: "High",
-        declared_flags: ["human_oversight_enabled", "bias_assessment_performed"]
-      }
-    ]
+    app_name: path.basename(process.cwd()),
+    risk_category: "minimal",
+    modules: [],
+    declared_flags: ["transparency_disclosure_provided"]
   };
+  
   fs.writeFileSync(manifestPath, JSON.stringify(sampleManifest, null, 2));
-  console.log(`${C.green}✅ Created sentinel.manifest.json${C.reset}`);
-  console.log(`${C.gray}Next step: run 'npx sentinel-scan' to audit your project.${C.reset}`);
+  
+  console.log(`\n${C.green}${C.bold}✔ sentinel.manifest.json created${C.reset}`);
+  console.log(`${C.gray}This file defines your AI system's compliance structure.${C.reset}\n`);
+  
+  console.log(`${C.cyan}${C.bold}Next Steps:${C.reset}`);
+  console.log(`1. Edit ${C.white}sentinel.manifest.json${C.reset} to describe your app.`);
+  console.log(`2. Define your ${C.white}risk_category${C.reset} (minimal, limited, high, critical).`);
+  console.log(`3. Provide at least one control signal (Transparency, Logging, or Oversight).\n`);
+  
+  console.log(`${C.gray}Minimal Example (PASSES CLEANLY):${C.reset}`);
+  console.log(`${C.gray}{${C.reset}`);
+  console.log(`${C.gray}  "app_name": "${sampleManifest.app_name}",${C.reset}`);
+  console.log(`${C.gray}  "risk_category": "minimal",${C.reset}`);
+  console.log(`${C.gray}  "declared_flags": ["transparency_disclosure_provided"]${C.reset}`);
+  console.log(`${C.gray}}${C.reset}\n`);
+  
+  console.log(`${C.gray}Limited Example (REQUIRES EVIDENCE):${C.reset}`);
+  console.log(`${C.gray}{${C.reset}`);
+  console.log(`${C.gray}  "app_name": "${sampleManifest.app_name}",${C.reset}`);
+  console.log(`${C.gray}  "risk_category": "limited",${C.reset}`);
+  console.log(`${C.gray}  "evidence_path": "docs/transparency/disclosure.json",${C.reset}`);
+  console.log(`${C.gray}  "declared_flags": ["transparency_disclosure_provided"]${C.reset}`);
+  console.log(`${C.gray}}${C.reset}\n`);
+  
+  console.log(`${C.cyan}${C.bold}Then run:${C.reset}`);
+  console.log(`${C.white}npx @radu_api/sentinel-scan${C.reset}\n`);
 }
 
 async function runRemote(manifest, apiKey, endpoint, telemetry = {}) {
@@ -1222,16 +1302,43 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
   }
 
   const auditMetadata = {
-    score: singleVerdict?.score,
-    mapped_articles: singleVerdict?.mapped_articles
+    score: singleVerdict?.score?.finalScore !== undefined ? singleVerdict.score.finalScore : singleVerdict?.score,
+    baseScore: singleVerdict?.score?.baseScore,
+    deductions: singleVerdict?.score?.deductions,
+    mapped_articles: singleVerdict?.mapped_articles,
+    risk_category: singleVerdict?.risk_category,
+    required_articles: singleVerdict?.required_articles,
+    verdict: singleVerdict?.verdict
   };
+
+  const confidence = (auditMetadata.score >= 90 && auditMetadata.mapped_articles?.length >= 3) ? "HIGH" : 
+                    (auditMetadata.score >= 70) ? "MEDIUM" : "LOW";
 
   if (isFail) {
     if (!isJson && !isSarif) {
       console.log(`${C.bold}${C.red}❌ Sentinel compliance check failed${C.reset}`);
       
-      if (auditMetadata.score !== undefined) {
-        console.log(`${C.bold}Compliance Score: ${C.red}${auditMetadata.score}/100${C.reset}`);
+      console.log(`${C.bold}Compliance Status: ${C.red}NON_COMPLIANT${C.reset}`);
+      
+      if (auditMetadata.risk_category === 'unacceptable') {
+        console.log(`${C.bold}Risk Category: ${C.white}unacceptable${C.reset}`);
+        console.log(`${C.bold}Verified Controls: ${C.gray}None${C.reset}`);
+        console.log(`${C.bold}Verified Articles: ${C.gray}None${C.reset}`);
+        console.log(`${C.bold}Reason: ${C.red}Prohibited system / hard fail${C.reset}`);
+      } else {
+        if (auditMetadata.baseScore !== undefined) {
+          console.log(`${C.bold}Base Score: ${C.white}${auditMetadata.baseScore}/100${C.reset}`);
+          console.log(`${C.bold}Deductions: ${C.red}-${auditMetadata.deductions}${C.reset}`);
+          console.log(`${C.bold}Final Score: ${C.red}${auditMetadata.score}/100${C.reset}`);
+        } else if (auditMetadata.score !== undefined) {
+          console.log(`${C.bold}Compliance Score: ${C.red}${auditMetadata.score}/100${C.reset}`);
+        }
+        
+        console.log(`${C.bold}Confidence Level: ${C.yellow}${confidence}${C.reset}`);
+        console.log(`${C.bold}Risk Category: ${C.white}${auditMetadata.risk_category || 'minimal'}${C.reset}`);
+        console.log(`${C.bold}Required Controls: ${C.gray}${auditMetadata.required_articles?.join(', ') || 'Art. 13'}${C.reset}`);
+        console.log(`${C.bold}Verified Controls: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
+        console.log(`${C.bold}Verified Articles: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
       }
 
       console.log("");
@@ -1294,7 +1401,25 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
     }
     printFailure(missingFiles, policyPath);
   } else {
-    printSuccess(policyPath, auditMetadata);
+    if (!isJson && !isSarif) {
+      console.log(`${C.bold}${C.green}✅ Sentinel compliance check passed${C.reset}`);
+      console.log(`${C.bold}Compliance Status: ${C.green}${auditMetadata.verdict}${C.reset}`);
+      
+      if (auditMetadata.baseScore !== undefined) {
+        console.log(`${C.bold}Base Score: ${C.white}${auditMetadata.baseScore}/100${C.reset}`);
+        console.log(`${C.bold}Deductions: ${C.green}-${auditMetadata.deductions}${C.reset}`);
+        console.log(`${C.bold}Final Score: ${C.green}${auditMetadata.score}/100${C.reset}`);
+      } else {
+        console.log(`${C.bold}Compliance Score: ${C.green}${auditMetadata.score}/100${C.reset}`);
+      }
+      
+      console.log(`${C.bold}Confidence Level: ${C.green}${confidence}${C.reset}`);
+      console.log(`${C.bold}Risk Category: ${C.white}${auditMetadata.risk_category || 'minimal'}${C.reset}`);
+      console.log(`${C.bold}Required Controls: ${C.gray}${auditMetadata.required_articles?.join(', ') || 'Art. 13'}${C.reset}`);
+      console.log(`${C.bold}Verified Controls: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
+      console.log(`${C.bold}Verified Articles: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
+      console.log("");
+    }
   }
 }
 
@@ -1637,7 +1762,7 @@ async function main() {
     const singleManifest = Array.isArray(manifest) ? manifest[0] : manifest;
     const evidenceFindings = validateEvidence(singleManifest, manifestDir);
     
-    // Add evidence findings to combined violations
+    // Add evidence findings to combined violations for reporting
     for (const finding of evidenceFindings) {
       combinedViolations.push({
         rule_id: finding.rule_id,
@@ -1649,10 +1774,17 @@ async function main() {
       });
     }
 
-    // Compute evidence-based score
-    const evidenceScore = computeEvidenceScore(evidenceFindings);
-    const verifiedArticles = determineVerifiedArticles(evidenceFindings);
-    const evidenceVerdict = computeVerdict(evidenceScore, evidenceFindings);
+    // Determine risk-aware requirements for reporting
+    const riskCat = (singleManifest.risk_category || "minimal").toLowerCase();
+    let required = ['Art. 13'];
+    if (riskCat === 'high') {
+      required = ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'];
+    }
+
+    // Compute evidence-based score and verified articles (pass manifest as 2nd arg)
+    const evidenceScore = computeEvidenceScore(evidenceFindings, singleManifest);
+    const verifiedArticles = determineVerifiedArticles(evidenceFindings, singleManifest);
+    const evidenceVerdict = computeVerdict(evidenceScore.finalScore !== undefined ? evidenceScore.finalScore : evidenceScore, evidenceFindings, singleManifest);
 
     // Intermediate evidence print block removed to avoid double-printing
 
@@ -1671,10 +1803,11 @@ async function main() {
     const finalReport = {
       schema: "sentinel.audit.v1",
       schema_version: "2026-03",
-      // Use evidence-based verdict — never default to COMPLIANT without validation
       verdict: evidenceVerdict,
       score: evidenceScore,
       mapped_articles: verifiedArticles,
+      risk_category: riskCat,
+      required_articles: required,
       compliance_status: complianceStatus,
       summary,
       evidence_findings: evidenceFindings,
@@ -1781,36 +1914,12 @@ async function main() {
       process.exit(finalReport.verdict === "NON_COMPLIANT" ? 1 : 0);
     }
 
-    // Terminal Mode (Aggregated)
+    // ── 4. REPORTING ──
+    printResult(finalReport, isJson, isSarif, policy.path);
+    
     if (finalReport.verdict === "NON_COMPLIANT") {
-      printResult(finalReport, false, false, policy.path);
       pauseAndExit(1);
     }
-
-    if (finalReport.verdict === "PARTIAL") {
-      // PARTIAL: Show findings but don't force exit 1
-      console.log("");
-      console.log(`${C.bold}${C.yellow}⚠️  Sentinel compliance: PARTIAL${C.reset}`);
-      if (finalReport.score !== undefined) {
-        console.log(`${C.bold}Compliance Score: ${C.yellow}${finalReport.score}/100${C.reset}`);
-      }
-      if (finalReport.mapped_articles && finalReport.mapped_articles.length > 0) {
-        console.log(`${C.bold}Verified Articles: ${C.cyan}${finalReport.mapped_articles.join(", ")}${C.reset}`);
-      }
-      console.log("");
-      console.log(`${C.yellow}Some evidence validations have findings. Review and address them for full compliance.${C.reset}`);
-      for (const f of (finalReport.evidence_findings || [])) {
-        console.log(`${C.yellow}  ⚠ [${f.rule_id}] ${f.description}${C.reset}`);
-      }
-      if (policy.path) {
-        console.log("");
-        console.log(`${C.gray}Sentinel policy: ${policy.path}${C.reset}`);
-      }
-      console.log("");
-      pauseAndExit(0);
-    }
-
-    printSuccess(policy.path, finalReport);
     pauseAndExit(0);
   } catch (err) {
     console.error(`${C.red}Scan failed: ${err.message}${C.reset}`);
