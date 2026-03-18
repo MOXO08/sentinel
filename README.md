@@ -1,204 +1,116 @@
-# 🛡 sentinel-scan (v1.2.3)
+# Sentinel Scan
 
-**Deterministic AI compliance infrastructure for the EU AI Act. 100% offline. Zero-Egress. Driven by a high-performance Rust engine.**
+![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Sentinel%20Verified-blue)
 
-Sentinel automates regulatory technical verification directly in your development workflow. It bridges the gap between official AI Act requirements (EU 2024/1689) and your repository reality.
+Deterministic AI compliance scanner for the EU AI Act.
 
-[![npm version](https://img.shields.io/npm/v/sentinel-scan.svg)](https://npmjs.com/package/sentinel-scan)
-[![license](https://img.shields.io/npm/l/sentinel-scan.svg)](LICENSE)
-[![eu-ai-act](https://img.shields.io/badge/EU%20AI%20Act-2024%2FReady-blue)](https://artificialintelligenceact.eu/)
-[![Documentation](https://img.shields.io/badge/docs-canonical-green)](https://github.com/MOXO08/sentinel)
+Run local audits on AI systems, manifests, and documentation.
+Works offline. No external API calls. No telemetry by default.
 
----
+- **Risk-aware scoring**: Tiered requirements (Minimal / Limited / High / Unacceptable).
+- **Article verification**: Formal mapping to EU AI Act articles (Art. 9, 13, 14, 20).
+- **CI-ready**: Non-zero exit codes on compliance failure (suitable for CI pipelines)
+- **Fail-safe**: Automatic fallback to internal default policy.
 
-## ⚡ 2-Minute Quickstart
-
-Run a local diagnostic scan without an account or API key:
-
-```bash
-npx sentinel-scan ./manifest.json
-```
-
-**Zero Data Exfiltration.** The compliance engine runs locally via WebAssembly. Your source code and AI manifests never leave your machine.
-
----
-
-## ⚡ Quick Start
-
-Run Sentinel locally:
+## Install
 
 ```bash
-npx sentinel-scan ./manifest.json
+npm install -g @radu_api/sentinel-scan
 ```
 
-**No tokens. No API keys. No network calls.**
+Or run directly via npx:
 
-The entire EU AI Act ruleset runs locally inside a WebAssembly binary.
-
----
-
-## GitHub Action
-
-Sentinel can run automatically in CI using the official GitHub Action. This is the recommended way to enforce compliance for every Pull Request.
-
-[https://github.com/MOXO08/sentinel-scan-action](https://github.com/MOXO08/sentinel-scan-action)
-
-### Example Workflow
-
-```yaml
-name: Sentinel Compliance
-
-on:
-  pull_request:
-  push:
-    branches: [ main ]
-
-jobs:
-  sentinel:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Sentinel Scan
-        run: npx sentinel-scan ./manifest.json
+```bash
+npx @radu_api/sentinel-scan@latest <manifest.json>
 ```
 
----
+## Quick Start
 
-## Sentinel Verified Registry
-
-Explore public AI projects scanned with Sentinel:
-
-[https://moxo08.github.io/sentinel-verified/](https://moxo08.github.io/sentinel-verified/)
-
-Repositories using Sentinel can appear in the public registry of repositories scanned for EU AI Act readiness.
-
----
-
-## 🛡 Namespaced Rule IDs
-Sentinel uses a deterministic identification system for compliance issues:
-- `EUAI-GOV-*` — Governance & Data Policy
-- `EUAI-DOC-*` — Missing Evidence/Documentation
-- `EUAI-TECH-*` — Technical Transparency
-- `EUAI-DATA-*` — Data Governance & Bias
-- `EUAI-BLOCK-*` — Prohibited Practices (Blocked)
-
----
-
-## Why developers use Sentinel
-
-• **Deterministic compliance checks** based on official regulation.
-• **Runs 100% offline** for maximum data privacy.
-• **CI/CD friendly** with SARIF and JSON output.
-• **WebAssembly execution** (<5ms latency).
-• **GitHub Security integration** via native alerts.
-
----
-
-## Data Contract (Example Manifest)
-
-Create a `manifest.json` file describing your AI application:
+Create a minimal AI manifest (`sentinel.manifest.json`):
 
 ```json
 {
-  "app_name": "hr-cv-screener",
-  "version": "2.1.0",
-  "risk_category": "High",
-  "app_description": "Automated CV screening assistant for enterprise hiring.",
-  "declared_flags": [
-    "human_oversight_enabled",
-    "bias_assessment_performed",
-    "data_governance_policy_documented",
-    "user_notification_ai_interaction"
-  ],
-  "fallback_ai_verification": false
+  "app_name": "my-ai-system",
+  "risk_category": "high",
+  "declared_flags": ["transparency_disclosure_provided"]
 }
 ```
 
-### Risk Category Reference
-
-| Value | When to use |
-|---|---|
-| `Minimal` | Chatbots, spam filters, recommendation engines |
-| `Limited` | Emotion-aware UX, deepfake detection tools |
-| `High` | HR screening, medical diagnosis, credit scoring |
-| `Unacceptable` | Social scoring, subliminal manipulation (blocked) |
-
----
-
-## CI/CD Integration & SARIF
-
-Sentinel exports findings in SARIF format for native integration with GitHub Security.
-
-### Generate SARIF for Code Scanning
-
-### Generate SARIF for GitHub Security
-```bash
-npx sentinel-scan ./manifest.json --sarif > sentinel.sarif
-```
-*Upload the resulting SARIF file to the GitHub Security tab to see compliance findings as native code scanning alerts.*
-
----
-
-## Advanced Features
-
-### Policy Packs & Registry
-Sentinel supports reusable compliance rulesets:
-- `policy-pack list`: List all built-in rulesets.
-- `policy-pack show <name>`: Inspect specific rule requirements.
-
-### Compliance Evidence Pack
-Generate a full regulatory technical file (JSON, SARIF, Markdown):
-```bash
-npx sentinel-scan ./manifest.json --evidence
-```
-This creates a `sentinel-evidence/` folder containing all required audit artifacts.
-
-### Audit Ledger Sync
-Canonically synchronize your local evidence pack to the SaaS dashboard:
-```bash
-npx sentinel-scan evidence push ./sentinel-evidence --api-key YOUR_KEY
-```
-
-### Baseline Support
-Adopt Sentinel incrementally by ignoring existing compliance debt:
-```bash
-npx sentinel-scan manifest.json --baseline .sentinel-baseline.json
-```
-
----
-
-## Verdict Reference
-
-| Verdict | Meaning | Action |
-|---|---|---|
-| `COMPLIANT` | Passed all applicable rules | ✅ Safe to Ship |
-| `NON_COMPLIANT` | Violation detected | ❌ Block deploy |
-| `HIGH_RISK` | High-risk system requirements | ⚠️ Audit required |
-| `BLOCKED` | Art. 5 prohibited practice | 🚫 Hard block |
-
----
-
-## Remote Audit Mode
-
-For official **Automated Compliance Reports** (Audit-grade PDF), use the remote flag:
+Run the scan:
 
 ```bash
-npx sentinel-scan ./manifest.json --remote --api-key YOUR_KEY
+npx @radu_api/sentinel-scan sentinel.manifest.json
 ```
 
-**[→ Visit Dashboard](https://sentinel-api.sentinel-moxo.workers.dev/dashboard)**
+## Example Output
 
----
+```text
+╔══════════════════════════════════════════════════╗
+║  🛡  SENTINEL — LOCAL DIAGNOSTIC TOOL (OFFLINE)  ║
+╚══════════════════════════════════════════════════╝
 
-## Troubleshooting
+Scanning: /usr/src/app/sentinel.manifest.json
+Mode: ⚡ Local Diagnostic
 
-### WASM Execution Errors
-If you encounter an error related to `sentinel_engine.wasm`, ensure you are using a Node.js version >= 18.0.0 and that the `.wasm` file is present in the `pkg-node/` directory.
+⚠  Using default Sentinel policy (no local policy file found)
+❌ Sentinel compliance check failed
+Compliance Status: NON_COMPLIANT
+Base Score: 25/100
+Deductions: -10
+Final Score: 15/100
+Confidence Level: LOW
+Risk Category: high
+Required Controls: Art. 9, Art. 13, Art. 14, Art. 20
+Verified Controls: Art. 13
+Verified Articles: Art. 13
 
----
+Hard Fails:
+   ✖ HARD FAIL [EUAI-OVER-002] Human oversight requires substantiated evidence.
+   ✖ HARD FAIL [EUAI-LOG-003] Logging/traceability requires substantiated evidence.
 
-## License
+Sentinel policy: default.policy.json
+```
 
-UNLICENSED — Commercial use requires a Sentinel subscription.
+"Verified Articles indicate which regulatory requirements are substantiated.  
+They do not imply full legal compliance."
+
+## Risk Model
+
+Sentinel implements a risk-aware requirement matrix:
+
+- **Minimal**: Requires basic transparency signal (Art. 13). 100/100 score if flag is present.
+- **Limited**: Requires Art. 13 + explicit evidence (JSON/Markdown file). Flag alone is insufficient and results in a failing score (0/100).
+- **High-Risk**: Requires substantiation for Art. 9 (Risk), Art. 13 (Transparency), Art. 14 (Oversight), and Art. 20 (Logging).
+- **Unacceptable**: Immediate HARD FAIL for prohibited practices (e.g., social scoring). Final score is forced to 0.
+
+## Policy System
+
+Sentinel uses a tiered policy resolution system:
+
+1. **Local Policy**: Looks for `sentinel.policy.json` in the working directory.
+2. **Fallback**: Automatically uses the internal `default.policy.json` if no local file is found.
+
+The CLI is designed to run in empty or clean environments (like Docker or CI) without requiring manual configuration of a policy file for basic audits.
+
+## CI Integration
+
+Add Sentinel to your GitHub Actions workflow:
+
+```yaml
+- name: Run Sentinel Compliance Scan
+  run: npx @radu_api/sentinel-scan sentinel.manifest.json
+```
+
+The CLI returns exit code `0` on success and non-zero on compliance failure or hard fails.
+
+## Philosophy
+
+- **Deterministic**: Outcomes are based on code-level signals and evidence files, not probabilistic models.
+- **Explainable**: All scores are broken down by Base Score (required controls) and Deductions (findings).
+- **Transparent**: Article verification is earned through substantiation, never assumed.
+- **Standard-First**: Mapping follows the official EU AI Act (EU 2024/1689).
+
+## Links
+
+- **Verified Registry**: [https://moxo08.github.io/sentinel-verified/](https://moxo08.github.io/sentinel-verified/)
+- **Repository**: [https://github.com/MOXO08/sentinel](https://github.com/MOXO08/sentinel)
