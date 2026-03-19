@@ -1,6 +1,6 @@
 {
   "name": "@radu_api/sentinel-scan",
-  "version": "1.2.12",
+  "version": "1.2.13",
   "description": "Deterministic AI compliance infrastructure for the EU AI Act. Offline WebAssembly CLI that audits AI systems, manifests, and technical documentation for regulatory alignment.",
   "main": "bin/sentinel-scan.js",
   "bin": {
@@ -32,7 +32,7 @@
   "scripts": {
     "obfuscate": "javascript-obfuscator bin/sentinel-scan.js --output dist/index.js --compact true --self-defending false --string-array true --string-array-encoding base64 --string-array-threshold 1 --rename-globals true --control-flow-flattening false --control-flow-flattening-threshold 0 --reserved-strings \"fs,path,cli-progress,https,../pkg-node/sentinel_core.js,../package.json\"",
     "build:bin": "npm run obfuscate && pkg dist/index.js --config package.json --target node18-win-x64 --out-path bin-builds",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test tests/*.test.js"
   },
   "pkg": {
     "scripts": [

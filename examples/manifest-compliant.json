@@ -1,17 +1,18 @@
 {
-    "app_name": "hr-cv-screener",
-    "version": "3.1.0",
-    "risk_category": "High",
-    "app_description": "Automated CV and recruitment screening assistant for enterprise hiring departments.",
-    "declared_flags": [
-        "human_oversight_enabled",
-        "human_interrupt_capability",
-        "bias_assessment_performed",
-        "data_governance_policy_documented",
-        "user_notification_ai_interaction",
-        "transparency_disclosure_provided",
-        "explainability_mechanism_present",
-        "conformity_assessment_completed"
-    ],
-    "fallback_ai_verification": false
+  "app_name": "sentinel-test-app",
+  "version": "1.0.0",
+  "risk_category": "high",
+  "declared_flags": [
+    "transparency_disclosure_provided",
+    "user_notification_ai_interaction"
+  ],
+  "human_oversight": {
+    "description": "Human reviewer monitors decisions and can override outputs."
+  },
+  "oversight_evidence_path": "docs/compliance/human_oversight.md",
+  "logging_capabilities": {
+    "enabled": true,
+    "events_logged": ["input", "output", "decision"]
+  },
+  "logging_evidence_path": "docs/compliance/data_governance.md"
 }

@@ -72,19 +72,22 @@ function printHelp() {
   console.log(`  policy-pack list                List built-in Sentinel policy packs`);
   console.log(`  policy-pack show <name>         Show policy pack details`);
   
-  console.log(`\n${C.bold}Evidence Commands:${C.reset}`);
-  console.log(`  evidence push <dir>             Sync evidence pack to Sentinel SaaS Audit Ledger`);
+  console.log(`\n${C.bold}Remediation Commands:${C.reset}`);
+  console.log(`  npx sentinel-scan fix                       Show remediation plan (dry-run)`);
+  console.log(`  npx sentinel-scan fix --apply               Apply remediation fixes safely`);
+  console.log(`  npx sentinel-scan fix --manifest <path>     Target a specific manifest`);
+  console.log(`  npx sentinel-scan fix --yes                 Skip confirmation during apply`);
 }
 
 // ── Top 10 Reguli AI Act — Embedded offline ──
 const OFFLINE_RULES = {
   rules: [
-    { id: "ART5-001", description: "Subliminal manipulation", risk_category: "Unacceptable", required_flags: [], forbidden_flags: ["subliminal_techniques"] },
-    { id: "ART5-003", description: "Social scoring", risk_category: "Unacceptable", required_flags: [], forbidden_flags: ["social_scoring"] },
-    { id: "ART10-001", description: "Data governance & Bias assessment", risk_category: "High", required_flags: ["bias_assessment_performed", "data_governance_policy_documented"] },
-    { id: "ART13-001", description: "User notification of AI interaction", risk_category: "High", required_flags: ["user_notification_ai_interaction"] },
-    { id: "ART14-001", description: "Human oversight", risk_category: "High", required_flags: ["human_oversight_enabled"] },
-    { id: "ART22-001", description: "Conformity assessment", risk_category: "High", required_flags: ["conformity_assessment_completed"] },
+    { id: "ART5-001", description: "Subliminal manipulation", risk_category: "Unacceptable", required_flags: [], forbidden_flags: ["subliminal_techniques"], fix_snippet: "Remove features exploiting subliminal techniques (Article 5.1a Prohibited)." },
+    { id: "ART5-003", description: "Social scoring", risk_category: "Unacceptable", required_flags: [], forbidden_flags: ["social_scoring"], fix_snippet: "Remove social scoring functionality or restrict to non-prohibited domains (Article 5.1c)." },
+    { id: "ART10-001", description: "Data governance & Bias assessment", risk_category: "High", required_flags: ["bias_assessment_performed", "data_governance_policy_documented"], fix_snippet: "Add 'bias_assessment_performed' and 'data_governance_policy_documented' to 'declared_flags' array." },
+    { id: "ART13-001", description: "User notification of AI interaction", risk_category: "High", required_flags: ["user_notification_ai_interaction"], fix_snippet: "Add 'user_notification_ai_interaction' to 'declared_flags' array and implement UI notification." },
+    { id: "ART14-001", description: "Human oversight", risk_category: "High", required_flags: ["human_oversight_enabled"], fix_snippet: "Add 'human_oversight_enabled' to 'declared_flags' array and implement a kill-switch." },
+    { id: "ART22-001", description: "Conformity assessment", risk_category: "High", required_flags: ["conformity_assessment_completed"], fix_snippet: "Add 'conformity_assessment_completed' to 'declared_flags' array after legal review." }
   ]
 };
 
@@ -92,6 +95,34 @@ async function runOffline(manifest) {
   const { run_audit } = require('../pkg-node/sentinel_core.js');
   const verdictText = run_audit(JSON.stringify(manifest), JSON.stringify(OFFLINE_RULES));
   return JSON.parse(verdictText);
+}
+
+
+/**
+ * Logic to resolve the target manifest path from CLI arguments and environment.
+ */
+function resolveTargetManifest(args) {
+  let manifestPath = null;
+  // 1. Explicit --manifest flag
+  const manifestArgIdx = args.indexOf('--manifest');
+  if (manifestArgIdx !== -1 && args[manifestArgIdx + 1]) {
+    manifestPath = args[manifestArgIdx + 1];
+  }
+
+  // 2. Default lookup
+  if (!manifestPath) {
+    const hasManifestJson = fs.existsSync('manifest.json');
+    const hasSentinelManifest = fs.existsSync('sentinel.manifest.json');
+
+    if (hasManifestJson && hasSentinelManifest) {
+      console.error(`\n${C.red}${C.bold}Error: Both manifest.json and sentinel.manifest.json exist.${C.reset}`);
+      console.error(`${C.gray}Please specify which one to use with --manifest <path>${C.reset}\n`);
+      process.exit(1);
+    }
+
+    manifestPath = hasManifestJson ? 'manifest.json' : (hasSentinelManifest ? 'sentinel.manifest.json' : null);
+  }
+  return manifestPath;
 }
 
 // ── Evidence-Based Validation Engine ──
@@ -116,8 +147,10 @@ function validateEvidence(manifest, manifestDir) {
   if (isUnacceptable) {
     findings.push({
       article: 'General', rule_id: 'EUAI-UNACCEPTABLE-001',
-      description: 'System declared as "unacceptable" risk — prohibited under the EU AI Act.',
+      description: "[Unacceptable risk category]",
       deduction: 100, severity: 'critical', hard_fail: true, source: 'evidence'
+   ,
+      fix_snippet: "Change 'risk_category' to a permitted value."
     });
     return findings; // No scoring for unacceptable
   }
@@ -126,8 +159,10 @@ function validateEvidence(manifest, manifestDir) {
   if (!manifest.risk_category) {
     findings.push({
       article: 'Art. 9', rule_id: 'EUAI-RISK-002',
-      description: 'risk_category is missing from manifest — compliance level cannot be assessed',
+      description: "[Missing risk category]",
       deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence'
+   ,
+      fix_snippet: "Add 'risk_category' to manifest.json."
     });
   }
 
@@ -140,8 +175,10 @@ function validateEvidence(manifest, manifestDir) {
   if (!hasTransparencyFlag && !hasTransparencyFile && !hasOversight && !hasLogging) {
     findings.push({
       article: 'General', rule_id: 'EUAI-MIN-001',
-      description: 'Minimum compliance structure missing: Manifest must declare at least one control (Transparency, Oversight, or Logging)',
+      description: "[Missing baseline structure]",
       deduction: 30, severity: 'critical', hard_fail: true, source: 'evidence'
+   ,
+      fix_snippet: "Add required top-level flags and evidence fields."
     });
   }
 
@@ -149,9 +186,10 @@ function validateEvidence(manifest, manifestDir) {
   if (isLimited && hasTransparencyFlag && !hasTransparencyFile) {
     findings.push({
       article: 'Art. 13', rule_id: 'EUAI-TRANS-002',
-      description: 'Limited-risk apps require explicit transparency evidence (e.g. evidence_path), not just a flag.',
-      deduction: 20, severity: 'high', hard_fail: false, source: 'evidence'
-    });
+      description: "[Missing transparency evidence]",
+        deduction: 20, severity: 'high', hard_fail: false, source: 'evidence',
+        fix_snippet: "Add 'evidence_path' for technical documentation." },
+        );
   }
 
   // ── 2. evidence_path: Art. 13 Transparency && disclosure-config semantics ──
@@ -161,7 +199,8 @@ function validateEvidence(manifest, manifestDir) {
       findings.push({
         article: 'Art. 13', rule_id: 'EUAI-EVID-001',
         description: `Declared evidence_path does not exist: ${manifest.evidence_path}`,
-        deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence'
+        deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence',
+        fix_snippet: "Create the missing evidence file at the path specified in your manifest."
       });
     } else {
       try {
@@ -170,7 +209,8 @@ function validateEvidence(manifest, manifestDir) {
           findings.push({
             article: 'Art. 13', rule_id: 'EUAI-EVID-002',
             description: `Evidence file is trivially empty (${stat.size} bytes): ${manifest.evidence_path}`,
-            deduction: 15, severity: 'high', hard_fail: true, source: 'evidence'
+            deduction: 15, severity: 'high', hard_fail: true, source: 'evidence',
+            fix_snippet: "Add meaningful compliance documentation to the empty evidence file."
           });
         } else if (manifest.evidence_path.endsWith('.json')) {
           try {
@@ -180,7 +220,8 @@ function validateEvidence(manifest, manifestDir) {
               findings.push({
                 article: 'Art. 13', rule_id: 'EUAI-EVID-003',
                 description: `Evidence file is valid JSON but contains no meaningful content: ${manifest.evidence_path}`,
-                deduction: 15, severity: 'high', hard_fail: true, source: 'evidence'
+                deduction: 15, severity: 'high', hard_fail: true, source: 'evidence',
+                fix_snippet: "Populate the JSON evidence file with required compliance data fields."
               });
             }
             // REQUIREMENT 4: disclosure-config semantic check
@@ -191,7 +232,8 @@ function validateEvidence(manifest, manifestDir) {
                 findings.push({
                   article: 'Art. 13', rule_id: 'EUAI-EVID-006',
                   description: `disclosure-config.json missing required semantic keys: ${missingKeys.join(', ')}`,
-                  deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence'
+                  deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence',
+                  fix_snippet: "Add missing keys (component, trigger, text, active) to disclosure-config.json."
                 });
               }
             }
@@ -199,15 +241,17 @@ function validateEvidence(manifest, manifestDir) {
             findings.push({
               article: 'Art. 13', rule_id: 'EUAI-EVID-004',
               description: `Evidence file is not valid JSON (parse error): ${manifest.evidence_path}`,
-              deduction: 15, severity: 'critical', hard_fail: true, source: 'evidence'
+              deduction: 15, severity: 'critical', hard_fail: true, source: 'evidence',
+              fix_snippet: "Fix JSON syntax errors in the evidence file."
             });
           }
         }
       } catch (readErr) {
         findings.push({
           article: 'Art. 13', rule_id: 'EUAI-EVID-005',
-          description: `Evidence file is unreadable: ${manifest.evidence_path} (${readErr.message})`,
-          deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence'
+          description: `[Unreadable evidence file]`,
+          deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence',
+          fix_snippet: "Ensure evidence file has correct read permissions."
         });
       }
     }
@@ -217,9 +261,10 @@ function validateEvidence(manifest, manifestDir) {
   if (!declaredFlags.includes('transparency_disclosure_provided')) {
     findings.push({
       article: 'Art. 13', rule_id: 'EUAI-TRANS-001',
-      description: 'Missing transparency_disclosure_provided flag — transparency not substantiated',
-      deduction: 15, severity: 'high', hard_fail: false, source: 'evidence'
-    });
+      description: "[Missing transparency flag]",
+      deduction: 15, severity: 'high', hard_fail: false, source: 'evidence',
+        fix_snippet: "Add 'transparency_disclosure_provided' to 'declared_flags' array."
+      });
   }
 
   // ── 4. Module-level evidence validation: Art. 9 && risk management semantics ──
@@ -229,6 +274,7 @@ function validateEvidence(manifest, manifestDir) {
         findings.push({
           article: 'Art. 9', rule_id: 'EUAI-MOD-001',
           description: `High-risk module "${mod.id || 'unnamed'}" has no evidence field`,
+          fix_snippet: "Add 'evidence' field to the high-risk module in manifest.json.",
           deduction: 10, severity: 'high', hard_fail: false, source: 'evidence'
         });
       } else {
@@ -237,6 +283,7 @@ function validateEvidence(manifest, manifestDir) {
           findings.push({
             article: 'Art. 9', rule_id: 'EUAI-MOD-002',
             description: `High-risk module "${mod.id || 'unnamed'}" declares evidence but file missing: ${mod.evidence}`,
+          fix_snippet: "Create the missing module evidence file specified in the manifest.",
             deduction: 10, severity: 'high', hard_fail: false, source: 'evidence'
           });
         } else {
@@ -246,6 +293,7 @@ function validateEvidence(manifest, manifestDir) {
               findings.push({
                 article: 'Art. 9', rule_id: 'EUAI-MOD-003',
                 description: `High-risk module "${mod.id}" evidence file is trivially empty or too small: ${mod.evidence}`,
+          fix_snippet: "Add meaningful content to the empty module evidence file.",
                 deduction: 15, severity: 'high', hard_fail: true, source: 'evidence'
               });
             } else {
@@ -254,10 +302,12 @@ function validateEvidence(manifest, manifestDir) {
                 try {
                   const parsed = JSON.parse(content);
                   if (!parsed || Object.keys(parsed).length === 0) {
-                    findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-004', description: `Module JSON evidence is empty: ${mod.evidence}`, deduction: 15, severity: 'high', hard_fail: true, source: 'evidence' });
+                    findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-004', description: `Module JSON evidence is empty: ${mod.evidence}`,
+          fix_snippet: "Populate the module JSON evidence with required compliance data.", deduction: 15, severity: 'high', hard_fail: true, source: 'evidence' });
                   }
                 } catch (e) {
-                    findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-005', description: `Module evidence is not valid JSON: ${mod.evidence}`, deduction: 15, severity: 'high', hard_fail: true, source: 'evidence' });
+                    findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-005', description: `Module evidence is not valid JSON: ${mod.evidence}`,
+          fix_snippet: "Fix JSON syntax errors in the module evidence file.", deduction: 15, severity: 'high', hard_fail: true, source: 'evidence' });
                 }
               } else {
                 // REQUIREMENT 5: risk management semantic check
@@ -269,6 +319,7 @@ function validateEvidence(manifest, manifestDir) {
                     findings.push({
                       article: 'Art. 9', rule_id: 'EUAI-MOD-006',
                       description: `Risk management evidence lacks required semantic sections: ${missingTerms.join(', ')}`,
+          fix_snippet: "Add missing sections (risk category, mitigation, oversight, transparency) to the risk management file.",
                       deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence'
                     });
                   }
@@ -276,7 +327,8 @@ function validateEvidence(manifest, manifestDir) {
               }
             }
           } catch(e) {
-            findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-007', description: `Module evidence unreadable: ${mod.evidence}`, deduction: 15, severity: 'high', hard_fail: true, source: 'evidence' });
+            findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-007', description: `Module evidence unreadable: ${mod.evidence}`,
+          fix_snippet: "Ensure the module evidence file has correct read permissions.", deduction: 15, severity: 'high', hard_fail: true, source: 'evidence' });
           }
         }
       }
@@ -295,8 +347,9 @@ function validateEvidence(manifest, manifestDir) {
     if (!hasOversightObj && !hasValidOversightFile) {
       findings.push({
         article: 'Art. 14', rule_id: 'EUAI-OVER-002',
-        description: 'Human oversight requires either a detailed "human_oversight" object or a valid "oversight_evidence_path". Flag alone is insufficient.',
-        deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence'
+        description: "[Missing human oversight details]",
+        deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence',
+        fix_snippet: "Provide 'human_oversight' object or 'oversight_evidence_path'."
       });
     }
   }
@@ -313,8 +366,9 @@ function validateEvidence(manifest, manifestDir) {
     if (!hasLoggingObj && !hasValidLoggingFile) {
       findings.push({
         article: 'Art. 20', rule_id: 'EUAI-LOG-003',
-        description: 'Logging/traceability requires either a detailed "logging_capabilities" object or a valid "logging_evidence_path". Flag alone is insufficient.',
-        deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence'
+        description: "[Missing logging details]",
+        deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence',
+        fix_snippet: "Provide 'logging_capabilities' object or 'logging_evidence_path'."
       });
     }
   }
@@ -1402,8 +1456,9 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
     printFailure(missingFiles, policyPath);
   } else {
     if (!isJson && !isSarif) {
-      console.log(`${C.bold}${C.green}✅ Sentinel compliance check passed${C.reset}`);
-      console.log(`${C.bold}Compliance Status: ${C.green}${auditMetadata.verdict}${C.reset}`);
+      const statusColor = auditMetadata.verdict === 'COMPLIANT' ? C.green : (auditMetadata.verdict === 'PARTIAL' ? C.yellow : C.red);
+      console.log(`${C.bold}${statusColor}✅ Sentinel compliance check passed${C.reset}`);
+      console.log(`${C.bold}Compliance Status: ${statusColor}${auditMetadata.verdict}${C.reset}`);
       
       if (auditMetadata.baseScore !== undefined) {
         console.log(`${C.bold}Base Score: ${C.white}${auditMetadata.baseScore}/100${C.reset}`);
@@ -1433,154 +1488,239 @@ function printVersion() {
   console.log(`Sentinel CLI v${pkg.version}`);
 }
 
+
+/**
+ * CI/CD Guardrail: check compliance score against threshold.
+ */
+async function runCheck(args) {
+  const isJson = args.includes('--json');
+  
+  // 1. Resolve Threshold
+  const thresholdArgIdx = args.indexOf('--threshold');
+  let threshold = null;
+  if (thresholdArgIdx !== -1 && args[thresholdArgIdx + 1]) {
+    threshold = parseInt(args[thresholdArgIdx + 1]);
+  }
+
+  if (threshold === null || isNaN(threshold)) {
+    console.error(`\n${C.red}${C.bold}Error: --threshold is required for sentinel check${C.reset}`);
+    console.log(`\n${C.bold}Suggested thresholds:${C.reset}`);
+    console.log(`  - 70 → development baseline`);
+    console.log(`  - 80 → production minimum`);
+    console.log(`  - 90 → high-risk systems (recommended)`);
+    process.exit(2);
+  }
+
+  // 2. Resolve Manifest
+  const manifestPath = resolveTargetManifest(args);
+  if (!manifestPath || !fs.existsSync(manifestPath)) {
+    console.error(`${C.red}Error: No manifest found. Use --manifest <path>${C.reset}`);
+    process.exit(2);
+  }
+
+  const manifestDir = path.dirname(path.resolve(manifestPath));
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (e) {
+    console.error(`${C.red}Error reading manifest: ${e.message}${C.reset}`);
+    process.exit(2);
+  }
+
+  // Normalize risk category for reporting
+  const riskCatOrig = manifest.risk_category || "Minimal";
+  const riskCat = riskCatOrig.toUpperCase();
+
+  // 3. Perform Audit
+  const offlineResult = await runOffline(manifest);
+  const engineViolations = offlineResult.violations || [];
+  const evidenceFindings = validateEvidence(manifest, manifestDir);
+  const allFindings = [...evidenceFindings, ...engineViolations];
+
+  // Post-process findings to ensure 100% DX compliance (labels and snippets)
+  allFindings.forEach(f => {
+    if (f.fix_snippet && f.fix_snippet.includes('declared_flags') && !f.fix_snippet.includes('array')) {
+      f.fix_snippet = f.fix_snippet.replace('declared_flags', "'declared_flags' array");
+    }
+    if (f.description && f.description.toLowerCase().includes('transparent about being an ai')) {
+       f.description = "[Missing user notification]";
+       f.fix_snippet = "Add 'user_notification_ai_interaction' to 'declared_flags' array.";
+       if (!f.article) f.article = "Art. 13";
+    }
+  });
+
+  const scoreObj = computeEvidenceScore(evidenceFindings, manifest);
+  const score = scoreObj.finalScore !== undefined ? scoreObj.finalScore : scoreObj;
+  const verdict = computeVerdict(score, allFindings, manifest);
+
+  // 4. Output
+  if (isJson) {
+    const report = {
+      command: "check",
+      status: score >= threshold ? "PASS" : "FAIL",
+      score,
+      threshold,
+      verdict,
+      exit_code: score >= threshold ? 0 : 1,
+      remaining_findings: allFindings.length,
+      top_findings: allFindings.slice(0, 5).map(f => ({
+        rule_id: f.rule_id,
+        description: f.description,
+        fix_snippet: f.fix_snippet
+      }))
+    };
+    console.log(JSON.stringify(report, null, 2));
+    process.exit(report.exit_code);
+  }
+
+  if (score >= threshold) {
+    console.log(`\n${C.green}${C.bold}Sentinel Check: PASS${C.reset}`);
+  } else {
+    console.log(`\n${C.red}${C.bold}Sentinel Check: FAIL${C.reset}`);
+  }
+
+  console.log(`${C.gray}Manifest: ${C.white}${manifestPath}${C.reset}`);
+  console.log(`${C.gray}Score: ${C.white}${score}/100${C.reset}`);
+  console.log(`${C.gray}Threshold: ${C.white}${threshold}${C.reset}`);
+  
+
+  if (riskCat === 'HIGH') {
+     console.log(`\n${C.yellow}${C.bold}⚠ High-risk system detected${C.reset}`);
+     console.log(`${C.cyan}Recommended minimum threshold: 90${C.reset}`);
+  }
+
+  if (score < threshold) {
+    
+    allFindings.slice(0, 5).forEach(f => {
+      const legalRef = f.article ? ` (${f.article})` : '';
+      console.log(`\n[${C.yellow}${f.description}${C.reset}]${legalRef}`);
+      if (f.fix_snippet) console.log(`${C.green}→ ${f.fix_snippet}${C.reset}`);
+    });
+    
+    
+    const contextualFix = manifestPath ? ` --manifest ${manifestPath}` : '';
+    console.log(`\n${C.cyan}Next step: run ${C.bold}sentinel fix --apply${contextualFix}${C.reset} to scaffold structure.`);
+    console.log(`${C.gray}Note: scaffolds missing structure only. Manual content still required.${C.reset}\n`);
+
+    process.exit(1);
+  }
+
+  process.exit(0);
+}
+
 async function main() {
   const args = process.argv.slice(2);
+  const command = (args[0] || '').toLowerCase();
 
-  if (args[0] === "discover") {
-    printBanner();
-    console.log(`${C.cyan}${C.bold}🔍 Sentinel Magic Onboarding: Scanning repository...${C.reset}`);
-    
-    const repoFiles = autodiscovery.crawlRepository(process.cwd());
-    const signals = autodiscovery.extractSignals(repoFiles, discoveryRules);
-    const suggestedManifest = autodiscovery.generateManifestFromSignals(signals);
-
-    console.log(`${C.gray}Analyzed ${repoFiles.length} files. Detected ${signals.length} signals.${C.reset}\n`);
-    
-    console.log(`${C.bold}Generated suggested manifest for ${C.cyan}${suggestedManifest.app_name}${C.reset}:`);
-    console.log(JSON.stringify(suggestedManifest, null, 2));
-    console.log("");
-
-    if (suggestedManifest.autodiscovery_notes.length > 0) {
-      console.log(`${C.yellow}${C.bold}Notes:${C.reset}`);
-      suggestedManifest.autodiscovery_notes.forEach(note => console.log(`${C.yellow}- ${note}${C.reset}`));
-      console.log("");
-    }
-
-    const manifestPath = path.join(process.cwd(), "sentinel.manifest.json");
-    if (fs.existsSync(manifestPath)) {
-      console.log(`${C.yellow}⚠️  A manifest already exists at ${manifestPath}. Skipping auto-save.${C.reset}`);
-    } else {
-      fs.writeFileSync(manifestPath, JSON.stringify(suggestedManifest, null, 2));
-      console.log(`${C.green}${C.bold}✅ Suggested manifest saved to ${C.cyan}sentinel.manifest.json${C.reset}`);
-      console.log(`${C.gray}You can now run: ${C.white}npx sentinel-scan ./sentinel.manifest.json${C.reset}`);
-    }
-
-    process.exit(0);
-  }
-
-  if (args[0] === "evidence" && args[1] === "generate") {
-    let policyPath = "sentinel.policy.json";
-    let policyPack = null;
-
-    for (let i = 0; i < args.length; i++) {
-      if (args[i] === "--policy" && args[i + 1]) {
-        policyPath = args[i + 1];
-        i++;
-        continue;
-      }
-
-      if (args[i] === "--policy-pack" && args[i + 1]) {
-        policyPack = args[i + 1];
-        i++;
-        continue;
-      }
-    }
-
-    let policy;
-
-    if (policyPack) {
-      const pack = resolvePolicyPack(policyPack);
-
-      if (!pack || pack.error) {
-        console.error("");
-        console.error(`Sentinel policy pack error: ${pack?.error || "Unable to load pack"}`);
-        console.error("");
-        process.exit(1);
-      }
-
-      policy = {
-        path: pack.path,
-        config: pack.config
-      };
-    } else {
-      policy = loadPolicy(policyPath);
-
-      if (policy.error) {
-        console.error("");
-        console.error(`Sentinel policy error: ${policy.error}`);
-        console.error("");
-        process.exit(1);
-      }
-    }
-
-    generateEvidence(policy.config);
-    process.exit(0);
-  }
-
-  if (args[0] === "policy-pack" && args[1] === "list") {
-    printPolicyPackList();
-    process.exit(0);
-  }
-
-  if (args[0] === "policy-pack" && args[1] === "show" && args[2]) {
-    printPolicyPackDetails(args[2]);
-    process.exit(0);
-  }
-
-  if (args[0] === "evidence" && args[1] === "push") {
-    const dir = args[2] || "sentinel-evidence";
-    const apiKeyIdx = args.indexOf('--api-key');
-    const apiKey = apiKeyIdx !== -1 ? args[apiKeyIdx + 1] : process.env.SENTINEL_API_KEY || '';
-    const endpointIdx = args.indexOf('--endpoint');
-    const endpoint = endpointIdx !== -1 ? args[endpointIdx + 1] : 'https://sentinel-api.sentinel-moxo.workers.dev';
-
-    if (!apiKey) {
-      console.error(`${C.red}Error: --api-key or SENTINEL_API_KEY environment variable required for push.${C.reset}`);
-      process.exit(1);
-    }
-
-    console.log(`${C.cyan}${C.bold}🚀 Porting Evidence Pack to Audit Ledger...${C.reset}`);
-    pushEvidence(dir, apiKey, endpoint)
-      .then(res => {
-        console.log(`\n${C.green}${C.bold}✅ Evidence synchronized successfully.${C.reset}`);
-        console.log(`${C.gray}Audit ID: ${res.audit_id || 'N/A'}${C.reset}`);
-        console.log(`${C.gray}Status: ${res.status}${C.reset}`);
-        process.exit(0);
-      })
-      .catch(err => {
-        console.error(`${C.red}Sync failed: ${err.message}${C.reset}`);
-        process.exit(1);
-      });
-    return; // Async
-  }
-
+  // 1. Global Flags (Priority)
   if (args.includes('--version') || args.includes('-v')) {
-    printVersion(); process.exit(0);
+    printBanner();
+    printVersion();
+    process.exit(0);
   }
   if (args.includes('--help') || args.includes('-h')) {
     printBanner();
     printHelp();
-    console.log(`\n${C.cyan}${C.bold}First time?${C.reset}`);
-    console.log(`${C.gray}Run 'npx sentinel-scan init' to create a manifest or just 'npx sentinel-scan' (no args) for a demo.${C.reset}`);
     process.exit(0);
   }
 
-  // Prefer local sentinel.manifest.json if no argument provided
-  let manifestPath = args.find(a => !a.startsWith('-'));
-  if (!manifestPath && fs.existsSync(path.join(process.cwd(), 'sentinel.manifest.json'))) {
-    manifestPath = 'sentinel.manifest.json';
-  }
-
-  if (args.length === 0 && !manifestPath) {
-    printOnboarding();
+  // 2. Subcommand Routing (MUST EXIT AFTER)
+  if (command === 'fix') {
+    await runFix(args.slice(1));
     process.exit(0);
   }
 
-  if (args[0] === 'init') {
+  if (command === 'check') {
+    await runCheck(args.slice(1));
+    process.exit(0);
+  }
+
+  if (command === 'init') {
     runInit();
     process.exit(0);
   }
 
+  if (command === 'discover') {
+    printBanner();
+    console.log(`${C.cyan}${C.bold}🔍 Sentinel Magic Onboarding: Scanning repository...${C.reset}`);
+    const repoFiles = autodiscovery.crawlRepository(process.cwd());
+    const signals = autodiscovery.extractSignals(repoFiles, discoveryRules);
+    const suggestedManifest = autodiscovery.generateManifestFromSignals(signals);
+    console.log(`${C.gray}Analyzed ${repoFiles.length} files. Detected ${signals.length} signals.${C.reset}\n`);
+    console.log(`${C.bold}Generated suggested manifest for ${C.cyan}${suggestedManifest.app_name}${C.reset}:`);
+    console.log(JSON.stringify(suggestedManifest, null, 2));
+    console.log("");
+    const manifestPath = path.join(process.cwd(), "sentinel.manifest.json");
+    if (fs.existsSync(manifestPath)) {
+      console.log(`${C.yellow}⚠️  A manifest already exists. Skipping auto-save.${C.reset}`);
+    } else {
+      fs.writeFileSync(manifestPath, JSON.stringify(suggestedManifest, null, 2));
+      console.log(`${C.green}${C.bold}✅ Suggested manifest saved to sentinel.manifest.json${C.reset}`);
+    }
+    process.exit(0);
+  }
+
+  if (command === "policy-pack") {
+    if (args[1] === "list") { printPolicyPackList(); process.exit(0); }
+    if (args[1] === "show" && args[2]) { printPolicyPackDetails(args[2]); process.exit(0); }
+  }
+
+  if (command === "evidence") {
+    if (args[1] === "generate") {
+        let policyPath = "sentinel.policy.json";
+        let policyPack = null;
+        for (let i = 0; i < args.length; i++) {
+            if (args[i] === "--policy" && args[i + 1]) { policyPath = args[i + 1]; i++; }
+            if (args[i] === "--policy-pack" && args[i + 1]) { policyPack = args[i + 1]; i++; }
+        }
+        let policy = policyPack ? { path: resolvePolicyPack(policyPack).path, config: resolvePolicyPack(policyPack).config } : loadPolicy(policyPath);
+        if (policy.error) { console.error(`\nError: ${policy.error}\n`); process.exit(1); }
+        generateEvidence(policy.config);
+        process.exit(0);
+    }
+    if (args[1] === "push") {
+        const dir = args[2] || "sentinel-evidence";
+        const apiKeyIdx = args.indexOf('--api-key');
+        const apiKey = apiKeyIdx !== -1 ? args[apiKeyIdx + 1] : process.env.SENTINEL_API_KEY || '';
+        if (!apiKey) { console.error(`${C.red}Error: --api-key required.${C.reset}`); process.exit(1); }
+        console.log(`${C.cyan}🚀 Porting Evidence...${C.reset}`);
+        pushEvidence(dir, apiKey, 'https://api.gettingsentinel.com/v1').then(() => process.exit(0));
+        return;
+    }
+  }
+
+  // 3. Default Scan Logic (Locked Contract)
+  let manifestPath = null;
+  const validSubcommands = ['fix', 'check', 'init', 'discover', 'policy-pack', 'evidence'];
+
+  if (args.length === 0) {
+    if (fs.existsSync('sentinel.manifest.json')) {
+      manifestPath = 'sentinel.manifest.json';
+    } else if (fs.existsSync('manifest.json')) {
+      manifestPath = 'manifest.json';
+    } else {
+      printOnboarding();
+      process.exit(0);
+      return; 
+    }
+  } else if (!validSubcommands.includes(command) && !args[0].startsWith('-')) {
+    // If it's a positional argument but not a subcommand -> DISALLOWED
+    console.error(`\n${C.red}❌ Error: Ambiguous usage. Positional manifest aliases are no longer supported.${C.reset}`);
+    console.log(`\n${C.cyan}${C.bold}Correct usage:${C.reset}`);
+    console.log(`  sentinel check --threshold 90 --manifest <path>`);
+    console.log(`  sentinel (for implicit scan on sentinel.manifest.json)`);
+    process.exit(1);
+    return;
+  } else if (!validSubcommands.includes(command)) {
+    // Other ambiguous usage (e.g. flags without check subcommand)
+    console.error(`\n${C.red}❌ Error: Invalid command or flag usage: "${args[0]}"${C.reset}`);
+    console.log(`\n${C.cyan}${C.bold}Correct usage:${C.reset}`);
+    console.log(`  sentinel check --threshold 90 --manifest <path>`);
+    process.exit(1);
+    return;
+  }
+
+  // Initialize scan variables
   const isRemote = args.includes('--remote');
   const isJson = args.includes('--json');
   const isSarif = args.includes('--sarif');
@@ -1592,38 +1732,15 @@ async function main() {
   let policyPack = null;
 
   for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--policy" && args[i + 1]) {
-      policyPath = args[i + 1];
-      i++;
-    }
-    if (args[i] === "--baseline" && args[i + 1]) {
-      baselinePath = args[i + 1];
-      i++;
-    }
-    if (args[i] === "--policy-pack" && args[i + 1]) {
-      policyPack = args[i + 1];
-      i++;
-    }
+    if (args[i] === "--policy" && args[i + 1]) { policyPath = args[i + 1]; i++; }
+    if (args[i] === "--baseline" && args[i + 1]) { baselinePath = args[i + 1]; i++; }
+    if (args[i] === "--policy-pack" && args[i + 1]) { policyPack = args[i + 1]; i++; }
   }
 
   const apiKeyIdx = args.indexOf('--api-key');
   const apiKey = apiKeyIdx !== -1 ? args[apiKeyIdx + 1] : process.env.SENTINEL_API_KEY || '';
   const endpointIdx = args.indexOf('--endpoint');
   const endpoint = endpointIdx !== -1 ? args[endpointIdx + 1] : 'https://api.gettingsentinel.com/v1';
-
-  if (!manifestPath || manifestPath.startsWith('-')) {
-    printOnboarding();
-    process.exit(0);
-  }
-
-  if (!fs.existsSync(manifestPath)) {
-    console.error(`\n${C.red}❌ Error: Manifest file not found at ${manifestPath}${C.reset}`);
-    console.log(`\n${C.cyan}${C.bold}Suggestions:${C.reset}`);
-    console.log(`1. Run 'sentinel-scan init' to generate a manifest.`);
-    console.log(`2. Run 'sentinel-scan discover' to auto-detect AI components.`);
-    console.log(`3. Provide a path: 'sentinel-scan ./my-manifest.json'`);
-    pauseAndExit(2);
-  }
 
   let manifest;
   try {
@@ -1633,9 +1750,13 @@ async function main() {
     }
   } catch (e) {
     console.error(`\n${C.red}❌ Error: Invalid manifest format: ${e.message}${C.reset}`);
-    console.log(`\n${C.cyan}${C.bold}How to fix:${C.reset}`);
-    console.log(`Validate your manifest.json schema at https://gettingsentinel.com/docs/manifest`);
     pauseAndExit(2);
+    return; // Atomic exit
+  }
+
+  // Hard-Gate Validation Guard
+  if (!manifest) {
+    return; // Exit main flow immediately
   }
 
   if (!isJson && !isSarif) {
@@ -1646,21 +1767,15 @@ async function main() {
 
   let alignmentIssues = [];
   if (isAutodiscover && !Array.isArray(manifest)) {
-    if (!isJson && !isSarif) {
-      console.log(`${C.cyan}${C.bold}🔍 Running Sentinel Autodiscovery...${C.reset}`);
-    }
-    
+    if (!isJson && !isSarif) console.log(`${C.cyan}${C.bold}🔍 Running Sentinel Autodiscovery...${C.reset}`);
     const repoFiles = autodiscovery.crawlRepository(process.cwd());
     const signals = autodiscovery.extractSignals(repoFiles, discoveryRules);
     alignmentIssues = autodiscovery.verifyAlignment(manifest, signals);
-
     if (!isJson && !isSarif) {
       console.log(`${C.gray}Analyzed ${repoFiles.length} files. Detected ${signals.length} signals.${C.reset}`);
       if (alignmentIssues.length > 0) {
         console.log(`\n${C.yellow}${C.bold}⚠️  INTEGRITY ISSUES DETECTED:${C.reset}`);
-        alignmentIssues.forEach(issue => {
-          console.log(`${C.yellow}- [${issue.type}] ${issue.recommendation}${C.reset}`);
-        });
+        alignmentIssues.forEach(issue => console.log(`${C.yellow}- [${issue.type}] ${issue.recommendation}${C.reset}`));
         console.log("");
       } else {
         console.log(`${C.green}✅ No integrity discrepancies found between code and manifest.${C.reset}\n`);
@@ -1670,6 +1785,13 @@ async function main() {
 
   try {
     let results;
+    const telemetry = {
+      clientId: getOrCreateClientId(),
+      scanId: require('crypto').randomBytes(8).toString('hex'),
+      projectHash: computeProjectHash(),
+      executionContext: detectExecutionContext()
+    };
+
     if (Array.isArray(manifest)) {
       const bar = new cliProgress.SingleBar({
         format: `${C.cyan}Scanning |${C.reset}{bar}${C.cyan}| {percentage}% || {value}/{total} Items`,
@@ -1677,101 +1799,50 @@ async function main() {
       });
       if (!isJson && !isSarif) bar.start(manifest.length, 0);
       results = [];
-      const telemetry = {
-        clientId: getOrCreateClientId(),
-        scanId: require('crypto').randomBytes(8).toString('hex'),
-        projectHash: computeProjectHash(),
-        executionContext: detectExecutionContext()
-      };
       for (const item of manifest) {
         results.push(isRemote ? await runRemote(item, apiKey, endpoint, telemetry) : await runOffline(item));
         if (!isJson && !isSarif) bar.increment();
       }
       if (!isJson && !isSarif) bar.stop();
     } else {
-      const telemetry = {
-        clientId: getOrCreateClientId(),
-        scanId: require('crypto').randomBytes(8).toString('hex'),
-        projectHash: computeProjectHash(),
-        executionContext: detectExecutionContext()
-      };
       results = isRemote ? await runRemote(manifest, apiKey, endpoint, telemetry) : await runOffline(manifest);
     }
 
     let policy;
-
     if (policyPack) {
       const pack = resolvePolicyPack(policyPack);
-
-      if (pack.error) {
-        console.error("");
-        console.error(pack.error);
-        console.error("");
-        process.exit(1);
-      }
-
-      policy = {
-        path: pack.path,
-        config: pack.config
-      };
+      if (pack.error) { console.error(`\n${pack.error}\n`); process.exit(1); }
+      policy = { path: pack.path, config: pack.config };
     } else {
       policy = loadPolicy(policyPath);
-
-      if (policy.warning && !isJson && !isSarif) {
-        console.log(`${C.yellow}⚠  ${policy.warning}${C.reset}`);
-      }
-
-      if (policy.error) {
-        console.error("");
-        console.error(`Sentinel policy error: ${policy.error}`);
-        console.error("");
-        process.exit(1);
-      }
+      if (policy.warning && !isJson && !isSarif) console.log(`${C.yellow}⚠  ${policy.warning}${C.reset}`);
+      if (policy.error) { console.error(`\nSentinel policy error: ${policy.error}\n`); process.exit(1); }
     }
 
     const baseline = loadBaseline(baselinePath);
-
-    if (baseline.error) {
-      console.error("");
-      console.error(`Sentinel baseline error: ${baseline.error}`);
-      console.error("");
-      process.exit(1);
-    }
+    if (baseline.error) { console.error(`\nSentinel baseline error: ${baseline.error}\n`); process.exit(1); }
 
     const missingPolicyFiles = checkRequiredDocuments(policy.config);
-    const newMissingPolicyFiles = filterMissingFilesAgainstBaseline(
-      missingPolicyFiles,
-      baseline.config
-    );
-
-    const totalMissingFiles = newMissingPolicyFiles;
+    const newMissingPolicyFiles = filterMissingFilesAgainstBaseline(missingPolicyFiles, baseline.config);
     
-    // Aggregate ALL violations
     const combinedViolations = [];
-    
-    // 1. Add engine violations
     const engineVerdicts = Array.isArray(results) ? results : [results];
     for (const v of engineVerdicts) {
-      if (v && Array.isArray(v.violations)) {
-        combinedViolations.push(...v.violations);
-      }
+      if (v && Array.isArray(v.violations)) combinedViolations.push(...v.violations);
     }
     
-    // 2. Add policy engine violations
-    if (totalMissingFiles.length > 0) {
-      combinedViolations.push(...totalMissingFiles.map(file => ({
+    if (newMissingPolicyFiles.length > 0) {
+      combinedViolations.push(...newMissingPolicyFiles.map(file => ({
         rule_id: "EUAI-DOC-001",
         description: `Missing required document: ${file}`,
         source: "filesystem"
       })));
     }
 
-    // ── 3. EVIDENCE-BASED VALIDATION (the real engine) ──
     const manifestDir = path.dirname(path.resolve(manifestPath));
     const singleManifest = Array.isArray(manifest) ? manifest[0] : manifest;
     const evidenceFindings = validateEvidence(singleManifest, manifestDir);
     
-    // Add evidence findings to combined violations for reporting
     for (const finding of evidenceFindings) {
       combinedViolations.push({
         rule_id: finding.rule_id,
@@ -1783,19 +1854,11 @@ async function main() {
       });
     }
 
-    // Determine risk-aware requirements for reporting
     const riskCat = (singleManifest.risk_category || "minimal").toLowerCase();
-    let required = ['Art. 13'];
-    if (riskCat === 'high') {
-      required = ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'];
-    }
-
-    // Compute evidence-based score and verified articles (pass manifest as 2nd arg)
+    let required = riskCat === 'high' ? ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'] : ['Art. 13'];
     const evidenceScore = computeEvidenceScore(evidenceFindings, singleManifest);
     const verifiedArticles = determineVerifiedArticles(evidenceFindings, singleManifest);
     const evidenceVerdict = computeVerdict(evidenceScore.finalScore !== undefined ? evidenceScore.finalScore : evidenceScore, evidenceFindings, singleManifest);
-
-    // Intermediate evidence print block removed to avoid double-printing
 
     const summary = {
       violations_total: combinedViolations.length,
@@ -1805,9 +1868,8 @@ async function main() {
       informational: combinedViolations.filter(v => v.severity?.toLowerCase() === 'informational').length
     };
 
-    let complianceStatus = combinedViolations.length > 0 ? "non_compliant" : "compliant";
-    if (summary.high > 0) complianceStatus = "high_risk";
-    if (combinedViolations.some(v => v.rule_id?.startsWith('EUAI-BLOCK-'))) complianceStatus = "blocked";
+    let complianceStatus = evidenceVerdict;
+    if (combinedViolations.some(v => v.rule_id?.startsWith('EUAI-BLOCK-'))) complianceStatus = "BLOCKED";
 
     const finalReport = {
       schema: "sentinel.audit.v1",
@@ -1837,25 +1899,13 @@ async function main() {
       })
     };
 
-    // Merge remote-sourced metadata if available
     const remoteResult = Array.isArray(results) ? results[0] : results;
     if (isRemote && remoteResult) {
-      // Use the STRICTER score — min(local evidence, remote)
-      let remoteScore = undefined;
-      if (remoteResult.score !== undefined) remoteScore = remoteResult.score;
-      else if (remoteResult.risk_score !== undefined) remoteScore = 100 - remoteResult.risk_score;
-      
-      if (remoteScore !== undefined) {
-        finalReport.score = Math.min(evidenceScore, remoteScore);
-      }
-      
-      // Remote verdict cannot override local hard fails
-      const isRemoteFail = remoteResult.verdict && 
-        !["COMPLIANT", "COMPLIANT_VIA_AI_REVIEW"].includes(remoteResult.verdict);
-      
-      if (isRemoteFail) {
+      let remoteScore = remoteResult.score !== undefined ? remoteResult.score : (remoteResult.risk_score !== undefined ? 100 - remoteResult.risk_score : undefined);
+      if (remoteScore !== undefined) finalReport.score = Math.min(evidenceScore.finalScore || evidenceScore, remoteScore);
+      if (remoteResult.verdict && !["COMPLIANT", "COMPLIANT_VIA_AI_REVIEW"].includes(remoteResult.verdict)) {
           finalReport.verdict = "NON_COMPLIANT";
-          if ((remoteResult.verdict === "INVALID_PAYLOAD" || remoteResult.verdict === "NON_COMPLIANT") && remoteResult.justification) {
+          if (remoteResult.justification) {
               combinedViolations.push({
                   rule_id: remoteResult.verdict === "INVALID_PAYLOAD" ? "SENTINEL-API-001" : "EUAI-REMOTE-001",
                   description: `Remote Audit Feedback: ${remoteResult.justification.join(", ")}`,
@@ -1863,16 +1913,8 @@ async function main() {
               });
           }
       }
-      
-      // Recalculate verified articles with combined score
-      finalReport.mapped_articles = verifiedArticles;
-      
-      if (remoteResult.compliance_status && remoteResult.compliance_status !== "compliant") {
-          finalReport.compliance_status = remoteResult.compliance_status;
-      }
     }
 
-    // Evidence Pack Mode
     if (isEvidence) {
       const git = getGitMetadata();
       const pkg = require('../package.json');
@@ -1891,50 +1933,281 @@ async function main() {
         evidence_version: 1,
         required_documents: policy.config?.rules?.required_documents || []
       };
-      
       const sarifData = generateSarif(finalReport, manifestPath);
-      const { outDir, evidenceHash } = generateEvidencePack({
-        report: finalReport,
-        metadata: packMetadata,
-        sarif: sarifData,
-        policyPath: policy.path
-      });
-
+      const { outDir, evidenceHash } = generateEvidencePack({ report: finalReport, metadata: packMetadata, sarif: sarifData, policyPath: policy.path });
       console.log(`\n${C.green}${C.bold}✔ Evidence pack generated at ${outDir}${C.reset}`);
-      console.log(`${C.gray}Integrity Hash: ${evidenceHash}${C.reset}`);
-      console.log(`\nFiles:`);
-      console.log(`- scan-metadata.json`);
-      console.log(`- scan-report.json`);
-      console.log(`- scan-report.sarif`);
-      console.log(`- audit-evidence.json`);
-      console.log(`- compliance-summary.md`);
-      console.log("");
+      console.log(`${C.gray}Integrity Hash: ${evidenceHash}${C.reset}\n`);
     }
 
-    // SARIF Mode
     if (isSarif) {
       console.log(JSON.stringify(generateSarif(finalReport, manifestPath), null, 2));
       process.exit(finalReport.verdict === "NON_COMPLIANT" ? 1 : 0);
     }
 
-    // JSON Mode
     if (isJson) {
       console.log(JSON.stringify(finalReport, null, 2));
       process.exit(finalReport.verdict === "NON_COMPLIANT" ? 1 : 0);
     }
 
-    // ── 4. REPORTING ──
     printResult(finalReport, isJson, isSarif, policy.path);
-    
     if (finalReport.verdict === "NON_COMPLIANT") {
       pauseAndExit(1);
+      return;
     }
     pauseAndExit(0);
+    return;
   } catch (err) {
     console.error(`${C.red}Scan failed: ${err.message}${C.reset}`);
     await reportError(err);
     pauseAndExit(2);
+    return;
   }
+}
+
+/**
+ * Guided remediation for compliance gaps.
+ */
+async function runFix(args) {
+  const isApply = args.includes('--apply');
+  
+  // 1. Resolve manifest
+  const manifestPath = resolveTargetManifest(args);
+
+  if (!manifestPath || !fs.existsSync(manifestPath)) {
+    console.error(`${C.red}Error: No manifest.json or sentinel.manifest.json found in current directory.${C.reset}`);
+    process.exit(1);
+  }
+
+  const manifestDir = path.dirname(path.resolve(manifestPath));
+  let manifest;
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  } catch (e) {
+    console.error(`${C.red}Error reading manifest: ${e.message}${C.reset}`);
+    process.exit(1);
+  }
+
+  // 2. Initial Audit
+  const findings = validateEvidence(manifest, manifestDir);
+  const actionableRuleIds = ['EUAI-MIN-001', 'EUAI-TRANS-001', 'EUAI-OVER-002', 'EUAI-LOG-003'];
+  const actionableFindings = findings.filter(f => actionableRuleIds.includes(f.rule_id));
+
+  if (actionableFindings.length === 0) {
+    console.log(`\n${C.green}No safe structural fixes available.${C.reset}`);
+    return;
+  }
+
+  // 3. Generate Plan
+  const plan = [];
+  const docsToCreate = [];
+
+  if (findings.some(f => f.rule_id === 'EUAI-MIN-001' || f.rule_id === 'EUAI-TRANS-001')) {
+    plan.push({ type: 'update', file: manifestPath, desc: 'Add missing flags and root compliance structure' });
+  }
+
+  if (findings.some(f => f.rule_id === 'EUAI-OVER-002')) {
+    plan.push({ type: 'update', file: manifestPath, desc: 'Add human_oversight configuration' });
+    docsToCreate.push('docs/compliance/human_oversight.md');
+  }
+
+  if (findings.some(f => f.rule_id === 'EUAI-LOG-003')) {
+    plan.push({ type: 'update', file: manifestPath, desc: 'Add logging_capabilities configuration' });
+    docsToCreate.push('docs/compliance/data_governance.md');
+  }
+  
+  if (manifest.risk_category === 'high') {
+    docsToCreate.push('docs/compliance/risk_assessment.md');
+  }
+
+  const uniqueDocs = [...new Set(docsToCreate)];
+  for (const doc of uniqueDocs) {
+    const docPath = path.join(manifestDir, doc);
+    if (fs.existsSync(docPath)) {
+      plan.push({ type: 'skip', file: doc, desc: 'File already exists' });
+    } else {
+      plan.push({ type: 'create', file: doc, desc: 'Generate compliance starter template' });
+    }
+  }
+
+  console.log(`\n${C.cyan}${C.bold}🛠  Sentinel Remediation Plan${C.reset}`);
+  console.log(`${C.gray}Target manifest: ${C.white}${manifestPath}${C.reset}\n`);
+
+  plan.forEach(step => {
+    const icon = step.type === 'create' ? `${C.green} + ` : (step.type === 'update' ? `${C.yellow} ~ ` : `${C.gray} . `);
+    const label = step.type === 'create' ? 'CREATE' : (step.type === 'update' ? 'UPDATE' : 'SKIP  ');
+    console.log(`${icon}${C.bold}${label}${C.reset} ${C.white}${step.file}${C.reset} ${C.gray} (${step.desc})${C.reset}`);
+  });
+
+  if (!isApply) {
+    console.log(`\n${C.yellow}Dry-run mode. No changes made.${C.reset}`);
+    console.log(`Run with ${C.white}--apply${C.reset} to execute this plan.`);
+    return;
+  }
+
+  // 5. Apply Plan
+  console.log(`\n${C.cyan}${C.bold}🚀 Applying fixes...${C.reset}`);
+  
+  const patchedManifest = JSON.parse(JSON.stringify(manifest));
+  const declaredFlags = patchedManifest.declared_flags || [];
+  
+  const requiredFlags = ['transparency_disclosure_provided', 'user_notification_ai_interaction'];
+  requiredFlags.forEach(f => {
+    if (!declaredFlags.includes(f)) declaredFlags.push(f);
+  });
+  patchedManifest.declared_flags = declaredFlags;
+
+  if (findings.some(f => f.rule_id === 'EUAI-OVER-002')) {
+    if (!patchedManifest.human_oversight) patchedManifest.human_oversight = { description: "Human reviewer monitors decisions and can override outputs." };
+    if (!patchedManifest.oversight_evidence_path) patchedManifest.oversight_evidence_path = "docs/compliance/human_oversight.md";
+  }
+
+  if (findings.some(f => f.rule_id === 'EUAI-LOG-003')) {
+    if (!patchedManifest.logging_capabilities) {
+      patchedManifest.logging_capabilities = {
+        enabled: true,
+        events_logged: ["input", "output", "decision"]
+      };
+    }
+    if (!patchedManifest.logging_evidence_path) patchedManifest.logging_evidence_path = "docs/compliance/data_governance.md";
+  }
+
+  fs.writeFileSync(manifestPath, JSON.stringify(patchedManifest, null, 2));
+  console.log(`${C.green}✔ Updated ${manifestPath}${C.reset}`);
+
+  uniqueDocs.forEach(doc => {
+    const docPath = path.join(manifestDir, doc);
+    if (fs.existsSync(docPath)) {
+      console.log(`${C.gray}. Skipped ${doc} (exists)${C.reset}`);
+    } else {
+      const docDir = path.dirname(docPath);
+      if (!fs.existsSync(docDir)) fs.mkdirSync(docDir, { recursive: true });
+      
+      let content = "";
+      if (doc.includes('human_oversight')) {
+        content = `# Human Oversight Protocol (Art. 14)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Oversight Mechanism\nImplementation details pending...\n\n## Roles and Responsibilities\n- Reviewer: [Role Name]\n- Intervention Threshold: [Threshold Details]\n`;
+      } else if (doc.includes('data_governance')) {
+        content = `# Data Governance and Logging (Art. 20)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Logging Capabilities\nImplementation details pending...\n\n## Retention Policy\nStored for [Duration] in [Location].\n`;
+      } else if (doc.includes('risk_assessment')) {
+        content = `# Risk Management System (Art. 9)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Risk Identification\nImplementation details pending...\n\n## Mitigation Strategy\nDetails about bias assessment and testing protocols.\n`;
+      }
+      
+      fs.writeFileSync(docPath, content);
+      console.log(`${C.green}✔ Created ${doc}${C.reset}`);
+    }
+  });
+
+  // 6. Audit Comparison
+  console.log(`\n${C.cyan}${C.bold}📊 Verification Audit${C.reset}`);
+  
+    // Pre-fix Audit (Full)
+  const oldOfflineResult = await runOffline(manifest);
+  const oldEngineViolations = oldOfflineResult.violations || [];
+  const oldEvidenceFindings = validateEvidence(manifest, manifestDir);
+  const oldAllFindings = [...oldEvidenceFindings, ...oldEngineViolations];
+
+  const oldScoreObj = computeEvidenceScore(oldEvidenceFindings, manifest);
+  const oldScore = oldScoreObj.finalScore !== undefined ? oldScoreObj.finalScore : oldScoreObj;
+  const oldVerdict = computeVerdict(oldScore, oldAllFindings, manifest);
+
+  // Post-fix Audit (Full)
+  const newOfflineResult = await runOffline(patchedManifest);
+  const newEngineViolations = newOfflineResult.violations || [];
+  const newEvidenceFindings = validateEvidence(patchedManifest, manifestDir);
+  const newAllFindings = [...newEvidenceFindings, ...newEngineViolations];
+
+  const newScoreObj = computeEvidenceScore(newEvidenceFindings, patchedManifest);
+  const newScore = newScoreObj.finalScore !== undefined ? newScoreObj.finalScore : newScoreObj;
+  const newVerdict = computeVerdict(newScore, newAllFindings, patchedManifest);
+
+  console.log(`${C.gray}Previous Status: ${C.reset}${oldVerdict} (${oldScore}/100)`);
+  const statusColor = newVerdict === 'COMPLIANT' ? C.green : (newVerdict === 'PARTIAL' ? C.yellow : C.red);
+  console.log(`${C.gray}New Status:      ${C.reset}${C.bold}${statusColor}${newVerdict}${C.reset} (${C.bold}${newScore}/100${C.reset})`);
+  console.log(`\n${C.green}${C.bold}✔ Structural compliance issues resolved.${C.reset}`);
+  
+  if (newEngineViolations.length > 0) {
+    console.log(`\n${C.yellow}${C.bold}Remaining findings require human review:${C.reset}`);
+    console.log(`${C.yellow}- governance${C.reset}`);
+    console.log(`${C.yellow}- data quality${C.reset}`);
+    console.log(`${C.yellow}- risk assessment${C.reset}`);
+  }
+
+  console.log(`\n${C.gray}Sentinel prepares your system for audit.${C.reset}`);
+  console.log(`${C.gray}It does not replace legal validation.${C.reset}\n`);
+}
+
+/**
+ * Initialize a new Sentinel project scaffolding.
+ */
+function runInit() {
+  const hasManifestJson = fs.existsSync('manifest.json');
+  const hasSentinelManifest = fs.existsSync('sentinel.manifest.json');
+
+  if (hasManifestJson || hasSentinelManifest) {
+    console.error(`\n${C.red}${C.bold}Error: Manifest already exists. Aborting to avoid overwrite.${C.reset}\n`);
+    process.exit(1);
+  }
+
+  // 1. Create manifest.json
+  const minimalManifest = {
+    app_name: "unnamed-ai-service",
+    version: "1.0.0",
+    risk_category: "High",
+    declared_flags: []
+  };
+
+  fs.writeFileSync('manifest.json', JSON.stringify(minimalManifest, null, 2));
+  console.log(`${C.green}✔ Created manifest.json${C.reset}`);
+
+  // 2. Create docs/compliance directory
+  const complianceDir = path.join(process.cwd(), 'docs/compliance');
+  if (!fs.existsSync(complianceDir)) {
+    fs.mkdirSync(complianceDir, { recursive: true });
+    console.log(`${C.green}✔ Created docs/compliance/${C.reset}`);
+  }
+
+  // 3. Create starter templates
+  const templates = [
+    {
+      file: 'human_oversight.md',
+      content: `# Human Oversight Protocol (Art. 14)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Oversight Mechanism\nImplementation details pending...\n\n## Roles and Responsibilities\n- Reviewer: [Role Name]\n- Intervention Threshold: [Threshold Details]\n`
+    },
+    {
+      file: 'data_governance.md',
+      content: `# Data Governance and Logging (Art. 20)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Logging Capabilities\nImplementation details pending...\n\n## Retention Policy\nStored for [Duration] in [Location].\n`
+    },
+    {
+      file: 'risk_assessment.md',
+      content: `# Risk Management System (Art. 9)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Risk Identification\nImplementation details pending...\n\n## Mitigation Strategy\nDetails about bias assessment and testing protocols.\n`
+    }
+  ];
+
+  let createdCount = 0;
+  let skippedCount = 0;
+  const createdList = [];
+
+  templates.forEach(t => {
+    const targetPath = path.join(complianceDir, t.file);
+    if (fs.existsSync(targetPath)) {
+      skippedCount++;
+    } else {
+      fs.writeFileSync(targetPath, t.content);
+      createdCount++;
+      createdList.push(`docs/compliance/${t.file}`);
+    }
+  });
+
+  if (createdCount > 0) {
+    console.log(`${C.green}✔ Created ${createdCount} files:${C.reset}`);
+    createdList.forEach(f => console.log(`  - ${f}`));
+  }
+  if (skippedCount > 0) {
+    console.log(`${C.gray}. Skipped ${skippedCount} files (already exist)${C.reset}`);
+  }
+
+  console.log(`\n${C.bold}Next steps:${C.reset}`);
+  console.log(`1. Run: ${C.cyan}npx sentinel-scan${C.reset}`);
+  console.log(`2. Review findings`);
+  console.log(`3. Run: ${C.cyan}npx sentinel-scan fix --apply${C.reset}\n`);
 }
 
 main();

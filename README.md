@@ -1,5 +1,3 @@
-Viewed README.md:1-117
-
 # Sentinel Scan
 
 ![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Sentinel%20Verified-blue)
@@ -20,55 +18,76 @@ Works offline. No external API calls. No telemetry by default.
 npm install -g @radu_api/sentinel-scan
 ```
 
-Or run directly via npx:
+Or run directly via npx (Zero Ambiguity Contract):
 
 ```bash
-npx @radu_api/sentinel-scan@latest <manifest.json>
+npx @radu_api/sentinel-scan@latest check --manifest sentinel.manifest.json
 ```
 
 ## Quick Start
 
-Create a minimal AI manifest (`sentinel.manifest.json`):
+Create a `sentinel.manifest.json` using the top-level schema:
 
 ```json
 {
-  "app_name": "my-ai-system",
+  "app_name": "hr-cv-screening-ai",
   "risk_category": "high",
-  "declared_flags": ["transparency_disclosure_provided"]
+  "declared_flags": [
+    "transparency_disclosure_provided",
+    "user_notification_ai_interaction"
+  ],
+  "human_oversight": {
+    "description": "Human reviewer monitors decisions and can override outputs."
+  },
+  "oversight_evidence_path": "docs/compliance/human_oversight.md",
+  "logging_capabilities": {
+    "enabled": true,
+    "events_logged": ["input", "output", "decision"]
+  },
+  "logging_evidence_path": "docs/compliance/data_governance.md"
 }
 ```
 
-Run the scan:
+Run the scan (Implicitly looks for sentinel.manifest.json):
 
 ```bash
-npx @radu_api/sentinel-scan sentinel.manifest.json
+npx @radu_api/sentinel-scan
 ```
 
-## Example Output
+Or target a specific file using the explicit contract:
+
+```bash
+npx @radu_api/sentinel-scan check --manifest sentinel.manifest.json
+```
+
+## Required Supporting Documents
+
+For high-risk systems, the scanner expects evidence files at specific paths if declared in the manifest:
+
+- `docs/compliance/risk_assessment.md` (Art. 9)
+- `docs/compliance/human_oversight.md` (Art. 14)
+- `docs/compliance/data_governance.md` (Art. 20)
+
+## Example Execution Flow
 
 ```text
 ╔══════════════════════════════════════════════════╗
 ║  🛡  SENTINEL — LOCAL DIAGNOSTIC TOOL (OFFLINE)  ║
 ╚══════════════════════════════════════════════════╝
 
-Scanning: /usr/src/app/sentinel.manifest.json
+Scanning: sentinel.manifest.json
 Mode: ⚡ Local Diagnostic
 
-⚠  Using default Sentinel policy (no local policy file found)
-❌ Sentinel compliance check failed
-Compliance Status: NON_COMPLIANT
-Base Score: 25/100
-Deductions: -10
-Final Score: 15/100
-Confidence Level: LOW
+✅ Sentinel compliance check passed
+Compliance Status: COMPLIANT
+Base Score: 100/100
+Deductions: -0
+Final Score: 100/100
+Confidence Level: HIGH
 Risk Category: high
 Required Controls: Art. 9, Art. 13, Art. 14, Art. 20
-Verified Controls: Art. 13
-Verified Articles: Art. 13
-
-Hard Fails:
-   ✖ HARD FAIL [EUAI-OVER-002] Human oversight requires substantiated evidence.
-   ✖ HARD FAIL [EUAI-LOG-003] Logging/traceability requires substantiated evidence.
+Verified Controls: Art. 9, Art. 13, Art. 14, Art. 20
+Verified Articles: Art. 9, Art. 13, Art. 14, Art. 20
 
 Sentinel policy: default.policy.json
 ```
@@ -100,7 +119,7 @@ Add Sentinel to your GitHub Actions workflow:
 
 ```yaml
 - name: Run Sentinel Compliance Scan
-  run: npx @radu_api/sentinel-scan sentinel.manifest.json
+  run: npx @radu_api/sentinel-scan check --manifest sentinel.manifest.json
 ```
 
 The CLI returns exit code `0` on success and non-zero on compliance failure or hard fails.
