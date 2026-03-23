@@ -9,6 +9,13 @@ Works offline. No external API calls. No telemetry by default.
 
 ---
 
+## 📕 Official User Manual
+For a comprehensive guide covering both **Executive Reports (Sovereign)** and **Technical CLI Usage**, please refer to our unified manual:
+
+👉 [**USER_MANUAL.md**](USER_MANUAL.md)
+
+---
+
 ## Install
 
 ```bash

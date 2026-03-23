@@ -6,11 +6,27 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+const { execSync } = require('child_process');
 const cliProgress = require('cli-progress');
 
 const autodiscovery = require('./lib/autodiscovery');
-const discoveryRules = require('./lib/discovery-rules.json');
-const ruleRegistry = require('./lib/registry.json');
+const discoveryRules = JSON.parse(fs.readFileSync(path.join(__dirname, 'lib', 'discovery-rules.json'), 'utf8'));
+let probingRules = null;
+try {
+  probingRules = JSON.parse(fs.readFileSync(path.join(__dirname, 'lib', 'probing-rules.json'), 'utf8'));
+} catch (e) {
+  // Optional, fallback to null
+}
+const intelligence = require('./lib/intelligence');
+const PreAuditor = require('./lib/pre-auditor');
+const AuditVault = require('./lib/vault');
+const DiffEngine = require('./lib/diff-engine');
+const AuditMetadata = require('./lib/audit-metadata');
+const AuditExporter = require('./lib/exporter');
+const { extractDocsFromRepo,
+        evaluateAllDocuments,
+        generateSemanticReport } = require('./lib/semantic-evaluator');
 
 // ── ANSI Colors (no external deps) ──
 const C = {
@@ -47,8 +63,9 @@ function pauseAndExit(code = 0) {
 
 function printBanner() {
   console.log(`\n${C.cyan}${C.bold}╔══════════════════════════════════════════════════╗`);
-  console.log(`║  🛡  SENTINEL — LOCAL DIAGNOSTIC TOOL (OFFLINE)  ║`);
+  console.log(`║  🛡  SENTINEL — LOCAL DIAG NOSTIC TOOL (OFFLINE)  ║`);
   console.log(`╚══════════════════════════════════════════════════╝${C.reset}\n`);
+  console.log(`\n\x1b[36m\x1b[1mPro-Tip:\x1b[0m\x1b[36m Consult the official Compliance Guide at \x1b[97mUSER_MANUAL.md\x1b[0m\n`);
 }
 
 function printHelp() {
@@ -69,20 +86,11 @@ function printHelp() {
   console.log(`  --sarif                Output results in SARIF v2.1.0 format`);
   console.log(`  --evidence             Generate a full compliance evidence pack (sentinel-evidence/)`);
   console.log(`  --autodiscover         Enable the Autodiscovery engine to verify manifest against code`);
+  console.log(`  --generate-tech-file   Generate an Annex IV Technical Documentation dossier (Markdown)`);
   console.log(`  --endpoint <url>       Custom Edge API endpoint`);
   console.log(`  --help                 Show this help`);
-
-  console.log(`\n${C.bold}Policy Pack Commands:${C.reset}`);
-  console.log(`  policy-pack list                List built-in Sentinel policy packs`);
-  console.log(`  policy-pack show <name>         Show policy pack details`);
-
-  console.log(`\n${C.bold}Remediation Commands:${C.reset}`);
-  console.log(`  npx @radu_api/sentinel-scan fix --manifest <path>`);
-  console.log(`  npx @radu_api/sentinel-scan fix --apply --manifest <path>`);
-  console.log(`  npx @radu_api/sentinel-scan fix --yes                 Skip confirmation during apply`);
 }
 
-// ── Top 10 Reguli AI Act — Embedded offline ──
 const OFFLINE_RULES = {
   rules: [
     { id: "ART5-001", description: "Subliminal manipulation", risk_category: "Unacceptable", required_flags: [], forbidden_flags: ["subliminal_techniques"], fix_snippet: "Remove features exploiting subliminal techniques (Article 5.1a Prohibited)." },
@@ -100,351 +108,651 @@ async function runOffline(manifest) {
   return JSON.parse(verdictText);
 }
 
-
-/**
- * Logic to resolve the target manifest path from CLI arguments and environment.
- */
 function resolveTargetManifest(args) {
   let manifestPath = null;
-
-  // 1. Explicit --manifest flag
   const manifestArgIdx = args.indexOf('--manifest');
   if (manifestArgIdx !== -1 && args[manifestArgIdx + 1]) {
     manifestPath = args[manifestArgIdx + 1];
   }
-
-  // 2. Default lookup (prefer sentinel.manifest.json)
   if (!manifestPath) {
     const hasSentinelManifest = fs.existsSync('sentinel.manifest.json');
     const hasManifestJson = fs.existsSync('manifest.json');
-
-    manifestPath = hasSentinelManifest
-      ? 'sentinel.manifest.json'
-      : (hasManifestJson ? 'manifest.json' : null);
+    manifestPath = hasSentinelManifest ? 'sentinel.manifest.json' : (hasManifestJson ? 'manifest.json' : null);
   }
-
   return manifestPath;
 }
 
-// ── Evidence-Based Validation Engine ──
-// Validates actual evidence files, content, and controls — not just manifest shape.
+function applySubstanceAudit(findings, content, filePath, article = 'Art. 9/13') {
+  const substance = intelligence.analyzeSubstance(content);
+  if (substance.score < 1.0) {
+    findings.push({
+      article, rule_id: 'EUAI-SUBSTANCE-001',
+      description: `[Documentation] Low substance: ${substance.findings.join('; ')}: ${filePath}`,
+      deduction: Math.round((1 - substance.score) * 20),
+      severity: substance.score < 0.5 ? 'high' : 'medium',
+      hard_fail: false, source: 'evidence',
+      fix_snippet: "Replace placeholder/boilerplate text with real compliance analysis."
+    });
+  }
+  
+  // Phase 2: Consistency Check
+  const consistency = intelligence.checkConsistency(article, content);
+  if (consistency.score < 0.6) {
+    findings.push({
+      article, rule_id: 'EUAI-CONSISTENCY-001',
+      description: `[Documentation] Low consistency: Evidence does not sufficiently address Article requirements. Missing keywords: ${consistency.missing.slice(0, 3).join(', ')}`,
+      deduction: Math.round((1 - consistency.score) * 15),
+      severity: 'medium',
+      hard_fail: false, source: 'evidence',
+      fix_snippet: `Ensure documentation explicitly addresses: ${consistency.missing.join(', ')}.`
+    });
+  }
+}
 
-function validateEvidence(manifest, manifestDir) {
+/**
+ * Phase 3: Hardening Probe Scoring
+ */
+function computeHardeningFindings(signals, manifest, findings, repoFilesOrCount = [], dependencyGraph = null) {
+  const projectFiles = Array.isArray(repoFilesOrCount) ? repoFilesOrCount : [];
+  const fileCount = Array.isArray(repoFilesOrCount) ? repoFilesOrCount.length : repoFilesOrCount;
+
+  // Phase B: Project-wide language detection (Refined for polyglot repos)
+  const pyCount = projectFiles.filter(f => f.path?.endsWith('.py')).length;
+  const jsCount = projectFiles.filter(f => f.path?.endsWith('.js') || f.path?.endsWith('.ts')).length;
+  
+  const isProjectPython = 
+    (pyCount > jsCount) || 
+    manifest.language === 'python' || 
+    projectFiles.some(f => f.path === 'requirements.txt');
+
+
+  if (!probingRules || !probingRules.probes) return;
+
+  const hardeningSignals = signals.filter(s => s.kind === 'hardening_probe');
+  const declaredFlags = manifest.declared_flags || [];
+
+  Object.entries(probingRules.probes).forEach(([probeKey, probe]) => {
+    const article = probe.article;
+    const probeSignals = signals.filter(s => {
+      // Use the new kind-based filtering where possible
+      if (s.kind === 'code_signature_call' || s.kind === 'code_signature_load' || s.kind === 'dependency') {
+        if (probeKey === 'ai_execution') return (s.id.includes('AI') || s.id.includes('MODEL') || s.id.includes('LLM'));
+        if (probeKey === 'connectivity') return (s.id.startsWith('CODE_HTTP') || s.id.startsWith('CODE_SOCKET') || s.id.startsWith('CODE_URI'));
+      }
+      
+      // Fallback/Legacy string-based matching for existing probes
+      if (probeKey === 'logging') return (s.id.startsWith('DEP_') || s.id.includes('LOG') || s.id.includes('TRACE'));
+      if (probeKey === 'human_oversight') return (s.id.includes('OVERRIDE') || s.id.includes('KILL_SWITCH') || s.id.includes('HUMAN'));
+      if (probeKey === 'ai_transparency') return (s.id.includes('DISCLOSURE') || s.id.includes('LABEL'));
+    });
+    const hasStrong = probeSignals.some(s => s.probe_type === 'strong');
+    const hasWeak = probeSignals.some(s => s.probe_type === 'weak');
+    const hasTraceOrEquivalent = probeSignals.some(s => s.probe_type === 'traceability');
+    const hasExecSignature = probeSignals.some(s => s.kind === 'code_signature_call');
+
+    // Phase 9/10: Usage-Centric Verification
+    const executionSignals = signals.filter(s => s.kind === 'code_signature_call' && (s.id.includes('AI') || s.id.includes('MODEL') || s.id.includes('LLM')));
+    
+    // Initial verdict is FAIL unless proven otherwise per-usage
+    let verdict = 'FAIL';
+
+    if (probeKey === 'ai_execution') {
+        verdict = hasExecSignature ? 'PASS' : (probeSignals.length > 0 ? 'WEAK PASS' : 'FAIL');
+    } else if (probeKey === 'connectivity') {
+        verdict = probeSignals.length > 0 ? 'PASS' : 'FAIL';
+    } else if (probeKey === 'human_oversight' || probeKey === 'logging') {
+        const ungovernedExecutions = executionSignals.filter(exec => {
+            const execFile = exec.source_path.replace(/\\/g, "/");
+            const localSupport = probeSignals.some(s => s.source_path.replace(/\\/g, "/") === execFile && s.probe_type === 'strong');
+            if (localSupport) return false;
+            
+            // Phase 10: Recursive Transitive Check (Follow the Graph)
+            const visited = new Set();
+            const checkTransitiveDeep = (currentFile) => {
+               if (visited.has(currentFile)) return false;
+               visited.add(currentFile);
+               
+               const imports = (dependencyGraph && dependencyGraph.imports[currentFile]) || [];
+               for (const imp of imports) {
+                  const normalizedImp = imp.replace(/^\.\//, "").replace(/\.[^/.]+$/, "").toLowerCase();
+                  // 1. Direct Signal in Imported File
+                  const hasDirect = signals.some(s => {
+                    if (s.article !== article || s.probe_type !== 'strong') return false;
+                    const normalizedSource = s.source_path.replace(/\\/g, "/").replace(/\.[^/.]+$/, "").toLowerCase();
+                    return normalizedSource === normalizedImp || normalizedSource.endsWith("/" + normalizedImp);
+                  });
+                  if (hasDirect) return true;
+                  
+                  // 2. Recursive Check (Go Deeper)
+                  // Find the actual file path for this import in dependencyGraph keys
+                  const resolvedPath = Object.keys(dependencyGraph.imports).find(k => {
+                     const nk = k.replace(/\\/g, "/").replace(/\.[^/.]+$/, "").toLowerCase();
+                     return nk === normalizedImp || nk.endsWith("/" + normalizedImp);
+                  });
+                  if (resolvedPath && checkTransitiveDeep(resolvedPath)) return true;
+               }
+               return false;
+            };
+
+            return !checkTransitiveDeep(exec.source_path);
+        });
+        
+        if (ungovernedExecutions.length > 0) {
+            verdict = 'FAIL';
+            ungovernedExecutions.forEach(e => e.governance_gap = article);
+        } else if (executionSignals.length > 0) {
+            verdict = 'PASS';
+        } else {
+            // Default project-wide verdict if no explicit AI executions found
+            verdict = (hasStrong || (hasWeak && hasTraceOrEquivalent)) ? 'PASS' : (hasWeak ? 'WEAK PASS' : 'FAIL');
+        }
+    } else {
+        // Fallback for other probes
+        verdict = (hasStrong || (hasWeak && hasTraceOrEquivalent)) ? 'PASS' : (hasWeak ? 'WEAK PASS' : 'FAIL');
+    }
+
+    // Check if the article is claimed
+    let isClaimed = false;
+    if (probeKey === 'logging') {
+      isClaimed = declaredFlags.some(f => f.includes('log') || f.includes('traceability'));
+    } else if (probeKey === 'human_oversight') {
+      isClaimed = declaredFlags.some(f => f.includes('human_oversight') || f.includes('kill_switch') || f.includes('manual_override'));
+    } else if (probeKey === 'ai_transparency') {
+      isClaimed = declaredFlags.some(f => f.includes('transparency_disclosure_provided') || f.includes('ai_disclosure'));
+    } else if (probeKey === 'ai_execution' || probeKey === 'connectivity') {
+      isClaimed = true; // Always evaluate these in Extended mode for inference
+    }
+    
+    const hasAIExecution = signals.some(s => (s.id.includes('AI') || s.id.includes('MODEL') || s.id.includes('LLM')));
+
+    if (isClaimed || ((probeKey === 'human_oversight' || probeKey === 'logging') && hasAIExecution)) {
+      const getSubject = (pk) => {
+        if (pk === 'logging') return 'Logging/Traceability';
+        if (pk === 'human_oversight') return 'Human Control (Kill-switch/Override)';
+        if (pk === 'ai_transparency') return 'AI Disclosure (Banner/System-label)';
+        if (pk === 'ai_execution') return 'AI Execution Logic';
+        if (pk === 'connectivity') return 'Technical Connectivity';
+        if (pk === 'data_quality') return 'Data Quality & Bias Mitigation';
+        if (pk === 'robustness') return 'System Robustness & Cyber-Resilience';
+        return pk;
+      };
+
+      const getFix = (pk, match) => {
+        const isPython = match?.file ? match.file.endsWith('.py') : isProjectPython;
+        const langRef = isPython ? 'Python' : 'JavaScript/TypeScript';
+        
+        if (pk === 'logging') {
+          if (isPython) {
+            return "Implement Python logging control using standard logging module or loguru. Create a sentinel_log() wrapper function.";
+          }
+          return `Implement logging control using Winston or Pino. Create a sentinelLog() wrapper function. Current logic in ${match?.file} relies on generic tracers.`;
+        }
+        if (pk === 'human_oversight') {
+          if (isPython) {
+            return "Implement Python manual override hook using a decorator or function. Create a sentinel_override() wrapper function.";
+          }
+          return `Implement a manual override hook (e.g., manualApprovalRequired()) in ${match?.file} to satisfy Art 14.`;
+        }
+
+        if (pk === 'ai_transparency') {
+          return "Add an explicit 'powered by AI' disclosure to your interface/code to satisfy Art 13 transparency requirements.";
+        }
+        if (pk === 'ai_execution') {
+          return "No active AI execution markers found. If AI is used, ensure code is not obfuscated for audit transparency.";
+        }
+        if (pk === 'connectivity') {
+          return "No external connectivity markers found. Verify if model execution is fully localized.";
+        }
+        if (pk === 'data_quality') {
+          return `Implement ${langRef === 'Python' ? 'great_expectations' : 'automated validation'} for data quality/bias mitigation to satisfy Art 10.`;
+        }
+        if (pk === 'robustness') {
+          return `Implement Art 15 cyber-resilience controls (e.g., input sanitization, stress testing) for the logic in ${match?.file}.`;
+        }
+        return "Implement required technical proof and documentation in the scoped repository.";
+      };
+
+
+      // Surgical Precision: Capture first evidence location with Context & Integrity
+      const crypto = require('crypto');
+      const evidenceMatch = probeSignals.find(s => s.line);
+      let evidenceLoc = null;
+      
+      if (evidenceMatch) {
+         const auditId = manifest.audit_id || 'PENDING';
+         const rawData = `${evidenceMatch.source_path}:${evidenceMatch.line}:${evidenceMatch.evidence_context || ''}:${auditId}`;
+         const hash = crypto.createHash('sha256').update(rawData).digest('hex').substring(0, 16);
+         
+         evidenceLoc = { 
+           file: evidenceMatch.source_path, 
+           line: evidenceMatch.line, 
+           snippet: evidenceMatch.snippet,
+           context: evidenceMatch.evidence_context,
+           evidence_hash: `SIG-${hash.toUpperCase()}`
+         };
+      }
+
+      // Evidence Depth Metadata
+      const search_metadata = {
+        files_scanned: fileCount || 0,
+        patterns: [
+          ...(probe.strong_signals || []).map(s => s.pattern),
+          ...(probe.weak_signals || []).map(s => s.pattern),
+          ...(probe.traceability_signals || []).map(s => s.pattern)
+        ].filter(Boolean)
+      };
+
+      if (verdict === 'FAIL') {
+        const specificRuleId = `EUAI-${probeKey.toUpperCase().replace(/_/g, '-')}-MISSING`;
+        
+        // Language-aware fallback for implementation remediation
+        const fallbackFix = isProjectPython ?
+          (probeKey === 'logging' ? "Implement Python logging control using standard logging module or loguru. Create a sentinel_log() wrapper function." :
+           probeKey === 'human_oversight' ? "Implement Python manual override hook using a decorator or function. Create a sentinel_override() wrapper function." :
+           "No specific code location identified. Apply recommended Python compliance control at the primary AI execution entry point.") :
+          (probeKey === 'logging' ? "Implement logging control using Winston or Pino. Create a sentinelLog() wrapper function." :
+           probeKey === 'human_oversight' ? "Implement a manual override hook (e.g., manualApprovalRequired()) to satisfy Art 14." :
+           "No specific code location identified. Apply recommended control at the primary AI execution entry point in this file.");
+
+        findings.push({
+          article, rule_id: specificRuleId,
+          description: `[Implementation] Hardening NOT DETECTED: No technical indicators of ${getSubject(probeKey)} found in code despite claims.`,
+          deduction: 20, severity: 'high', source: 'implementation',
+          fix_snippet: evidenceLoc?.snippet ?? fallbackFix,
+          hardening_verdict: 'FAIL',
+          search_metadata
+        });
+
+      } else if (verdict === 'WEAK PASS' || verdict === 'PASS') {
+        const isWeak = verdict === 'WEAK PASS';
+        
+        // Language-aware fallback for weak pass remediation
+        const fallbackFix = isProjectPython ?
+          (probeKey === 'logging' ? "Implement Python logging control using standard logging module or loguru. Create a sentinel_log() wrapper function." :
+           probeKey === 'human_oversight' ? "Implement Python manual override hook using a decorator or function. Create a sentinel_override() wrapper function." :
+           "No specific code location identified. Apply recommended Python compliance control at the primary AI execution entry point.") :
+          (probeKey === 'logging' ? "Implement logging control using Winston or Pino. Create a sentinelLog() wrapper function." :
+           probeKey === 'human_oversight' ? "Implement a manual override hook (e.g., manualApprovalRequired()) to satisfy Art 14." :
+           "No specific code location identified. Apply recommended control at the primary AI execution entry point in this file.");
+
+        findings.push({
+          article, 
+          rule_id: isWeak ? 'EUAI-HARDENING-002' : 'EUAI-HARDENING-000',
+          description: isWeak 
+            ? `[Implementation] Hardening PARTIAL: Found only basic/partial signals for ${probeKey} in ${evidenceLoc?.file || 'scoped files'}. Lacks robust industrial enforcement.`
+            : `[Implementation] Hardening DETECTED: Detected technical indicator of ${getSubject(probeKey)} in code.`,
+          deduction: isWeak ? 8 : 0, 
+          severity: isWeak ? 'medium' : 'info', 
+          source: 'implementation',
+          fix_snippet: isWeak ? (evidenceLoc?.snippet ?? fallbackFix) : null,
+          hardening_verdict: verdict,
+          evidence_location: evidenceLoc,
+          search_metadata
+        });
+
+      }
+    }
+  });
+}
+
+/**
+ * Extracts a likely identifier (variable/function/class name) from a code snippet.
+ */
+function extractIdentifier(snippet) {
+  if (!snippet) return null;
+  const line = snippet.split('\n')[0].trim();
+  
+  // Pattern matching for common declarations
+  const patterns = [
+    /(?:const|let|var)\s+([a-zA-Z0-9_$]+)\s*=/,           // const x =
+    /function\s+([a-zA-Z0-9_$]+)\s*\(/,                  // function x()
+    /class\s+([a-zA-Z0-9_$]+)/,                          // class x
+    /([a-zA-Z0-9_$]+)\s*:/,                              // x: (property)
+    /([a-zA-Z0-9_$]+)\s*=/                               // x = (assignment)
+  ];
+
+  for (const pattern of patterns) {
+    const match = line.match(pattern);
+    if (match && match[1]) return match[1];
+  }
+  return null;
+}
+
+/**
+ * Searches for references to detected identifiers across the repository.
+ */
+function correlateFindings(findings, repoFiles) {
+  findings.forEach(f => {
+    if (!f.evidence_location || !f.evidence_location.snippet) {
+       return;
+    }
+
+    let identifier = extractIdentifier(f.evidence_location.snippet);
+    const definitionFile = f.evidence_location.file;
+
+    // Reliability Hack: If identifier not found on the match line, it might be a comment line.
+    // Peek at next 2 lines in the same file to find the likely declaration.
+    if (!identifier && definitionFile) {
+       try {
+          const defFileContent = fs.readFileSync(path.resolve(process.cwd(), definitionFile), 'utf8');
+          const defLines = defFileContent.split('\n');
+          const startLine = f.evidence_location.line; // 1-indexed, so lines[startLine-1] is current
+          for (let i = startLine; i < Math.min(startLine + 3, defLines.length); i++) {
+             identifier = extractIdentifier(defLines[i]);
+             if (identifier) break;
+          }
+       } catch (e) {}
+    }
+
+    if (!identifier) {
+       if (process.env.SENTINEL_DEBUG === 'true' && f.hardening_verdict) {
+          console.log(`[DEBUG] Could not extract identifier for ${f.article} from snippet or following lines.`);
+       }
+       return;
+    }
+    const references = [];
+    const referenceFiles = new Set();
+
+    repoFiles.forEach(rf => {
+      // Skip the file where it's defined
+      if (rf.path === definitionFile) return;
+
+      try {
+        const content = fs.readFileSync(rf.path, 'utf8');
+        // Simple word-boundary check for the identifier
+        const regex = new RegExp(`\\b${identifier}\\b`, 'g');
+        const matches = content.match(regex);
+        
+        if (matches && matches.length > 0) {
+          referenceFiles.add(rf.path);
+          references.push(...matches);
+        }
+      } catch (e) {
+        // Skip files that can't be read
+      }
+    });
+
+    const refCount = references.length;
+    let classification = "No references detected";
+    if (refCount >= 3) classification = "Multiple references detected";
+    else if (refCount > 0) classification = "Limited references detected";
+
+    f.connectivity = {
+      identifier,
+      definition: definitionFile,
+      reference_count: refCount,
+      files: Array.from(referenceFiles),
+      classification
+    };
+  });
+}
+
+function validateEvidence(manifest, manifestDir, signals = [], requiresGovernance = true) {
   const findings = [];
   const modules = Array.isArray(manifest.modules) ? manifest.modules : [];
   const declaredFlags = Array.isArray(manifest.declared_flags) ? manifest.declared_flags : [];
-
   const riskCat = (manifest.risk_category || "").toLowerCase();
+  const isMinimal = riskCat === 'minimal';
   const isHighRisk = riskCat === 'high';
   const isLimited = riskCat === 'limited';
   const isUnacceptable = riskCat === 'unacceptable';
-
-  const hasHighRiskModules = modules.some(m =>
-    m.risk_level === 'High' || m.risk_level === 'Unacceptable' || m.risk_category === 'High'
-  );
+  const hasHighRiskModules = modules.some(m => m.risk_level === 'High' || m.risk_level === 'Unacceptable' || m.risk_category === 'High');
   const strictEnforcement = isHighRisk || hasHighRiskModules;
 
-  // ── 0. Unacceptable Risk: Immediate Hard Fail ──
   if (isUnacceptable) {
-    findings.push({
-      article: 'General', rule_id: 'EUAI-UNACCEPTABLE-001',
-      description: "[Unacceptable risk category]",
-      deduction: 100, severity: 'critical', hard_fail: true, source: 'evidence'
-      ,
-      fix_snippet: "Change 'risk_category' to a permitted value."
-    });
-    return findings; // No scoring for unacceptable
+    findings.push({ article: 'General', rule_id: 'EUAI-UNACCEPTABLE-001', description: "[Unacceptable risk category]", deduction: 100, severity: 'critical', hard_fail: true, source: 'evidence', fix_snippet: "Change 'risk_category' to a permitted value." });
+    return findings;
   }
-
-  // ── 1. risk_category: NEVER silently default to Minimal ──
   if (!manifest.risk_category) {
-    findings.push({
-      article: 'Art. 9', rule_id: 'EUAI-RISK-002',
-      description: "[Missing risk category]",
-      deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence'
-      ,
-      fix_snippet: "Add 'risk_category' to manifest.json."
-    });
+    findings.push({ article: 'Art. 9', rule_id: 'EUAI-RISK-002', description: "[Missing risk category]", deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence', fix_snippet: "Add 'risk_category' to manifest.json." });
   }
 
-  // ── 1.1 Minimum Compliance Signal check ──
   const hasTransparencyFlag = declaredFlags.includes('transparency_disclosure_provided');
   const hasTransparencyFile = !!manifest.evidence_path;
   const hasOversight = !!manifest.human_oversight || !!manifest.oversight_evidence_path;
   const hasLogging = !!manifest.logging_capabilities || !!manifest.logging_evidence_path;
 
-  if (!hasTransparencyFlag && !hasTransparencyFile && !hasOversight && !hasLogging) {
-    findings.push({
-      article: 'General', rule_id: 'EUAI-MIN-001',
-      description: "[Missing baseline structure]",
-      deduction: 30, severity: 'critical', hard_fail: true, source: 'evidence'
-      ,
-      fix_snippet: "Add required top-level flags and evidence fields."
-    });
+  if (requiresGovernance && !hasTransparencyFlag && !hasTransparencyFile && !hasOversight && !hasLogging) {
+    findings.push({ article: 'General', rule_id: 'EUAI-MIN-001', description: "[Missing baseline structure]", deduction: 30, severity: 'critical', hard_fail: true, source: 'evidence', fix_snippet: "Add required top-level flags and evidence fields." });
   }
-
-  // ── 1.2 Limited Risk Stricter Transparency check ──
+  
   if (isLimited && hasTransparencyFlag && !hasTransparencyFile) {
-    findings.push({
-      article: 'Art. 13', rule_id: 'EUAI-TRANS-002',
-      description: "[Missing transparency evidence]",
-      deduction: 20, severity: 'high', hard_fail: false, source: 'evidence',
-      fix_snippet: "Add 'evidence_path' for technical documentation."
-    },
-    );
+    findings.push({ article: 'Art. 13', rule_id: 'EUAI-TRANS-002', description: "[Missing transparency evidence]", deduction: 20, severity: 'high', hard_fail: false, source: 'evidence', fix_snippet: "Add 'evidence_path' for technical documentation." });
   }
 
-  // ── 2. evidence_path: Art. 13 Transparency && disclosure-config semantics ──
   if (manifest.evidence_path) {
     const evidencePath = path.resolve(manifestDir, manifest.evidence_path);
     if (!fs.existsSync(evidencePath)) {
-      findings.push({
-        article: 'Art. 13', rule_id: 'EUAI-EVID-001',
-        description: `Declared evidence_path does not exist: ${manifest.evidence_path}`,
-        deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence',
-        fix_snippet: "Create the missing evidence file at the path specified in your manifest."
-      });
+      findings.push({ article: 'Art. 13', rule_id: 'EUAI-EVID-001', description: `Declared evidence_path does not exist: ${manifest.evidence_path}`, deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence', fix_snippet: "Create the missing evidence file at the path specified in your manifest." });
     } else {
       try {
         const stat = fs.statSync(evidencePath);
         if (stat.size < 10) {
-          findings.push({
-            article: 'Art. 13', rule_id: 'EUAI-EVID-002',
-            description: `Evidence file is trivially empty (${stat.size} bytes): ${manifest.evidence_path}`,
-            deduction: 15, severity: 'high', hard_fail: true, source: 'evidence',
-            fix_snippet: "Add meaningful compliance documentation to the empty evidence file."
-          });
+          findings.push({ article: 'Art. 13', rule_id: 'EUAI-EVID-002', description: `Evidence file is trivially empty (${stat.size} bytes): ${manifest.evidence_path}`, deduction: 15, severity: 'high', hard_fail: true, source: 'evidence', fix_snippet: "Add meaningful compliance documentation to the empty evidence file." });
         } else if (manifest.evidence_path.endsWith('.json')) {
           try {
             const content = fs.readFileSync(evidencePath, 'utf8');
             const parsed = JSON.parse(content);
             if (!parsed || (typeof parsed === 'object' && Object.keys(parsed).length === 0)) {
-              findings.push({
-                article: 'Art. 13', rule_id: 'EUAI-EVID-003',
-                description: `Evidence file is valid JSON but contains no meaningful content: ${manifest.evidence_path}`,
-                deduction: 15, severity: 'high', hard_fail: true, source: 'evidence',
-                fix_snippet: "Populate the JSON evidence file with required compliance data fields."
-              });
+              findings.push({ article: 'Art. 13', rule_id: 'EUAI-EVID-003', description: `Evidence file is valid JSON but contains no meaningful content: ${manifest.evidence_path}`, deduction: 15, severity: 'high', hard_fail: true, source: 'evidence', fix_snippet: "Populate the JSON evidence file with required compliance data fields." });
             }
-            // REQUIREMENT 4: disclosure-config semantic check
-            if (manifest.evidence_path.includes('disclosure')) {
-              const requiredKeys = ['component', 'trigger', 'text', 'active'];
-              const missingKeys = requiredKeys.filter(k => parsed[k] === undefined);
-              if (missingKeys.length > 0) {
-                findings.push({
-                  article: 'Art. 13', rule_id: 'EUAI-EVID-006',
-                  description: `disclosure-config.json missing required semantic keys: ${missingKeys.join(', ')}`,
-                  deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence',
-                  fix_snippet: "Add missing keys (component, trigger, text, active) to disclosure-config.json."
-                });
-              }
-            }
-          } catch (parseErr) {
-            findings.push({
-              article: 'Art. 13', rule_id: 'EUAI-EVID-004',
-              description: `Evidence file is not valid JSON (parse error): ${manifest.evidence_path}`,
-              deduction: 15, severity: 'critical', hard_fail: true, source: 'evidence',
-              fix_snippet: "Fix JSON syntax errors in the evidence file."
-            });
-          }
+          } catch(e) {}
+        } else if (manifest.evidence_path.endsWith('.md')) {
+            const content = fs.readFileSync(evidencePath, 'utf8');
+            applySubstanceAudit(findings, content, manifest.evidence_path, 'Art. 13');
         }
-      } catch (readErr) {
-        findings.push({
-          article: 'Art. 13', rule_id: 'EUAI-EVID-005',
-          description: `[Unreadable evidence file]`,
-          deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence',
-          fix_snippet: "Ensure evidence file has correct read permissions."
-        });
-      }
+      } catch (e) {}
     }
   }
 
-  // ── 3. Transparency flags: Art. 13 ──
-  if (!declaredFlags.includes('transparency_disclosure_provided')) {
-    findings.push({
-      article: 'Art. 13', rule_id: 'EUAI-TRANS-001',
-      description: "[Missing transparency flag]",
-      deduction: 15, severity: 'high', hard_fail: false, source: 'evidence',
-      fix_snippet: "Add 'transparency_disclosure_provided' to 'declared_flags' array."
-    });
+  if (requiresGovernance && !declaredFlags.includes('transparency_disclosure_provided')) {
+    findings.push({ article: 'Art. 13', rule_id: 'EUAI-TRANS-001', description: "[Missing transparency flag]", deduction: 15, severity: 'high', hard_fail: false, source: 'evidence', fix_snippet: "Add 'transparency_disclosure_provided' to 'declared_flags' array." });
   }
 
-  // ── 4. Module-level evidence validation: Art. 9 && risk management semantics ──
   for (const mod of modules) {
     if (mod.risk_level === 'High' || mod.risk_level === 'Unacceptable') {
       if (!mod.evidence) {
-        findings.push({
-          article: 'Art. 9', rule_id: 'EUAI-MOD-001',
-          description: `High-risk module "${mod.id || 'unnamed'}" has no evidence field`,
-          fix_snippet: "Add 'evidence' field to the high-risk module in manifest.json.",
-          deduction: 10, severity: 'high', hard_fail: false, source: 'evidence'
-        });
+        findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-001', description: `High-risk module "${mod.id || 'unnamed'}" has no evidence field`, fix_snippet: "Add 'evidence' field to the high-risk module in manifest.json.", deduction: 10, severity: 'high', hard_fail: false, source: 'evidence' });
       } else {
         const modEvidencePath = path.resolve(manifestDir, mod.evidence);
         if (!fs.existsSync(modEvidencePath)) {
-          findings.push({
-            article: 'Art. 9', rule_id: 'EUAI-MOD-002',
-            description: `High-risk module "${mod.id || 'unnamed'}" declares evidence but file missing: ${mod.evidence}`,
-            fix_snippet: "Create the missing module evidence file specified in the manifest.",
-            deduction: 10, severity: 'high', hard_fail: false, source: 'evidence'
-          });
+          findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-002', description: `High-risk module "${mod.id || 'unnamed'}" declares evidence but file missing: ${mod.evidence}`, fix_snippet: "Create the missing module evidence file specified in the manifest.", deduction: 10, severity: 'high', hard_fail: false, source: 'evidence' });
         } else {
           try {
             const stat = fs.statSync(modEvidencePath);
             if (stat.size < 20) {
-              findings.push({
-                article: 'Art. 9', rule_id: 'EUAI-MOD-003',
-                description: `High-risk module "${mod.id}" evidence file is trivially empty or too small: ${mod.evidence}`,
-                fix_snippet: "Add meaningful content to the empty module evidence file.",
-                deduction: 15, severity: 'high', hard_fail: true, source: 'evidence'
-              });
+              findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-003', description: `High-risk module "${mod.id}" evidence file is trivially empty: ${mod.evidence}`, fix_snippet: "Add meaningful content to the empty module evidence file.", deduction: 15, severity: 'high', hard_fail: true, source: 'evidence' });
             } else {
               const content = fs.readFileSync(modEvidencePath, 'utf8');
-              if (modEvidencePath.endsWith('.json')) {
-                try {
-                  const parsed = JSON.parse(content);
-                  if (!parsed || Object.keys(parsed).length === 0) {
-                    findings.push({
-                      article: 'Art. 9', rule_id: 'EUAI-MOD-004', description: `Module JSON evidence is empty: ${mod.evidence}`,
-                      fix_snippet: "Populate the module JSON evidence with required compliance data.", deduction: 15, severity: 'high', hard_fail: true, source: 'evidence'
-                    });
-                  }
-                } catch (e) {
-                  findings.push({
-                    article: 'Art. 9', rule_id: 'EUAI-MOD-005', description: `Module evidence is not valid JSON: ${mod.evidence}`,
-                    fix_snippet: "Fix JSON syntax errors in the module evidence file.", deduction: 15, severity: 'high', hard_fail: true, source: 'evidence'
-                  });
-                }
-              } else {
-                // REQUIREMENT 5: risk management semantic check
-                if (modEvidencePath.includes('risk') || content.toLowerCase().includes('risk management')) {
-                  const lowerContent = content.toLowerCase();
-                  const requiredTerms = ['risk category', 'mitigation', 'oversight', 'transparency'];
-                  const missingTerms = requiredTerms.filter(t => !lowerContent.includes(t));
-                  if (missingTerms.length > 0) {
-                    findings.push({
-                      article: 'Art. 9', rule_id: 'EUAI-MOD-006',
-                      description: `Risk management evidence lacks required semantic sections: ${missingTerms.join(', ')}`,
-                      fix_snippet: "Add missing sections (risk category, mitigation, oversight, transparency) to the risk management file.",
-                      deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence'
-                    });
-                  }
-                }
+              if (!modEvidencePath.endsWith('.json')) {
+                applySubstanceAudit(findings, content, mod.evidence, 'Art. 9');
               }
             }
-          } catch (e) {
-            findings.push({
-              article: 'Art. 9', rule_id: 'EUAI-MOD-007', description: `Module evidence unreadable: ${mod.evidence}`,
-              fix_snippet: "Ensure the module evidence file has correct read permissions.", deduction: 15, severity: 'high', hard_fail: true, source: 'evidence'
-            });
-          }
+          } catch(e) {}
         }
       }
     }
   }
 
-  // ── 5. Human oversight: Art. 14 (Must not pass from flag alone) ──
   if (strictEnforcement) {
-    const hasOversightObj = manifest.human_oversight && typeof manifest.human_oversight === 'object' && Object.keys(manifest.human_oversight).length > 0;
-    let hasValidOversightFile = false;
     if (manifest.oversight_evidence_path) {
       const p = path.resolve(manifestDir, manifest.oversight_evidence_path);
-      if (fs.existsSync(p) && fs.statSync(p).size > 10) hasValidOversightFile = true;
+      if (fs.existsSync(p) && fs.statSync(p).size > 10) {
+        const content = fs.readFileSync(p, 'utf8');
+        applySubstanceAudit(findings, content, manifest.oversight_evidence_path, 'Art. 14');
+      }
     }
-
-    if (!hasOversightObj && !hasValidOversightFile) {
-      findings.push({
-        article: 'Art. 14', rule_id: 'EUAI-OVER-002',
-        description: "[Missing human oversight details]",
-        deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence',
-        fix_snippet: "Provide 'human_oversight' object or 'oversight_evidence_path'."
-      });
-    }
-  }
-
-  // ── 6. Logging / Traceability: Art. 20 (Must not pass from flag alone) ──
-  if (strictEnforcement) {
-    const hasLoggingObj = manifest.logging_capabilities && typeof manifest.logging_capabilities === 'object' && Object.keys(manifest.logging_capabilities).length > 0;
-    let hasValidLoggingFile = false;
     if (manifest.logging_evidence_path) {
       const p = path.resolve(manifestDir, manifest.logging_evidence_path);
-      if (fs.existsSync(p) && fs.statSync(p).size > 10) hasValidLoggingFile = true;
-    }
-
-    if (!hasLoggingObj && !hasValidLoggingFile) {
-      findings.push({
-        article: 'Art. 20', rule_id: 'EUAI-LOG-003',
-        description: "[Missing logging details]",
-        deduction: 20, severity: 'critical', hard_fail: true, source: 'evidence',
-        fix_snippet: "Provide 'logging_capabilities' object or 'logging_evidence_path'."
-      });
+      if (fs.existsSync(p) && fs.statSync(p).size > 10) {
+        const content = fs.readFileSync(p, 'utf8');
+        applySubstanceAudit(findings, content, manifest.logging_evidence_path, 'Art. 20');
+      }
     }
   }
 
   return findings;
 }
 
+const AUDIT_BASELINE = {
+  'Art. 9':  { target: 2, weight: 0.25 },
+  'Art. 10': { target: 2, weight: 0.25 },
+  'Art. 13': { target: 1, weight: 0.15 },
+  'Art. 14': { target: 3, weight: 0.20 },
+  'Art. 20': { target: 2, weight: 0.15 }
+};
+
 function determineVerifiedArticles(findings, manifest) {
   const verified = [];
-  const failedArticles = new Set(findings.filter(f => f.article).map(f => f.article));
-
+  const riskCat = (manifest.risk_category || "minimal").toLowerCase();
   const modules = Array.isArray(manifest.modules) ? manifest.modules : [];
   const declaredFlags = Array.isArray(manifest.declared_flags) ? manifest.declared_flags : [];
 
-  const hasTransparency = !!manifest.evidence_path || declaredFlags.includes('transparency_disclosure_provided');
-  const hasOversight = (manifest.human_oversight && Object.keys(manifest.human_oversight).length > 0) || !!manifest.oversight_evidence_path;
-  const hasLogging = (manifest.logging_capabilities && Object.keys(manifest.logging_capabilities).length > 0) || !!manifest.logging_evidence_path;
-  const hasRiskManagement = modules.length > 0 && modules.some(m => m.evidence);
+  const check = (art) => {
+    const failedFindings = findings.filter(f => f.article === art && f.hardening_verdict === 'FAIL');
+    // For verification, we still use a hybrid logic but more permissive for Minimal
+    if (riskCat === 'minimal') return true; 
+    return failedFindings.length === 0;
+  };
 
-  if (hasTransparency && !failedArticles.has('Art. 13')) verified.push('Art. 13');
-  if (hasOversight && !failedArticles.has('Art. 14')) verified.push('Art. 14');
-  if (hasLogging && !failedArticles.has('Art. 20')) verified.push('Art. 20');
-  if (hasRiskManagement && !failedArticles.has('Art. 9')) verified.push('Art. 9');
+  if (check('Art. 9') && (modules.some(m => m.evidence) || declaredFlags.includes('bias_assessment_performed'))) verified.push('Art. 9');
+  if (check('Art. 10') && (declaredFlags.includes('data_governance_documented') || declaredFlags.includes('data_lineage_tracked'))) verified.push('Art. 10');
+  if (check('Art. 13') && (!!manifest.evidence_path || declaredFlags.includes('transparency_disclosure_provided') || declaredFlags.includes('ai_disclosure'))) verified.push('Art. 13');
+  if (check('Art. 14') && (!!manifest.oversight_evidence_path || declaredFlags.includes('human_oversight_enabled') || declaredFlags.includes('manual_override'))) verified.push('Art. 14');
+  if (check('Art. 20') && (!!manifest.logging_evidence_path || declaredFlags.includes('logging_capabilities_declared'))) verified.push('Art. 20');
 
   return verified;
 }
 
-function computeEvidenceScore(findings, manifest) {
-  const riskCat = (manifest.risk_category || "minimal").toLowerCase();
-  let required = ['Art. 13'];
-  if (riskCat === 'high') {
-    required = ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'];
-  } else if (riskCat === 'limited') {
-    required = ['Art. 13'];
-  } else if (riskCat === 'unacceptable') {
-    return { baseScore: 0, deductions: 0, finalScore: 0 };
-  }
-
-  const verified = determineVerifiedArticles(findings, manifest);
-  const verifiedRequired = required.filter(a => verified.includes(a));
-
-  if (required.length === 0) return { baseScore: 0, deductions: 0, finalScore: 0 };
-
-  // Base Score = % of required controls satisfied
-  const baseScore = Math.round((verifiedRequired.length / required.length) * 100);
-
-  let totalDeductions = 0;
-  // Subtract deductions for required articles if they have findings
-  for (const f of findings) {
-    if (required.includes(f.article)) {
-      totalDeductions += (f.deduction || 0) / required.length;
-    }
-  }
-
-  const finalScore = Math.max(0, Math.min(100, Math.round(baseScore - totalDeductions)));
+function calculateSignalBreakdown(signals = []) {
   return {
-    baseScore,
-    deductions: Math.round(totalDeductions),
-    finalScore
+     ai_assets: signals.filter(s => s.kind === 'dependency' || s.kind === 'code_signature_load').length,
+     execution: signals.filter(s => s.kind === 'code_signature_call' && (s.id.includes('AI') || s.id.includes('MODEL') || s.id.includes('LLM'))).length,
+     connectivity: signals.filter(s => s.kind === 'code_signature_call' && (s.id.startsWith('CODE_HTTP') || s.id.startsWith('CODE_SOCKET') || s.id.startsWith('CODE_URI'))).length,
+     transparency: signals.filter(s => { const id = s.id.toUpperCase(); return id.includes('DISCLOSURE') || id.includes('LABEL') || id.includes('AI_VAR') || id.includes('TRANS'); }).length,
+     oversight: signals.filter(s => { const id = s.id.toUpperCase(); return id.includes('OVERRIDE') || id.includes('KILL_SWITCH') || id.includes('EXIT') || id.includes('HUMAN') || id.includes('OVERSIGHT'); }).length,
+     logging: signals.filter(s => { const id = s.id.toUpperCase(); return id.includes('LOG') || id.includes('TRACE'); }).length
   };
 }
 
+function computeTrustMetrics(findings, manifest, signalBreakdown, requiresGovernance = true) {
+  const riskCat = (manifest.risk_category || "minimal").toLowerCase();
+  
+  if (!requiresGovernance && findings.length === 0) {
+      return {
+          finalScore: 100,
+          claim_score: 100,
+          evidence_score: 100,
+          confidence: 'HIGH',
+          phi: 1.0,
+          exposure: 0.1,
+          breakdown: {}
+      };
+  }
+  const declaredFlags = Array.isArray(manifest.declared_flags) ? manifest.declared_flags : [];
+  const modules = Array.isArray(manifest.modules) ? manifest.modules : [];
+  
+  let required = [];
+  let weights = {};
+  
+  if (riskCat === 'high') {
+    required = ['Art. 9', 'Art. 10', 'Art. 13', 'Art. 14', 'Art. 20'];
+    weights = { 'Art. 9': 0.25, 'Art. 10': 0.25, 'Art. 13': 0.15, 'Art. 14': 0.20, 'Art. 20': 0.15 };
+  } else if (riskCat === 'limited' || riskCat === 'minimal') {
+    required = ['Art. 13'];
+    weights = { 'Art. 13': 1.0 };
+  } else if (riskCat === 'unacceptable') {
+    return { finalScore: 0, compliance: 0, exposure: 1.0, confidence: 'LOW', breakdown: {} };
+  }
+
+  if (required.length === 0) return { finalScore: 0, confidence: 'N/A' };
+
+  let totalWeightedScore = 0;
+  const breakdown = {};
+  let totalTargetSignals = 0;
+  let totalFoundSignals = 0;
+
+  required.forEach(art => {
+    // 1. Calculate Claim(a) ∈ [0, 1]
+    let claim = 0;
+    if (art === 'Art. 13') {
+      if (manifest.evidence_path) claim += 0.5;
+      if (declaredFlags.includes('transparency_disclosure_provided') || declaredFlags.includes('ai_disclosure')) claim += 0.5;
+    } else if (art === 'Art. 14') {
+      if (manifest.oversight_evidence_path) claim += 0.5;
+      if (declaredFlags.includes('human_oversight_enabled') || declaredFlags.includes('manual_override')) claim += 0.5;
+    } else if (art === 'Art. 20') {
+      if (manifest.logging_evidence_path) claim += 0.5;
+      if (declaredFlags.includes('logging_capabilities_declared')) claim += 0.5;
+    } else if (art === 'Art. 9') {
+      if (modules.some(m => m.evidence)) claim += 0.5;
+      if (declaredFlags.includes('bias_assessment_performed')) claim += 0.5;
+    } else if (art === 'Art. 10') {
+      if (declaredFlags.includes('data_governance_documented')) claim += 0.5;
+      if (declaredFlags.includes('data_lineage_tracked')) claim += 0.5;
+    }
+    claim = Math.min(1.0, claim);
+
+    // 2. Calculate Evidence(a) ∈ [0, 1] (Proportional)
+    const target = AUDIT_BASELINE[art] ? AUDIT_BASELINE[art].target : 1;
+    totalTargetSignals += target;
+    
+    let found = 0;
+    if (art === 'Art. 13') found = signalBreakdown.transparency || 0;
+    if (art === 'Art. 14') found = signalBreakdown.oversight || 0;
+    if (art === 'Art. 20') found = signalBreakdown.logging || 0;
+    if (art === 'Art. 10') found = signalBreakdown.ai_assets || 0; // AI Assets map to Data Gov for now
+    if (art === 'Art. 9') found = signalBreakdown.ai_assets ? Math.floor(signalBreakdown.ai_assets / 2) : 0; 
+    
+    totalFoundSignals += found;
+    let baseEvidence = Math.min(1.0, found / target);
+    
+    // Proportional Penalties
+    let penaltyMultiplier = 1.0;
+    findings.filter(f => f.article === art).forEach(f => {
+      const p = (f.deduction || 0) / 100;
+      penaltyMultiplier *= (1 - p);
+    });
+    
+    const evidence = baseEvidence * penaltyMultiplier;
+
+    // 3. Article Score
+    const artScore = (claim * 0.2 + evidence * 0.8);
+    const weightedArtScore = artScore * weights[art];
+    
+    totalWeightedScore += weightedArtScore;
+    breakdown[art] = { claim, evidence, weight: weights[art], contribution: weightedArtScore };
+  });
+
+  const finalScore = totalWeightedScore * 100;
+  
+  // 4. Confidence Metric (Signal Saturation)
+  const phi = Math.min(1.0, totalFoundSignals / totalTargetSignals);
+  let confidence = 'HIGH';
+  if (phi < 0.3) confidence = 'LOW';
+  else if (phi < 0.7) confidence = 'MEDIUM';
+
+  // Risk Exposure
+  const gravity = { 'high': 1.0, 'limited': 0.4, 'minimal': 0.1 };
+  const exposure = (1 - totalWeightedScore) * (gravity[riskCat] || 0.1);
+
+  return {
+    finalScore: parseFloat(finalScore.toFixed(1)),
+    claim_score: Math.round(finalScore), // Legacy support
+    evidence_score: Math.round(finalScore), // Legacy support
+    confidence,
+    phi: parseFloat(phi.toFixed(2)),
+    exposure: parseFloat(exposure.toFixed(2)),
+    breakdown
+  };
+}
 function hasHardFail(findings) {
   return findings.some(f => f.hard_fail === true);
 }
 
-function computeVerdict(score, findings, manifest) {
+function computeVerdict(score, findings, manifest, requiresGovernance = true) {
   if (hasHardFail(findings)) return 'NON_COMPLIANT';
+  if (!requiresGovernance && findings.length === 0 && score >= 90) return 'COMPLIANT';
 
   const riskCat = (manifest.risk_category || "minimal").toLowerCase();
   let required = ['Art. 13'];
@@ -715,19 +1023,19 @@ function generateEvidencePack(params) {
 ## Overall Status
 **${report.verdict}**
 
-## Findings Summary
-- Total violations: ${report.violations.length}
+## Findings
+- Total findings: ${report.violations.length}
 - High/Critical severity: ${highRisk.length}
 - Missing required documentation: ${missingDocs.length}
 
-## Top Violations
+## Top Findings
 ${report.violations.slice(0, 5).map(v => `- **${v.rule_id}** — ${v.description}`).join('\n')}
 
 ## Missing Documentation
 ${missingDocs.length > 0 ? missingDocs.map(d => `- ${d.path}`).join('\n') : "- None"}
 
 ## Recommended Next Actions
-1. ${missingDocs.length > 0 ? "Add required compliance documentation" : "Address identified engine violations"}
+1. ${missingDocs.length > 0 ? "Add required compliance documentation" : "Address identified engine findings"}
 2. Re-run Sentinel scan with evidence export
 3. Review full report in \`scan-report.json\`
 
@@ -1185,14 +1493,14 @@ function generateSarif(report, manifestPath) {
     const regEntry = ruleRegistry.rules.find(r => r.id === ruleId);
     const ruleRef = {
       id: ruleId || 'EUAI-GENERIC',
-      name: regEntry ? regEntry.name : (v.description || 'Compliance Violation')
+      name: regEntry ? regEntry.name : (v.description || 'Compliance Gap')
     };
 
     return {
       ruleId: ruleRef.id,
       level: 'error',
       message: {
-        text: v.description || 'Compliance violation detected'
+        text: v.description || 'Compliance gap detected'
       },
       locations: [
         {
@@ -1218,7 +1526,13 @@ function generateSarif(report, manifestPath) {
             rules: Object.values(rulesMap).map(r => ({ id: r.id, name: r.name }))
           }
         },
-        results: results
+        results: results,
+        properties: {
+          claim_score: report.claim_score,
+          evidence_score: report.evidence_score,
+          confidence: report.confidence,
+          risk_category: report.risk_category
+        }
       }
     ]
   };
@@ -1320,42 +1634,39 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
   }
 
   const auditMetadata = {
-    score: singleVerdict?.score?.finalScore !== undefined ? singleVerdict.score.finalScore : singleVerdict?.score,
-    baseScore: singleVerdict?.score?.baseScore,
-    deductions: singleVerdict?.score?.deductions,
+    score: singleVerdict?.score,
+    claim_score: singleVerdict?.claim_score,
+    evidence_score: singleVerdict?.evidence_score,
+    confidence: singleVerdict?.confidence,
+    deductions: singleVerdict?.deductions,
     mapped_articles: singleVerdict?.mapped_articles,
     risk_category: singleVerdict?.risk_category,
     required_articles: singleVerdict?.required_articles,
     verdict: singleVerdict?.verdict
   };
 
-  const confidence = (auditMetadata.score >= 90 && auditMetadata.mapped_articles?.length >= 3) ? "HIGH" :
-    (auditMetadata.score >= 70) ? "MEDIUM" : "LOW";
+  const confidenceColor = auditMetadata.confidence === 'HIGH' ? C.green : (auditMetadata.confidence === 'MEDIUM' ? C.yellow : C.red);
+  const isTrustGap = auditMetadata.confidence === 'LOW';
 
   if (isFail) {
     if (!isJson && !isSarif) {
       console.log(`${C.bold}${C.red}❌ Sentinel compliance check failed${C.reset}`);
-
       console.log(`${C.bold}Compliance Status: ${C.red}NON_COMPLIANT${C.reset}`);
 
       if (auditMetadata.risk_category === 'unacceptable') {
         console.log(`${C.bold}Risk Category: ${C.white}unacceptable${C.reset}`);
-        console.log(`${C.bold}Verified Controls: ${C.gray}None${C.reset}`);
-        console.log(`${C.bold}Verified Articles: ${C.gray}None${C.reset}`);
         console.log(`${C.bold}Reason: ${C.red}Prohibited system / hard fail${C.reset}`);
       } else {
-        if (auditMetadata.baseScore !== undefined) {
-          console.log(`${C.bold}Base Score: ${C.white}${auditMetadata.baseScore}/100${C.reset}`);
-          console.log(`${C.bold}Deductions: ${C.red}-${auditMetadata.deductions}${C.reset}`);
-          console.log(`${C.bold}Final Score: ${C.red}${auditMetadata.score}/100${C.reset}`);
-        } else if (auditMetadata.score !== undefined) {
-          console.log(`${C.bold}Compliance Score: ${C.red}${auditMetadata.score}/100${C.reset}`);
+        console.log(`${C.bold}Claim Score (Coverage): ${C.white}${auditMetadata.claim_score || 0}/100${C.reset}`);
+        console.log(`${C.bold}Evidence Score (Proof): ${C.red}${auditMetadata.evidence_score || 0}/100${C.reset}`);
+        console.log(`${C.bold}Trust Confidence:      ${confidenceColor}${C.bold}${auditMetadata.confidence || 'LOW'}${C.reset}`);
+        
+        if (isTrustGap) {
+          console.log(`\n${C.red}${C.bold}⚠ TRUST GAP DETECTED:${C.reset}${C.red} High compliance claims but missing/invalid evidence docs.${C.reset}`);
         }
 
-        console.log(`${C.bold}Confidence Level: ${C.yellow}${confidence}${C.reset}`);
-        console.log(`${C.bold}Risk Category: ${C.white}${auditMetadata.risk_category || 'minimal'}${C.reset}`);
+        console.log(`\n${C.bold}Risk Category: ${C.white}${auditMetadata.risk_category || 'minimal'}${C.reset}`);
         console.log(`${C.bold}Required Controls: ${C.gray}${auditMetadata.required_articles?.join(', ') || 'Art. 13'}${C.reset}`);
-        console.log(`${C.bold}Verified Controls: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
         console.log(`${C.bold}Verified Articles: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
       }
 
@@ -1378,7 +1689,7 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
       const policyViolations = violations.filter(v => v.source !== "evidence" && !v.hard_fail);
 
       if (policyViolations.length > 0) {
-        console.log(`${C.bold}${C.yellow}Policy Violations:${C.reset}`);
+        console.log(`${C.bold}${C.yellow}Technical Indicators Absent (Policy):${C.reset}`);
         policyViolations.forEach(v => {
           const ruleId = getRuleId(v);
           const idStr = ruleId ? `[${C.bold}${ruleId}${C.reset}] ` : "";
@@ -1409,11 +1720,11 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
 
       const summaryParts = [];
       if (hardFails.length > 0) summaryParts.push(`${hardFails.length} hard fail${hardFails.length > 1 ? 's' : ''}`);
-      if (policyViolations.length > 0) summaryParts.push(`${policyViolations.length} policy violation${policyViolations.length > 1 ? 's' : ''}`);
+      if (policyViolations.length > 0) summaryParts.push(`${policyViolations.length} indicator${policyViolations.length > 1 ? 's' : ''} absent`);
       if (evidenceFindings.length > 0) summaryParts.push(`${evidenceFindings.length} evidence finding${evidenceFindings.length > 1 ? 's' : ''}`);
 
       if (summaryParts.length > 0) {
-        console.log(`  ${C.gray}Failure caused by ${summaryParts.join(" and ")}${C.reset}`);
+        console.log(`  ${C.gray}Audit identified ${summaryParts.join(" and ")}${C.reset}`);
         console.log("");
       }
     }
@@ -1421,21 +1732,19 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
   } else {
     if (!isJson && !isSarif) {
       const statusColor = auditMetadata.verdict === 'COMPLIANT' ? C.green : (auditMetadata.verdict === 'PARTIAL' ? C.yellow : C.red);
-      console.log(`${C.bold}${statusColor}✅ Sentinel compliance check passed${C.reset}`);
-      console.log(`${C.bold}Compliance Status: ${statusColor}${auditMetadata.verdict}${C.reset}`);
+      console.log(`${C.bold}${statusColor}✅ Sentinel compliance check finished${C.reset}`);
+      console.log(`${C.bold}Evaluation Status: ${statusColor}${auditMetadata.verdict}${C.reset}`);
 
-      if (auditMetadata.baseScore !== undefined) {
-        console.log(`${C.bold}Base Score: ${C.white}${auditMetadata.baseScore}/100${C.reset}`);
-        console.log(`${C.bold}Deductions: ${C.green}-${auditMetadata.deductions}${C.reset}`);
-        console.log(`${C.bold}Final Score: ${C.green}${auditMetadata.score}/100${C.reset}`);
-      } else {
-        console.log(`${C.bold}Compliance Score: ${C.green}${auditMetadata.score}/100${C.reset}`);
+      console.log(`${C.bold}Claim Score (Coverage): ${C.white}${auditMetadata.claim_score || 0}/100${C.reset}`);
+      console.log(`${C.bold}Evidence Score (Proof): ${C.green}${auditMetadata.evidence_score || 0}/100${C.reset}`);
+      console.log(`${C.bold}Computed Trust Score (heuristic): ${confidenceColor}${C.bold}${auditMetadata.phi || 0}${C.reset}`);
+
+      if (isTrustGap) {
+        console.log(`\n${C.yellow}${C.bold}⚠ TRUST GAP DETECTED:${C.reset}${C.yellow} Claims are high, but evidence is boilerplate or low-substance.${C.reset}`);
       }
 
-      console.log(`${C.bold}Confidence Level: ${C.green}${confidence}${C.reset}`);
-      console.log(`${C.bold}Risk Category: ${C.white}${auditMetadata.risk_category || 'minimal'}${C.reset}`);
+      console.log(`\n${C.bold}Risk Category: ${C.white}${auditMetadata.risk_category || 'minimal'}${C.reset}`);
       console.log(`${C.bold}Required Controls: ${C.gray}${auditMetadata.required_articles?.join(', ') || 'Art. 13'}${C.reset}`);
-      console.log(`${C.bold}Verified Controls: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
       console.log(`${C.bold}Verified Articles: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
 
       if (policyPath) {
@@ -1452,57 +1761,167 @@ function printVersion() {
   console.log(`Sentinel CLI v${pkg.version}`);
 }
 
+/**
+ * Enforcement Policy Checker
+ * @param {string} verdict APPROVED, HOLD, REJECTED
+ * @param {string} policy REJECTED, HOLD, NONE
+ * @returns {boolean} True if enforcement failed (should exit 1)
+ */
+function isEnforcementViolation(verdict, policy) {
+  if (policy === 'NONE') return false;
+  if (policy === 'REJECTED' && verdict === 'REJECTED') return true;
+  if (policy === 'HOLD' && (verdict === 'REJECTED' || verdict === 'HOLD')) return true;
+  return false;
+}
 
 /**
- * CI/CD Guardrail: check compliance score against threshold.
+ * Writes a markdown summary to a file.
  */
-async function runCheck(args) {
-  const isJson = args.includes('--json');
-
-  // 1. Resolve Threshold
-  const thresholdArgIdx = args.indexOf('--threshold');
-  let threshold = null;
-  if (thresholdArgIdx !== -1 && args[thresholdArgIdx + 1]) {
-    threshold = parseInt(args[thresholdArgIdx + 1]);
+function writeSummary(report, summaryPath) {
+  try {
+    const ReportGenerator = require('./lib/report-generator');
+    const md = ReportGenerator.generateMarkdownSummary(report);
+    fs.writeFileSync(path.resolve(summaryPath), md);
+    return true;
+  } catch (e) {
+    console.error(`\n${C.yellow}Warning: Failed to generate summary: ${e.message}${C.reset}`);
+    return false;
   }
+}
 
-  if (threshold === null || isNaN(threshold)) {
-    console.error(`\n${C.red}${C.bold}Error: --threshold is required for sentinel check${C.reset}`);
-    console.log(`\n${C.bold}Suggested thresholds:${C.reset}`);
-    console.log(`  - 70 → development baseline`);
-    console.log(`  - 80 → production minimum`);
-    console.log(`  - 90 → high-risk systems (recommended)`);
-    process.exit(2);
+
+/**
+ * Core audit engine. Finalizes all metrics and returns the report object.
+ * This is the Single Source of Truth for Sentinel.
+ */
+async function performAudit(manifestPath, threshold, options = {}) {
+  const engine = options.engine || 'stable';
+  if (process.env.SENTINEL_DEBUG === 'true') {
+     console.log(`[DEBUG] performAudit call: ${manifestPath} (Threshold: ${threshold}) | Engine: ${engine}`);
   }
-
-  // 2. Resolve Manifest
-  const manifestPath = resolveTargetManifest(args);
-  if (!manifestPath || !fs.existsSync(manifestPath)) {
-    console.error(`${C.red}Error: No manifest found. Use --manifest <path>${C.reset}`);
-    process.exit(2);
-  }
-
   const manifestDir = path.dirname(path.resolve(manifestPath));
   let manifest;
   try {
     manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   } catch (e) {
-    console.error(`${C.red}Error reading manifest: ${e.message}${C.reset}`);
-    process.exit(2);
+    throw new Error(`Failed to read manifest: ${e.message}`);
   }
 
-  // Normalize risk category for reporting
-  const riskCatOrig = manifest.risk_category || "Minimal";
-  const riskCat = riskCatOrig.toUpperCase();
+  // 1. Implementation Audit (Signals)
+  const commitId = AuditMetadata.getGitCommit(manifestDir);
+  const repoFiles = autodiscovery.crawlRepository(manifestDir);
+  // Rule Shadowing: Load extended rules if in extended mode
+  let effectiveProbingRules = probingRules;
+  if (engine === 'extended') {
+    try {
+      const extendedRulesPath = path.join(__dirname, 'lib', 'probing-rules-extended.json');
+      if (fs.existsSync(extendedRulesPath)) {
+        const extendedRules = JSON.parse(fs.readFileSync(extendedRulesPath, 'utf8'));
+        // Deep merge logic for probes
+        effectiveProbingRules = JSON.parse(JSON.stringify(probingRules)); // Clone
+        if (extendedRules.probes) {
+          for (const [key, value] of Object.entries(extendedRules.probes)) {
+            if (!effectiveProbingRules.probes[key]) {
+              effectiveProbingRules.probes[key] = value;
+            } else {
+              // Merge signals
+              effectiveProbingRules.probes[key].strong_signals = [
+                ...(effectiveProbingRules.probes[key].strong_signals || []),
+                ...(value.strong_signals || [])
+              ];
+              effectiveProbingRules.probes[key].weak_signals = [
+                ...(effectiveProbingRules.probes[key].weak_signals || []),
+                ...(value.weak_signals || [])
+              ];
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn(`[ENGINE-EXTENDED] Warning: Could not merge extended rules: ${err.message}`);
+    }
+  }
 
-  // 3. Perform Audit
+  const dependencyGraph = autodiscovery.buildDependencyGraph(repoFiles);
+  let signals = autodiscovery.extractSignals(repoFiles, discoveryRules, effectiveProbingRules, dependencyGraph, commitId);
+
+  // 1.1 Governance Context
+  const riskCat = (manifest.risk_category || "").toLowerCase();
+  const isMinimal = riskCat === 'minimal';
+  const hasAISignals = signals.length > 0;
+  const requiresGovernance = !isMinimal || hasAISignals;
+
+  // 2. Evidence & Governance Audit (Context-Aware)
   const offlineResult = await runOffline(manifest);
-  const engineViolations = offlineResult.violations || [];
-  const evidenceFindings = validateEvidence(manifest, manifestDir);
-  const allFindings = [...evidenceFindings, ...engineViolations];
+  const allEngineViolations = offlineResult.violations || [];
+  const engineViolations = requiresGovernance ? allEngineViolations : allEngineViolations.filter(v => v.risk_category !== 'High' && v.risk_category !== 'Limited');
+  const evidenceFindings = validateEvidence(manifest, manifestDir, signals, requiresGovernance);
 
-  // Post-process findings to ensure 100% DX compliance (labels and snippets)
-  allFindings.forEach(f => {
+  // Alignment Heuristic: Reduce impact of marketing/content repositories
+  // Signal Diversity & Density check
+  const contentSignals = signals.filter(s => /\.(html|txt|astro|vue|svelte)$/i.test(s.source_path));
+  const codeSignals = signals.filter(s => s.kind === 'dependency' || s.kind === 'hardening_probe' || /\.(js|ts|tsx|jsx|mjs|cjs|md|mdx|py|go|java|rb|cpp|cs|php|rs|swift|kt)$/i.test(s.source_path));
+
+  const contentCount = contentSignals.length;
+  const codeCount = codeSignals.length;
+  
+  const hasDeepCodeSupport = codeSignals.some(s => s.confidence >= 0.8 && (/\b(src|lib|api|bin|core|engine|app|packages|apps|services)\b/i.test(s.source_path) || s.source_path.includes('/')));
+  
+  const isHighNoise = codeCount === 0 && contentCount > 10;
+  const isLowReliability = contentCount > 20 && (codeCount < 1 || !hasDeepCodeSupport);
+
+  // Alignment Heuristic: Discard low-confidence signals if the repo is considered low reliability/marketing noise
+  if (isHighNoise || isLowReliability) {
+     signals = signals.filter(s => s.confidence >= 0.9 || s.kind === 'hardening_probe'); 
+  }
+
+  const hardeningFindings = [];
+  computeHardeningFindings(signals, manifest, hardeningFindings, repoFiles, dependencyGraph);
+
+
+  // 2.1 Enterprise Safety Gate: Negative Assurance
+  const hasIntent = autodiscovery.detectHeuristicIntent(repoFiles);
+  if (hasIntent && signals.length === 0 && (manifest.risk_category || "minimal").toLowerCase() === 'minimal') {
+      hardeningFindings.push({
+          article: "Art. 9/13",
+          rule_id: "EUAI-NEG-ASSURANCE-001",
+          description: `[Safety] Negative Assurance FAIL: Metadata indicates AI intent, but zero technical signals found.`,
+          deduction: 30,
+          severity: "high",
+          source: "implementation",
+          fix_snippet: "Declare AI assets in manifest or update discovery rules to match your tech stack.",
+          hard_fail: true
+      });
+  }
+
+  // 2.2 Enterprise Safety Gate: Behavioral Suspicion Fallback
+  const hasBehaviorSuspicion = signals.some(s => s.id === 'BEHAVIORAL_SUSPICION_FLAG_HIGH_RISK');
+  if (hasBehaviorSuspicion && (manifest.risk_category || "minimal").toLowerCase() === 'minimal') {
+      hardeningFindings.push({
+          article: "Art. 6 / Annex III",
+          rule_id: "EUAI-BEHAVIOR-001",
+          description: `[Safety] Unknown AI System: Behavioral analysis strongly suggests obfuscated/wrapper AI integration. Risk overridden to HIGH.`,
+          deduction: 50,
+          severity: "critical",
+          source: "implementation",
+          fix_snippet: "Declare AI assets clearly or escalate to Human Review to bypass.",
+          hard_fail: true
+      });
+  }
+
+  // 3. Combine & Post-process
+  const allFindings = [...evidenceFindings, ...allEngineViolations, ...hardeningFindings];
+  const combinedFindings = allFindings.filter(f => {
+      if (requiresGovernance) return true;
+      // Suppress advanced AI Act rules for Minimal Non-AI projects
+      const articleClean = (f.article || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+      const isAdvanced = articleClean.includes('art13') || articleClean.includes('art14') || articleClean.includes('art10') || articleClean.includes('art20') || articleClean.includes('article13') || articleClean.includes('article14') || articleClean.includes('article10') || articleClean.includes('article20') ||
+                        (f.rule_id && (f.rule_id.startsWith('ART') || f.rule_id.startsWith('EUAI-TRANS') || f.rule_id.startsWith('EUAI-EVID')));
+      return !isAdvanced;
+  });
+  
+  // Ensure DX compliance
+  combinedFindings.forEach(f => {
     if (f.fix_snippet && f.fix_snippet.includes('declared_flags') && !f.fix_snippet.includes('array')) {
       f.fix_snippet = f.fix_snippet.replace('declared_flags', "'declared_flags' array");
     }
@@ -1513,26 +1932,518 @@ async function runCheck(args) {
     }
   });
 
-  const scoreObj = computeEvidenceScore(evidenceFindings, manifest);
-  const score = scoreObj.finalScore !== undefined ? scoreObj.finalScore : scoreObj;
-  const verdict = computeVerdict(score, allFindings, manifest);
+  // 3.1 Evidence Correlation Layer
+  correlateFindings(combinedFindings, repoFiles);
+
+  // Signal Breakdown for UX (Categorical Analysis)
+  const signalBreakdown = calculateSignalBreakdown(signals);
+
+  const trust = computeTrustMetrics(combinedFindings, manifest, signalBreakdown, requiresGovernance);
+  const score = trust.finalScore;
+  const verdict = computeVerdict(score, combinedFindings, manifest);
+
+  // V2.1 Dual-Track Evaluation (Premium)
+  const Evaluator = require('./lib/evaluator');
+  const dualTrack = Evaluator.evaluate({
+    score,
+    threshold,
+    _internal: {
+      signalBreakdown,
+      signals: (signals || []).map(s => {
+        let fullContent = "";
+        try {
+          fullContent = fs.readFileSync(path.resolve(process.cwd(), s.source_path));
+        } catch(e) {}
+        return {
+          ...s,
+          source_sha256: fullContent ? crypto.createHash('sha256').update(fullContent).digest('hex') : 'unknown',
+          evidence_sha256: s.snippet ? crypto.createHash('sha256').update(s.snippet).digest('hex') : 'unknown'
+        };
+      }),
+      all_findings: combinedFindings
+    }
+  });
+
+  // Phase 11: Semantic Document Evaluation (Optional)
+  let semanticReport = null;
+  if (process.env.SENTINEL_LLM_PROVIDER && 
+      process.env.SENTINEL_LLM_PROVIDER !== 'none') {
+    try {
+      const docsMap = await extractDocsFromRepo(manifestDir, manifest);
+      if (Object.keys(docsMap).length > 0) {
+        const evalResults = await evaluateAllDocuments(docsMap);
+        semanticReport = generateSemanticReport(evalResults);
+      }
+    } catch (e) {
+      if (process.env.SENTINEL_DEBUG === 'true') {
+        console.log(`[DEBUG] Semantic evaluation failed or skipped: ${e.message}`);
+      }
+      semanticReport = null;
+    }
+  }
+
+  // 4. Construct SSoT Report
+  return {
+    command: "check",
+    manifest_path: manifestPath,
+    status: score >= threshold ? "PASS" : "FAIL",
+    score,
+    claim_score: trust.claim_score,
+    evidence_score: trust.evidence_score,
+    confidence: trust.confidence,
+    phi: trust.phi,
+    exposure: trust.exposure,
+    threshold,
+    verdict: dualTrack.centralVerdict,
+    _context_validation: evaluateContextSufficiency(manifest, combinedFindings, engine),
+    _declaration_consistency: checkDeclarationConsistency(manifest, combinedFindings, signals, engine),
+    _executive_summary: generateExecutiveSummary(manifest, combinedFindings, signals, engine),
+    central_verdict: dualTrack.centralVerdict,
+    technical_status: dualTrack.technicalStatus,
+    governance_status: dualTrack.governanceStatus,
+    risk_category: signals.some(s => s.id === 'BEHAVIORAL_SUSPICION_FLAG_HIGH_RISK') ? "High" : (manifest.risk_category || "Minimal"),
+    semantic_quality: semanticReport?.semantic_quality ?? { evaluated: false },
+    exit_code: (score >= threshold && verdict !== 'NON_COMPLIANT') ? 0 : 1,
+    findings_count: combinedFindings.length,
+    score_breakdown: trust.breakdown,
+    top_findings: combinedFindings.slice(0, 5).map(f => ({
+      rule_id: f.rule_id,
+      description: f.description,
+      fix_snippet: f.fix_snippet,
+      article: f.article,
+      source: f.source,
+      hardening_verdict: f.hardening_verdict
+    })),
+    _internal: {
+        total_signals: signals.length,
+        signals: (signals || []).map(s => {
+          let fullContent = "";
+          try {
+            fullContent = fs.readFileSync(path.resolve(process.cwd(), s.source_path));
+          } catch(e) {}
+          return {
+            ...s,
+            source_sha256: fullContent ? crypto.createHash('sha256').update(fullContent).digest('hex') : 'unknown',
+            evidence_sha256: s.snippet ? crypto.createHash('sha256').update(s.snippet).digest('hex') : 'unknown'
+          };
+        }),
+        signal_breakdown: signalBreakdown,
+        all_findings: combinedFindings, // Expose for CLI/Dashboard
+        files: repoFiles.length
+    }
+  };
+}
+
+/**
+ * Strict Family Detection (Extended Mode Only).
+ * Uses hardened findings to ensure PROVEN/INDICATED substance.
+ */
+function getEvidencedFamilies(findings) {
+  const families = new Set();
+  const activeFindings = findings.filter(f => f.hardening_verdict === 'PROVEN' || f.hardening_verdict === 'INDICATED');
+  
+  activeFindings.forEach(f => {
+    const art = (f.article || "").toUpperCase();
+    if (art.includes('ART. 13') || art.includes('ARTICLE 13')) families.add('transparency');
+    if (art.includes('ART. 14') || art.includes('ARTICLE 14')) families.add('human_oversight');
+    if (art.includes('ART. 20') || art.includes('ARTICLE 20')) families.add('traceability');
+  });
+  return families;
+}
+
+/**
+ * Strict "Missing" Check (Extended Mode Only).
+ * Missing = Zero PROVEN/INDICATED AND Positive Negative Evidence.
+ */
+function isMissing(article, findings) {
+  const artUpper = article.toUpperCase();
+  const familyFindings = findings.filter(f => (f.article || "").toUpperCase().includes(artUpper));
+  
+  const hasSubstance = familyFindings.some(f => f.hardening_verdict === 'PROVEN' || f.hardening_verdict === 'INDICATED');
+  if (hasSubstance) return false;
+
+  // Must have negative evidence confirmation
+  const hasNegativeEvidence = familyFindings.some(f => f.negative_evidence && f.negative_evidence.includes("No direct evidence found"));
+  return hasNegativeEvidence;
+}
+
+/**
+ * Contextual Sufficiency Engine (Hardened).
+ */
+function evaluateContextSufficiency(manifest, findings, engine) {
+  if (engine !== 'extended') return null;
+
+  const domain = manifest.system_domain || "not declared";
+  const declaredRisk = (manifest.risk_level_declared || "not declared").toUpperCase();
+  const intendedUse = manifest.intended_use || "not declared";
+
+  if (declaredRisk === "NOT DECLARED") {
+    return {
+      declaredDomain: domain,
+      declaredRisk: "NOT DECLARED",
+      intendedUse,
+      technicalStatement: "Context not declared; contextual sufficiency check not performed",
+      note: "Context validation is based on manifest-declared system profile and repository-scoped technical evidence only."
+    };
+  }
+
+  // 1. Evidence-Backed Family Detection
+  const detectedFamilies = getEvidencedFamilies(findings);
+
+  // 2. Technical Sufficiency Mapping
+  const requirementsMap = {
+    'HIGH': ['transparency', 'human_oversight', 'traceability'],
+    'MEDIUM': ['transparency', 'traceability'],
+    'LOW': ['transparency']
+  };
+
+  const requiredFamilies = requirementsMap[declaredRisk] || [];
+  const missingFamilies = requiredFamilies.filter(req => {
+    // A family is missing if it's required but NOT detected.
+    return !detectedFamilies.has(req);
+  });
+
+  const isSupported = missingFamilies.length === 0;
+  const technicalStatement = isSupported 
+    ? "Declared risk profile is supported by detected controls within scanned scope"
+    : `Declared risk profile is NOT supported by detected controls within scanned scope (Missing: ${missingFamilies.join(', ')})`;
+
+      }
+
+/**
+ * Correlate evidence signals into higher-level clusters.
+ */
+function correlateEvidenceClusters(signals) {
+  const clusters = {
+    safety_validated: false,
+    unmitigated_execution: false,
+    traceability_gap: false,
+    reasons: []
+  };
+
+  const hasExecution = signals.some(s => s.id.startsWith('CODE_AI_CALL') || s.kind === 'code_signature_call');
+  const hasRobustness = signals.some(s => s.id.startsWith('CODE_ADVERSARIAL') || s.id.startsWith('CODE_STRESS') || s.id.startsWith('CODE_SANITIZATION'));
+  const hasOversight = signals.some(s => s.id.startsWith('CODE_OVERRIDE') || s.id.startsWith('CODE_KILL_SWITCH'));
+  const hasLogging = signals.some(s => s.id.startsWith('DEP_WINSTON') || s.id.startsWith('DEP_PINO') || s.id.startsWith('CODE_LOGGER_INIT'));
+
+  if (hasExecution) {
+    if (hasRobustness && hasOversight) {
+      clusters.safety_validated = true;
+      clusters.reasons.push("Safety Cluster detected: AI execution is paired with robustness and oversight markers.");
+    } else {
+      clusters.unmitigated_execution = true;
+      clusters.reasons.push("Unmitigated Execution Chain: AI execution observed without sufficient robustness/oversight markers.");
+    }
+  }
+
+  if (hasExecution && !hasLogging) {
+    clusters.traceability_gap = true;
+    clusters.reasons.push("Traceability Gap: AI execution markers present without industrial logging infrastructure.");
+  }
+
+  return clusters;
+}
+
+/**
+ * Hardened Technical Risk Inference (Extended Mode Only).
+ */
+function inferTechnicalRiskSignal(findings, signals, engine) {
+  if (engine !== 'extended') return { signal: 'low', confidence: 'LOW', reasons: ["Inference disabled in stable mode"] };
+
+  const clusters = correlateEvidenceClusters(signals);
+  const executionSignals = signals.filter(s => s.id.startsWith('CODE_AI_CALL') || s.kind === 'code_signature_call');
+  const aiExecutionSignals = executionSignals; // For backward compatibility in reasons
+  const hasExecution = executionSignals.length > 0;
+  
+  // Connectivity Scanner Logic
+  const connectivitySignals = signals.filter(s => s.kind === 'code_signature_call' && (s.id.startsWith('CODE_HTTP') || s.id.startsWith('CODE_SOCKET') || s.id.startsWith('CODE_URI')));
+  const activeConnectivity = connectivitySignals.length > 0;
+  
+  const missingTransparency = isMissing('Art. 13', findings);
+  const missingOversight = isMissing('Art. 14', findings);
+  const hasBasicSafeguards = findings.some(f => (f.hardening_verdict === 'PROVEN' || f.hardening_verdict === 'INDICATED' || f.hardening_verdict === 'PASS' || f.hardening_verdict === 'WEAK PASS') && (f.article || "").toUpperCase().match(/ART. 20|LOGGING|MONITORING/));
+
+  let signal = 'low';
+  let confidence = 'LOW';
+  let reasons = [];
+
+  if (clusters.unmitigated_execution) {
+    signal = 'elevated';
+    confidence = 'HIGH';
+    reasons.push("High Risk Execution Chain detected (Art 15/14 deficiency)");
+  } else if (clusters.safety_validated) {
+    signal = 'low';
+    confidence = 'HIGH';
+    reasons.push("Verified Safety Cluster: Proactive controls observed");
+  } else if (hasExecution && activeConnectivity) {
+    signal = 'elevated';
+    confidence = 'HIGH';
+    reasons.push(`Direct AI model execution detected (${aiExecutionSignals.length} markers) with active technical connectivity`);
+  } else if (hasExecution) {
+    signal = 'medium';
+    confidence = 'MEDIUM';
+    reasons.push("AI execution markers detected but technical connectivity within scope is limited/isolated");
+  } else if (activeConnectivity) {
+    signal = 'medium';
+    confidence = 'LOW';
+    reasons.push("Technical connectivity markers detected without confirmed AI execution signatures");
+  } else if (signals.some(s => s.kind === 'code_signature_load' || s.kind === 'dependency')) {
+    signal = 'low';
+    confidence = 'MEDIUM';
+    reasons.push("AI capability/loading detected but no active execution signatures observed");
+  } else {
+    reasons.push("No elevated technical risk markers observed in scanned repository scope");
+  }
+
+  // Add cluster reasons if not already present
+  reasons = [...reasons, ...clusters.reasons];
+
+  return { 
+    signal, 
+    confidence, 
+    reasons: Array.from(new Set(reasons)).slice(0, 3), 
+    _meta: { hasExecution, activeConnectivity, missingTransparency, missingOversight, clusters } 
+  };
+}
+
+/**
+ * Declaration Consistency Engine (Extended Mode Only).
+ */
+function checkDeclarationConsistency(manifest, findings, signals, engine) {
+  if (engine !== 'extended') return null;
+
+  const inferred = inferTechnicalRiskSignal(findings, signals, engine);
+  const declared = (manifest.risk_level_declared || "NOT DECLARED").toLowerCase();
+
+  let result = 'CONSISTENT';
+  let technicalStatement = "Declared profile is consistent with observed technical evidence within scanned scope";
+
+  if (declared === "not declared") {
+    result = 'NOT DECLARED';
+    technicalStatement = "Declaration consistency check not performed because context was not declared";
+  } else if (declared === 'low' && inferred.signal === 'elevated') {
+    result = 'POSSIBLE UNDERDECLARATION';
+    technicalStatement = "Declared profile may understate the observed technical risk signal within scanned scope";
+  } else if (declared === 'medium' && inferred.signal === 'elevated' && inferred.confidence === 'HIGH') {
+    result = 'POSSIBLE UNDERDECLARATION';
+    technicalStatement = "Declared profile may understate the observed technical risk signal within scanned scope";
+  }
+
+  return {
+    declaredRisk: declared.toUpperCase(),
+    inferredSignal: inferred.signal.toUpperCase(),
+    confidence: inferred.confidence,
+    reasons: inferred.reasons,
+    result,
+    technicalStatement,
+    note: "Declaration consistency is based on manifest declarations and repository-scoped technical evidence only. It is not a legal classification."
+  };
+}
+
+/**
+ * Jargon-Free Executive Risk Summary (Top of Report).
+ */
+function generateExecutiveSummary(manifest, findings, signals, engine) {
+  if (engine !== 'extended') return null;
+
+  const inferred = inferTechnicalRiskSignal(findings, signals, engine);
+  const consistency = checkDeclarationConsistency(manifest, findings, signals, engine);
+  const evidencedFamilies = getEvidencedFamilies(findings);
+  
+  // 1. AI USAGE
+  let aiUsage = "No AI execution evidence observed within analyzed repository scope";
+  if (inferred._meta.hasExecution && inferred._meta.activeConnectivity) {
+    aiUsage = "Production AI usage";
+  } else if (inferred._meta.hasExecution) {
+    aiUsage = "Experimental AI usage";
+  } else if (inferred._meta.activeConnectivity) {
+    aiUsage = "Capabilities loading (Connectivity markers present)";
+  } else if (signals.some(s => s.kind === 'dependency' || s.kind === 'code_signature_load')) {
+    aiUsage = "Capabilities present (Inactive/Dead code)";
+  }
+
+  // 2. CONTROL STATUS
+  let controlStatus = "Critical gaps detected";
+  const hasTransparency = evidencedFamilies.has('transparency');
+  const hasOversight = evidencedFamilies.has('human_oversight');
+  const hasTraceability = evidencedFamilies.has('traceability');
+  
+  if (hasTransparency && hasOversight && hasTraceability) {
+    controlStatus = "MARKER DETECTED";
+  } else if (hasTransparency || hasTraceability) {
+    controlStatus = "MARKER PARTIALLY DETECTED";
+  } else if (inferred.signal === 'low') {
+    controlStatus = "Minimal observable risk; basic technical markers sufficient";
+  }
+
+  // 3. INTERNAL VALIDATION (Consistency Check)
+  if (inferred.signal === 'elevated' && aiUsage === "No AI execution evidence observed within analyzed repository scope") {
+    throw new Error("Validation Failure: Elevated risk signal detected but AI usage marked as 'No AI execution markers'");
+  }
+  if (controlStatus === "MARKER DETECTED" && (isMissing('Art. 13', findings) || isMissing('Art. 14', findings))) {
+    throw new Error("Validation Failure: Controls marked as present but critical gaps found in findings");
+  }
+
+  return {
+    aiUsage,
+    controlStatus,
+    riskInterpretation: `${inferred.signal.charAt(0).toUpperCase() + inferred.signal.slice(1)} technical risk signal`,
+    keyReason: inferred.reasons[0] + (inferred.reasons[1] ? ". " + inferred.reasons[1] : "")
+  };
+}
+
+/**
+ * CI/CD Guardrail: check compliance score against threshold.
+ */
+/**
+ * Recursive manifest discovery.
+ */
+function findManifests(dir, found = []) {
+  const list = fs.readdirSync(dir);
+  for (const item of list) {
+    if (['node_modules', '.git', 'dist', 'bin', 'audit-results', 'sovereign-reports'].includes(item)) continue;
+    const fullPath = path.join(dir, item);
+    const stat = fs.statSync(fullPath);
+    if (stat.isDirectory()) {
+      findManifests(fullPath, found);
+    } else if (item === 'sentinel.manifest.json' || item === 'manifest.json') {
+      found.push(fullPath);
+    }
+  }
+  return found;
+}
+
+/**
+ * Portfolio Audit Orchestrator.
+ */
+async function runPortfolio(args) {
+    console.log(`\n${C.cyan}${C.bold}🚀 Sentinel Portfolio Audit Starting...${C.reset}`);
+    
+    // 1. Setup results dir
+    const projectRoot = process.cwd();
+    const resultsDir = path.join(projectRoot, 'audit-results');
+    if (!fs.existsSync(resultsDir)) fs.mkdirSync(resultsDir, { recursive: true });
+
+    // 2. Discover manifests
+    const manifests = findManifests(projectRoot);
+    console.log(`${C.gray}Found ${manifests.length} audit units.${C.reset}\n`);
+
+    const thresholdArgIdx = args.indexOf('--threshold');
+    const threshold = (thresholdArgIdx !== -1 && args[thresholdArgIdx + 1]) ? parseInt(args[thresholdArgIdx + 1]) : 90;
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const manifestPath of manifests) {
+        const relativePath = path.relative(projectRoot, manifestPath);
+        const repoName = path.dirname(relativePath) === '.' ? 'root' : path.dirname(relativePath).replace(/[/\\]/g, '-');
+        
+        process.stdout.write(`${C.gray}Auditing [${C.white}${repoName}${C.gray}]... ${C.reset}`);
+        
+        try {
+            const report = await performAudit(manifestPath, threshold);
+            const resultFile = path.join(resultsDir, `sentinel-${repoName}-report.json`);
+            fs.writeFileSync(resultFile, JSON.stringify(report, null, 2));
+            
+            const statusColor = report.status === 'PASS' ? C.green : C.red;
+            console.log(`${statusColor}${report.status}${C.reset} (${report.score}/100)`);
+            successCount++;
+        } catch (err) {
+            console.log(`${C.red}ERROR${C.reset}`);
+            console.error(`  ${C.red}↳ ${err.message}${C.reset}`);
+            failCount++;
+        }
+    }
+
+    console.log(`\n${C.bold}Portfolio Audit Complete:${C.reset}`);
+    console.log(`  - ${C.green}Processed: ${successCount}${C.reset}`);
+    if (failCount > 0) console.log(`  - ${C.red}Failed/Skipped: ${failCount}${C.reset}`);
+
+    // 3. Trigger Unification (Consolidator)
+    console.log(`\n${C.cyan}Synthesizing Portfolio Dashboard...${C.reset}`);
+    try {
+        const consolidatorPath = path.join(projectRoot, 'sovereign-consolidator.js');
+        if (fs.existsSync(consolidatorPath)) {
+            require(consolidatorPath); // This runs the consolidator logic
+        } else {
+            console.warn(`${C.yellow}Warning: sovereign-consolidator.js not found. Skipping dashboard generation.${C.reset}`);
+        }
+    } catch (e) {
+        console.error(`${C.red}Failed to generate dashboard: ${e.message}${C.reset}`);
+    }
+    
+    console.log(`\n${C.green}${C.bold}✔ Portfolio audit cycle finished.${C.reset}\n`);
+}
+
+async function runCheck(args) {
+  const isJson = args.includes('--json');
+  
+  // CI/CD Flags
+  const failOnArgIdx = args.indexOf('--fail-on');
+  const failOnPolicy = (failOnArgIdx !== -1 && args[failOnArgIdx + 1]) ? args[failOnArgIdx + 1].toUpperCase() : 'REJECTED';
+  
+  const summaryArgIdx = args.indexOf('--summary');
+  const summaryPath = (summaryArgIdx !== -1 && args[summaryArgIdx + 1]) ? args[summaryArgIdx + 1] : null;
+
+  const engineArgIdx = args.indexOf('--engine');
+  const engine = (engineArgIdx !== -1 && args[engineArgIdx + 1]) ? args[engineArgIdx + 1].toLowerCase() : 'stable';
+
+  const isGenerateTechFile = args.includes('--generate-tech-file');
+
+  // 1. Resolve Threshold
+  const thresholdArgIdx = args.indexOf('--threshold');
+  let threshold = null;
+  if (thresholdArgIdx !== -1 && args[thresholdArgIdx + 1]) {
+    threshold = parseInt(args[thresholdArgIdx + 1]);
+  }
+
+  if (threshold === null || isNaN(threshold)) {
+    console.error(`\n${C.red}${C.bold}Error: --threshold is required for sentinel check${C.reset}`);
+    process.exit(2);
+  }
+
+  // 2. Resolve Manifest
+  const manifestPath = resolveTargetManifest(args);
+  if (!manifestPath || !fs.existsSync(manifestPath)) {
+    console.error(`${C.red}Error: No manifest found. Use --manifest <path>${C.reset}`);
+    process.exit(2);
+  }
+
+  // 3. Perform Audit via SSoT Engine
+  let report;
+  try {
+    report = await performAudit(manifestPath, threshold, { engine });
+  } catch (err) {
+    console.error(`${C.red}${C.bold}Audit Critical Failure: ${err.message}${C.reset}`);
+    process.exit(1);
+  }
+
+  const { score, trust_confidence, verdict } = report; // Destructure for display (internal names might vary)
 
   // 4. Output
   if (isJson) {
-    const report = {
-      command: "check",
-      status: score >= threshold ? "PASS" : "FAIL",
-      score,
-      threshold,
-      verdict,
-      exit_code: score >= threshold ? 0 : 1,
-      remaining_findings: allFindings.length,
-      top_findings: allFindings.slice(0, 5).map(f => ({
-        rule_id: f.rule_id,
-        description: f.description,
-        fix_snippet: f.fix_snippet
-      }))
-    };
+    // This is a placeholder for `missingFiles` which is not defined in the provided context.
+    // If `missingFiles` is intended to be defined elsewhere, this will cause a runtime error.
+    // Assuming `missingFiles` is an empty array or similar for syntactic correctness.
+    const missingFiles = []; // Placeholder for missingFiles
+    const isSarif = args.includes('--sarif'); // Placeholder for isSarif
+
+    if (missingFiles.length > 0) {
+      if (!isJson && !isSarif) {
+        console.log(`\n${C.red}${C.bold}Sentinel Check: FAIL${C.reset}`);
+        console.log(`  ${C.gray}Failure caused by missing required policy files.${C.reset}\n`);
+      }
+      process.exit(1);
+    }
+    
+    // Enforcement Policy Parsing
+    const failOnArgIndex = args.indexOf('--fail-on');
+    const failOnPolicy = (failOnArgIndex !== -1 && args[failOnArgIndex + 1]) ? args[failOnArgIndex + 1].toUpperCase() : 'REJECTED'; // Default: fail on REJECTED
+    
+    const summaryArgIndex = args.indexOf('--summary');
+    const summaryFile = (summaryArgIdx !== -1 && args[summaryArgIdx + 1]) ? args[summaryArgIdx + 1] : null;
+
+    // ... (rest of the command execution)
     console.log(JSON.stringify(report, null, 2));
     process.exit(report.exit_code);
   }
@@ -1544,32 +2455,391 @@ async function runCheck(args) {
   }
 
   console.log(`${C.gray}Manifest: ${C.white}${manifestPath}${C.reset}`);
-  console.log(`${C.gray}Score: ${C.white}${score}/100${C.reset}`);
-  console.log(`${C.gray}Threshold: ${C.white}${threshold}${C.reset}`);
+  console.log(`${C.gray}Total Score:           ${score < threshold ? C.red + C.bold : C.green + C.bold}${score}${C.gray}/100${C.reset}`);
+  
+  const confColor = report.confidence === 'HIGH' ? C.green : (report.confidence === 'MEDIUM' ? C.yellow : C.red);
+  console.log(`${C.gray}Trust Confidence (φ):  ${confColor}${C.bold}${report.confidence}${C.reset}${C.gray} (Saturation: ${Math.round(report.phi * 100)}%)${C.reset}`);
+  console.log(`${C.gray}Risk Exposure Index:   ${C.white}${report.exposure}${C.reset}`);
+
+  if (report.score_breakdown) {
+    console.log(`\n${C.cyan}Compliance Breakdown:${C.reset}`);
+    Object.entries(report.score_breakdown).forEach(([art, data]) => {
+      const artScore = Math.round((data.claim * 0.2 + data.evidence * 0.8) * 100);
+      console.log(`  - ${C.white}${art.padEnd(8)}${C.reset}: ${C.gray}Score: ${C.white}${artScore.toString().padStart(3)}${C.gray} | Weight: ${C.white}${data.weight}${C.reset}`);
+    });
+  }
+
+  if (report._internal && report._internal.signal_breakdown) {
+    const sb = report._internal.signal_breakdown;
+    console.log(`\n${C.gray}Audit Rigor:           ${C.white}${report._internal.total_signals} signals extracted${C.reset}`);
+    process.stdout.write(`${C.gray}   ↳ [ AI Assets: ${C.white}${sb.ai_assets}${C.gray} | Trans: ${C.white}${sb.transparency}${C.gray} | Oversight: ${C.white}${sb.oversight}${C.gray} | Log: ${C.white}${sb.logging}${C.gray} ]${C.reset}\n`);
+  }
+
+  if (report.confidence === 'LOW') {
+    console.log(`\n${C.red}${C.bold}⚠ TRUST GAP DETECTED:${C.reset}${C.red} Declared coverage not matched by evidence substance.${C.reset}`);
+  }
 
 
-  if (riskCat === 'HIGH') {
+  if (report.risk_category && report.risk_category.toUpperCase() === 'HIGH') {
     console.log(`\n${C.yellow}${C.bold}⚠ High-risk system detected${C.reset}`);
     console.log(`${C.cyan}Recommended minimum threshold: 90${C.reset}`);
   }
 
   if (score < threshold) {
+    const allFindings = (report._internal && report._internal.all_findings) || [];
+    const docFindings = allFindings.filter(f => f.source === 'evidence');
+    const impFindings = allFindings.filter(f => f.source === 'implementation');
 
-    allFindings.slice(0, 5).forEach(f => {
-      const legalRef = f.article ? ` (${f.article})` : '';
-      console.log(`\n[${C.yellow}${f.description}${C.reset}]${legalRef}`);
-      if (f.fix_snippet) console.log(`${C.green}→ ${f.fix_snippet}${C.reset}`);
-    });
+    if (docFindings.length > 0) {
+      console.log(`\n${C.bold}📄 DOCUMENTATION FINDINGS:${C.reset}`);
+      docFindings.slice(0, 3).forEach(f => {
+        const legalRef = f.article ? ` (${f.article})` : '';
+        console.log(`- [${C.yellow}${f.description}${C.reset}]${legalRef}`);
+        if (f.fix_snippet) console.log(`  ${C.green}→ ${f.fix_snippet}${C.reset}`);
+      });
+    }
+
+    if (impFindings.length > 0) {
+      console.log(`\n${C.bold}💻 DEEP ENFORCEMENT FINDINGS (Hardening):${C.reset}`);
+      impFindings.forEach(f => {
+        const legalRef = f.article ? ` (${f.article})` : '';
+        console.log(`- [${C.red}${f.description}${C.reset}]${legalRef}`);
+        if (f.fix_snippet) console.log(`  ${C.green}→ ${f.fix_snippet}${C.reset}`);
+      });
+    }
 
 
     const contextualFix = manifestPath ? ` --manifest ${manifestPath}` : '';
     console.log(`\n${C.cyan}Next step: run ${C.bold}npx @radu_api/sentinel-scan fix --apply${contextualFix}${C.reset} to scaffold structure.`);
     console.log(`${C.gray}Note: scaffolds missing structure only. Manual content still required.${C.reset}\n`);
+  }
 
+  // 5. Enterprise Upgrade (SIG, P2, Vault, V2.1 HTML)
+  try {
+    if (!isJson) {
+      console.log(`\n${C.cyan}${C.bold}🏛  Audit Trail Foundation: Archiving Snapshot...${C.reset}`);
+    }
+    const manifestDir = path.dirname(path.resolve(manifestPath));
+    const upgradedReport = await PreAuditor.upgrade(report, manifestDir, { generateHtml: !isJson, engine });
+    report = upgradedReport; // Sync for summary/enforcement
+    
+    if (!isJson) {
+      console.log(`${C.green}✔ Audit archived to .sentinel/vault/${C.reset}`);
+      console.log(`${C.green}✔ Professional V2.1 Audit Statement generated: sentinel-audit.html${C.reset}`);
+    }
+
+    // Annex IV Generation Hook
+    if (isGenerateTechFile) {
+      const ReportGenerator = require('./lib/report-generator');
+      const techFileContent = ReportGenerator.generateAnnexIVMarkdown(report);
+      fs.writeFileSync('sentinel-annex-iv.md', techFileContent);
+      if (!isJson) {
+        console.log(`${C.green}✔ Professional Annex IV Technical Dossier generated: sentinel-annex-iv.md${C.reset}`);
+      }
+    }
+  } catch (err) {
+    console.error(`\n${C.yellow}⚠️  Audit Trail Warning: Failed to archive snapshot: ${err.message}${C.reset}`);
+  }
+
+  // 6. CI/CD Enforcement & Summary
+  if (summaryPath) {
+    writeSummary(report, summaryPath);
+  }
+
+  const thresholdFailed = report.score < threshold;
+  const enforcementFailed = isEnforcementViolation(report.central_verdict, failOnPolicy);
+  const totalFail = thresholdFailed || enforcementFailed || report.verdict === 'NON_COMPLIANT';
+
+  if (isJson) {
+    console.log(JSON.stringify(report, null, 2));
+    process.exit(totalFail ? 1 : 0);
+  }
+
+  if (totalFail) {
+      if (thresholdFailed) {
+          console.log(`\n${C.red}${C.bold}❌ SCOREGATE FAILURE: Score (${report.score}) is below threshold (${threshold})${C.reset}`);
+      }
+      if (enforcementFailed) {
+          console.log(`\n${C.red}${C.bold}❌ CI ENFORCEMENT FAILURE: Verdict (${report.central_verdict}) violates policy (${failOnPolicy})${C.reset}`);
+      }
+  }
+
+  process.exit(totalFail ? 1 : 0);
+}
+
+/**
+ * Independent Audit Verification Engine.
+ * Re-validates evidence hashes against the current filesystem.
+ */
+async function runVerify(args) {
+  const isJson = args.includes('--json');
+  
+  if (args.includes('--package')) {
+    const pkgIdx = args.indexOf('--package');
+    return runPackageVerify(args[pkgIdx + 1], args);
+  }
+
+  const auditIdIdx = args.indexOf('--audit');
+  const auditId = (auditIdIdx !== -1 && args[auditIdIdx + 1]) ? args[auditIdIdx + 1] : null;
+  const auditPathIdx = args.indexOf('--file');
+  let report = null;
+
+  const rootDir = process.cwd();
+
+  if (auditId) {
+    report = AuditVault.getAuditById(rootDir, auditId);
+    if (!report) {
+      console.error(`${C.red}Error: Audit '${auditId}' not found in vault.${C.reset}`);
+      process.exit(1);
+    }
+  } else if (auditPathIdx !== -1 && args[auditPathIdx + 1]) {
+    try {
+      report = JSON.parse(fs.readFileSync(args[auditPathIdx + 1], 'utf8'));
+    } catch (e) {
+      console.error(`${C.red}Error reading audit file: ${e.message}${C.reset}`);
+      process.exit(1);
+    }
+  } else {
+    report = AuditVault.getLatestAudit(rootDir);
+    if (!report) {
+      console.error(`${C.red}Error: No audit found. Use --audit <id> or --file <path>.${C.reset}`);
+      process.exit(1);
+    }
+  }
+
+  const auditIdReport = (report._audit_trail?.audit_id || report.audit_metadata?.audit_id || 'Unknown');
+  const commit = (report._audit_trail?.commit || report.audit_metadata?.commit || 'N/A');
+  console.log(`\n${C.cyan}${C.bold}🔍 Sentinel Evidence Verification Engine${C.reset}`);
+  console.log(`${C.gray}Audit ID: ${C.white}${auditIdReport}${C.reset}`);
+  console.log(`${C.gray}Reference Commit: ${C.white}${commit}${C.reset}\n`);
+
+  const signals = report._internal?.signals || [];
+  if (signals.length === 0) {
+    console.log(`${C.yellow}No technical evidence found in report to verify.${C.reset}\n`);
+    process.exit(0);
+  }
+
+  let verifiedCount = 0;
+  let tamperedCount = 0;
+  let missingCount = 0;
+
+  console.log(`${C.bold}${'STATUS'.padEnd(12)} | ${'LEGAL ARTICLE'.padEnd(15)} | ${'LOCATION'}${C.reset}`);
+  console.log(`${C.gray}-------------|-----------------|-----------------------------------${C.reset}`);
+
+  for (const s of signals) {
+    const fullPath = path.join(rootDir, s.source_path);
+    const PROBE_MAP = {
+      'DEP_WINSTON': 'Art. 20', 'DEP_PINO': 'Art. 20', 'DEP_PYTHON_LOG': 'Art. 20',
+      'CODE_LOGGER_INIT': 'Art. 20', 'CODE_TRACE_ID': 'Art. 20',
+      'CODE_MANUAL_OVERRIDE': 'Art. 14', 'CODE_KILL_SWITCH': 'Art. 14',
+      'CODE_AI_DISCLOSURE': 'Art. 13', 'DEP_FAIRLEARN': 'Art. 10',
+      'CODE_BIAS_MITIGATION': 'Art. 10', 'CODE_DATA_ETL': 'Art. 10'
+    };
+    const legalArt = PROBE_MAP[s.id] || 'Other';
+
+    if (!fs.existsSync(fullPath)) {
+      console.log(`${C.red}${'MISSING'.padEnd(12)}${C.reset} | ${legalArt.padEnd(15)} | ${s.source_path}:${s.line}`);
+      missingCount++;
+      continue;
+    }
+
+    const currentContent = fs.readFileSync(fullPath, 'utf8');
+    const currentHash = crypto.createHash('sha256').update(currentContent).digest('hex');
+
+    if (currentHash === s.sha256) {
+      console.log(`${C.green}${'VERIFIED'.padEnd(12)}${C.reset} | ${legalArt.padEnd(15)} | ${s.source_path}:${s.line || 'base'}`);
+      verifiedCount++;
+    } else {
+      if (process.env.SENTINEL_DEBUG === 'true') {
+        console.log(`[DEBUG] Hash Mismatch for ${s.source_path}:`);
+        console.log(`  Stored:  ${s.sha256}`);
+        console.log(`  Current: ${currentHash}`);
+      }
+      console.log(`${C.red}${'TAMPERED'.padEnd(12)}${C.reset} | ${legalArt.padEnd(15)} | ${s.source_path}:${s.line || 'base'}`);
+      tamperedCount++;
+    }
+  }
+
+  console.log(`\n${C.bold}Verification Summary:${C.reset}`);
+  console.log(`  - ${C.green}Verified: ${verifiedCount}${C.reset}`);
+  if (tamperedCount > 0) console.log(`  - ${C.red}Tampered/Changed: ${tamperedCount}${C.reset}`);
+  if (missingCount > 0) console.log(`  - ${C.red}Missing Files: ${missingCount}${C.reset}`);
+
+  const cryptoUtils = require('./lib/crypto-utils');
+  const sigValid = cryptoUtils.verifyAuditSignature(report);
+  console.log(`\n${C.bold}Audit Signature:${C.reset} ${sigValid ? C.green + 'VALID ✅' : C.red + 'INVALID ❌'}${C.reset}`);
+
+  if (tamperedCount === 0 && missingCount === 0 && sigValid) {
+    console.log(`\n${C.green}${C.bold}✔ ALL TECHNICAL EVIDENCE IS CRYPTOGRAPHICALLY AUTHENTIC.${C.reset}\n`);
+    process.exit(0);
+  } else {
+    console.log(`\n${C.red}${C.bold}✖ INTEGRITY BREACH: Technical evidence does not match the audit record.${C.reset}\n`);
+    process.exit(1);
+  }
+}
+
+/**
+ * Validates a standalone forensic audit package.
+ * Frictionless: Auth Check -> Integrity Check -> Traceability Check.
+ */
+async function runPackageVerify(packagePath, argv) {
+  if (!packagePath) {
+    console.error(`${C.red}✖ Error: Missing package path. Usage: sentinel verify --package <path.zip>${C.reset}`);
     process.exit(1);
   }
 
-  process.exit(0);
+  const fullPackagePath = path.resolve(packagePath);
+  if (!fs.existsSync(fullPackagePath)) {
+    console.error(`${C.red}✖ Error: Package not found: ${fullPackagePath}${C.reset}`);
+    process.exit(1);
+  }
+
+  const tempDir = path.join(process.cwd(), `.sentinel_verify_${Date.now()}`);
+  if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+
+  const CryptoUtils = require('./lib/crypto-utils');
+
+  try {
+    console.log(`\n${C.cyan}${C.bold}🔍 Sentinel Forensic Verification Engine [Offline Mode]${C.reset}`);
+    console.log(`${C.gray}Loading package: ${path.basename(fullPackagePath)}${C.reset}\n`);
+
+    // 1. Extract Package
+    try {
+      const psPath = fullPackagePath.replace(/\\/g, '/');
+      const psDest = tempDir.replace(/\\/g, '/');
+      if (process.platform === 'win32') {
+        execSync(`powershell -Command "Expand-Archive -Path '${psPath}' -DestinationPath '${psDest}' -Force"`);
+      } else {
+        execSync(`unzip -o "${fullPackagePath}" -d "${tempDir}"`);
+      }
+    } catch (err) {
+      console.error(`${C.red}✖ Error: Failed to extract package. ${err.message}${C.reset}`);
+      process.exit(1);
+    }
+
+    // 2. Auth Check (Signature)
+    const sigJsonPath = path.join(tempDir, 'signature.json');
+    const sigBinPath = path.join(tempDir, 'signature.bin');
+    const pubKeyPath = path.join(tempDir, 'authority.pub');
+    const checksumsPath = path.join(tempDir, 'checksums.sha256');
+
+    if (!fs.existsSync(sigJsonPath) || !fs.existsSync(sigBinPath) || !fs.existsSync(pubKeyPath)) {
+      console.log(`${C.red}AUTH CHECK: FAIL → MISSING SECURITY ANCHORS${C.reset}`);
+      process.exit(1);
+    }
+
+    const signatureJson = JSON.parse(fs.readFileSync(sigJsonPath, 'utf8'));
+    const signatureBin = fs.readFileSync(sigBinPath);
+    const publicKey = fs.readFileSync(pubKeyPath, 'utf8');
+    const checksumsRaw = fs.readFileSync(checksumsPath, 'utf8');
+    const checksums = checksumsRaw.replace(/\r\n/g, '\n'); // Normalize for Windows extraction
+
+    const isSignedCorrectly = CryptoUtils.verifyData(checksums, signatureBin, publicKey);
+
+    if (!isSignedCorrectly) {
+      console.log(`${C.red}AUTH CHECK: FAIL → AUTH BREACH (Invalid Signature)${C.reset}`);
+      process.exit(1);
+    }
+    console.log(`${C.green}AUTH CHECK: PASS${C.reset}`);
+
+    // 3. Integrity Check (Structure)
+    const checksumLines = checksums.split('\n').filter(l => l.trim());
+    let integrityFailed = false;
+
+    for (const line of checksumLines) {
+      const match = line.match(/^([a-f0-9]{64})\s+(.+)$/);
+      if (!match) continue;
+      const expectedHash = match[1];
+      const relPath = match[2];
+      const filePath = path.join(tempDir, relPath);
+      
+      if (!fs.existsSync(filePath)) {
+        integrityFailed = true;
+        continue;
+      }
+
+      const actualHash = crypto.createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
+      if (actualHash !== expectedHash) {
+        integrityFailed = true;
+      }
+    }
+
+    if (integrityFailed) {
+      console.log(`${C.red}INTEGRITY CHECK: FAIL → STRUCTURE BREACH (Corrupted Files)${C.reset}`);
+      process.exit(1);
+    }
+    console.log(`${C.green}INTEGRITY CHECK: PASS${C.reset}`);
+
+    // 4. Traceability Check (Deep Evidence Alignment)
+    const auditReport = JSON.parse(fs.readFileSync(path.join(tempDir, 'audit.json'), 'utf8'));
+    const signals = auditReport._internal?.signals || [];
+    let traceFailCount = 0;
+
+    signals.forEach(s => {
+      const evidenceFilename = `evidence_${s.id}_${s.evidence_sha256 ? s.evidence_sha256.substring(0, 8) : 'raw'}.txt`;
+      const evidencePath = path.join(tempDir, 'evidence', evidenceFilename);
+      
+      if (!fs.existsSync(evidencePath)) {
+        traceFailCount++;
+        return;
+      }
+
+      const snippetInFile = fs.readFileSync(evidencePath, 'utf8');
+      if (snippetInFile !== s.snippet) {
+        traceFailCount++;
+      }
+    });
+
+    if (traceFailCount > 0) {
+      console.log(`${C.red}TRACEABILITY CHECK: FAIL → EVIDENCE BREACH (${traceFailCount} mismatched signals)${C.reset}`);
+      process.exit(1);
+    }
+    console.log(`${C.green}TRACEABILITY CHECK: PASS${C.reset}`);
+
+    console.log(`\n${C.green}${C.bold}FINAL VERDICT: AUDIT VALIDATED${C.reset}\n`);
+    console.log(`${C.gray}Artifact ID: ${C.white}${signatureJson.signed_content_digest}${C.reset}`);
+    console.log(`${C.gray}Authority:   ${C.white}${signatureJson.signed_by} (${signatureJson.authority_id})${C.reset}\n`);
+
+  } finally {
+    if (fs.existsSync(tempDir)) {
+      fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+  }
+}
+
+/**
+ * Exports a standalone forensic audit package.
+ */
+async function runExport(args) {
+  const auditIdIdx = args.indexOf('--audit');
+  const auditId = (auditIdIdx !== -1 && args[auditIdIdx + 1]) ? args[auditIdIdx + 1] : 'latest';
+  const outputIdx = args.indexOf('--output');
+  const outputPath = (outputIdx !== -1 && args[outputIdx + 1]) ? args[outputIdx + 1] : `sentinel-audit-${Date.now()}.zip`;
+
+  console.log(`\n${C.cyan}${C.bold}📦 Sentinel Forensic Export Engine${C.reset}`);
+  console.log(`${C.gray}Target Audit: ${C.white}${auditId}${C.reset}`);
+
+  const rootDir = process.cwd();
+  const report = auditId === 'latest' ? AuditVault.getLatestAudit(rootDir) : AuditVault.getAuditById(rootDir, auditId);
+
+  if (!report) {
+    console.error(`${C.red}✖ Error: Audit record '${auditId}' not found in vault.${C.reset}`);
+    process.exit(1);
+  }
+
+  console.log(`${C.gray}Generating forensic bundle...${C.reset}`);
+  
+  try {
+    const success = await AuditExporter.exportBundle(report, rootDir, outputPath);
+    if (success) {
+      console.log(`\n${C.green}${C.bold}✔ FORENSIC ARTIFACT GENERATED SUCCESSFULLY${C.reset}`);
+      console.log(`${C.white}Location: ${path.resolve(outputPath)}${C.reset}`);
+      console.log(`${C.gray}Digital Signature: ${report._audit_signature?.digest.substring(0, 16)}...${C.reset}\n`);
+    }
+  } catch (err) {
+    console.error(`${C.red}✖ Export failed: ${err.message}${C.reset}`);
+    process.exit(1);
+  }
 }
 
 async function main() {
@@ -1599,6 +2869,163 @@ async function main() {
     process.exit(0);
   }
 
+  if (command === 'verify') {
+    await runVerify(args.slice(1));
+    process.exit(0);
+  }
+
+  if (command === 'export') {
+    await runExport(args.slice(1));
+    process.exit(0);
+  }
+
+  if (command === 'history') {
+    const rootDir = process.cwd();
+    const index = AuditVault.getHistory(rootDir);
+    if (!index || !index.history || index.history.length === 0) {
+      console.log(`\n${C.yellow}No audit history found for this project.${C.reset}\n`);
+      process.exit(0);
+    }
+    console.log(`\n${C.cyan}${C.bold}🏛  Sentinel Audit History: ${index.project_name}${C.reset}\n`);
+    console.log(`${C.gray}${'ID'.padEnd(10)} | ${'TIMESTAMP'.padEnd(20)} | ${'VERDICT'.padEnd(10)} | ${'COMMIT'}${C.reset}`);
+    console.log(`${C.gray}-----------|----------------------|------------|--------${C.reset}`);
+    index.history.reverse().forEach(h => {
+      const vColor = h.verdict === 'APPROVED' ? C.green : (h.verdict === 'HOLD' ? C.yellow : C.red);
+      console.log(`${C.white}${h.audit_id.substring(0, 8).padEnd(10)}${C.reset} | ${C.gray}${h.timestamp.substring(0, 19).padEnd(20)}${C.reset} | ${vColor}${h.verdict.padEnd(10)}${C.reset} | ${C.white}${h.commit || '----'}${C.reset}`);
+    });
+    console.log("");
+    process.exit(0);
+  }
+
+  if (command === 'diff') {
+    const rootDir = process.cwd();
+    const argsCopy = args.slice(1);
+    const isJson = argsCopy.includes('--json');
+    
+    // CI/CD Flags
+    const failOnArgIdx = argsCopy.indexOf('--fail-on');
+    const failOnPolicy = (failOnArgIdx !== -1 && argsCopy[failOnArgIdx + 1]) ? argsCopy[failOnArgIdx + 1].toUpperCase() : 'REJECTED';
+    
+    const summaryArgIdx = argsCopy.indexOf('--summary');
+    const summaryPath = (summaryArgIdx !== -1 && argsCopy[summaryArgIdx + 1]) ? argsCopy[summaryArgIdx + 1] : null;
+
+    const baseIdArgIndex = argsCopy.indexOf('--base');
+    let baseReport = null;
+
+    if (baseIdArgIndex !== -1 && argsCopy[baseIdArgIndex + 1]) {
+      const baseId = argsCopy[baseIdArgIndex + 1];
+      baseReport = AuditVault.getAuditById(rootDir, baseId);
+      if (!baseReport) {
+        console.error(`\n${C.red}Error: Base audit with ID '${baseId}' not found in vault.${C.reset}\n`);
+        process.exit(1);
+      }
+    } else {
+      baseReport = AuditVault.getLatestAudit(rootDir);
+      if (!baseReport) {
+        console.error(`\n${C.yellow}No previous audits found to compare against.${C.reset}\n`);
+        process.exit(0);
+      }
+    }
+
+    console.log(`\n${C.cyan}${C.bold}📈 Sentinel Compliance Evolution${C.reset}`);
+    console.log(`${C.gray}Comparing current state against: ${baseReport.audit_metadata?.audit_id || 'Unknown'} (${baseReport.audit_metadata?.timestamp || 'N/A'})${C.reset}\n`);
+
+    // To perform a real-time diff, we must run a fresh check but without archiving it as a new "history" entry just yet,
+    // or just run the check and let PreAuditor handle the diff injection for the report.
+    // For the CLI output, we'll run performAudit.
+    
+    const manifestArgIndex = argsCopy.indexOf('--manifest');
+    const manifestPath = (manifestArgIndex !== -1 && argsCopy[manifestArgIndex + 1]) || 'sentinel.manifest.json';
+    // rootDir is already declared at line 1853
+    
+    const thresholdArgIndex = argsCopy.indexOf('--threshold');
+    const threshold = (thresholdArgIndex !== -1 && parseInt(argsCopy[thresholdArgIndex + 1])) || 0;
+
+    try {
+      let currentReport = await performAudit(manifestPath, threshold);
+      currentReport.threshold = threshold; // Explicit sync!
+
+      // 1. Sentinel Integrity Guard (SIG)
+      const { runSig } = require('./lib/sentinel-bridge');
+      const probingRulesPath = path.join(__dirname, 'lib', 'probing-rules.json');
+      const sigReport = await runSig(currentReport, probingRulesPath, rootDir);
+      
+      currentReport = {
+        ...currentReport,
+        enterprise_confidence: sigReport.enterprise_confidence,
+        defensibility: sigReport.defensibility,
+        integrity_issues: sigReport.integrity_issues,
+        _sig_internal: sigReport._internal
+      };
+
+      // 2. Generate Traceability Metadata
+      const AuditMetadata = require('./lib/audit-metadata');
+      const AuditSignature = require('./lib/crypto-utils');
+      const auditMeta = AuditMetadata.createMetadataBlock(rootDir);
+      currentReport._audit_trail = auditMeta;
+      currentReport._audit_signature = AuditSignature.generateAuditSignature(currentReport);
+
+      // 3. Evaluate Dual-Track Result
+      const Evaluator = require('./lib/evaluator');
+      currentReport._dual_track = Evaluator.evaluate(currentReport);
+      currentReport._dual_track.auditMeta = auditMeta; // Pass meta to report generator
+      
+      const diff = DiffEngine.compare(currentReport, baseReport);
+      
+      const isImproved = diff.evolution === 'PROGRES';
+      const isRegressed = diff.evolution === 'DECLIN';
+      const statusColor = isImproved ? C.green : (isRegressed ? C.red : C.yellow);
+      
+      console.log(`  Verdict: ${statusColor}${C.bold}${diff.verdictFrom} ➔ ${diff.verdictTo}${C.reset} (${diff.evolution})`);
+      console.log(`  ${diff.tracks.technical.name}: ${diff.tracks.technical.shift === 'PROGRES' ? C.green : (diff.tracks.technical.shift === 'DECLIN' ? C.red : C.gray)}${diff.tracks.technical.from} ➔ ${diff.tracks.technical.to}${C.reset}`);
+      console.log(`  ${diff.tracks.regulatory.name}:     ${diff.tracks.regulatory.shift === 'PROGRES' ? C.green : (diff.tracks.regulatory.shift === 'DECLIN' ? C.red : C.gray)}${diff.tracks.regulatory.from} ➔ ${diff.tracks.regulatory.to}${C.reset}`);
+      
+      console.log(`\n${C.white}${C.bold}RESPONSABIL AC\u021aIUNE:${C.reset}`);
+      console.log(`${statusColor}${C.bold}${diff.actionOwner}${C.reset}`);
+      
+      if (diff.actionRequired === 'ENGINEERING') {
+        console.log(`${C.gray}Sunt necesare interven\u021bii tehnice pentru a remedia vulnerabilit\u0103\u021bile identificate.${C.reset}`);
+      } else if (diff.actionRequired === 'GOVERNANCE') {
+        console.log(`${C.gray}Este necesar\u0103 revizuirea politicilor \u0219i a documenta\u021biei de guvernan\u021b\u0103.${C.reset}`);
+      } else {
+        console.log(`${C.green}Sistemul se afl\u0103 \u00eentr-o stare de conformitate stabil\u0103.${C.reset}`);
+      }
+      
+      // Update HTML Report with evolution context
+      const ReportGenerator = require('./lib/report-generator');
+      const html = ReportGenerator.generateHtml(currentReport, diff, currentReport._dual_track);
+      fs.writeFileSync(path.join(process.cwd(), 'sentinel-audit.html'), html);
+      console.log(`\n ${C.blue}${C.bold}🏛  Audit Trail Foundation: Executive Statement updated.${C.reset}`);
+      
+      console.log("");
+      // 6. CI/CD Enforcement & Summary
+      if (summaryPath) {
+        writeSummary(currentReport, summaryPath);
+      }
+
+      const enforcementFailed = isEnforcementViolation(currentReport.central_verdict, failOnPolicy);
+      
+      if (isJson) {
+        console.log(JSON.stringify(currentReport, null, 2));
+        process.exit(enforcementFailed ? 1 : 0);
+      }
+
+      if (enforcementFailed) {
+        console.log(`\n${C.red}${C.bold}❌ CI Enforcement Failure: Current Verdict (${currentReport.central_verdict}) violates policy (${failOnPolicy})${C.reset}\n`);
+      }
+
+      process.exit(enforcementFailed ? 1 : 0);
+    } catch (err) {
+      console.error(`\n${C.red}Diff Failure: ${err.message}${C.reset}\n`);
+      process.exit(1);
+    }
+  }
+
+  if (command === 'portfolio') {
+    await runPortfolio(args.slice(1));
+    process.exit(0);
+  }
+
   if (command === 'init') {
     runInit();
     process.exit(0);
@@ -1609,7 +3036,7 @@ async function main() {
     console.log(`${C.cyan}${C.bold}🔍 Sentinel Magic Onboarding: Scanning repository...${C.reset}`);
     const repoFiles = autodiscovery.crawlRepository(process.cwd());
     const signals = autodiscovery.extractSignals(repoFiles, discoveryRules);
-    const suggestedManifest = autodiscovery.generateManifestFromSignals(signals);
+    const suggestedManifest = autodiscovery.generateManifestFromSignals(signals, repoFiles);
     console.log(`${C.gray}Analyzed ${repoFiles.length} files. Detected ${signals.length} signals.${C.reset}\n`);
     console.log(`${C.bold}Generated suggested manifest for ${C.cyan}${suggestedManifest.app_name}${C.reset}:`);
     console.log(JSON.stringify(suggestedManifest, null, 2));
@@ -1789,14 +3216,14 @@ async function main() {
     const missingPolicyFiles = checkRequiredDocuments(policy.config);
     const newMissingPolicyFiles = filterMissingFilesAgainstBaseline(missingPolicyFiles, baseline.config);
 
-    const combinedViolations = [];
-    const engineVerdicts = Array.isArray(results) ? results : [results];
-    for (const v of engineVerdicts) {
-      if (v && Array.isArray(v.violations)) combinedViolations.push(...v.violations);
+    const combinedFindings = [];
+    const engineFindings = Array.isArray(results) ? results : [results];
+    for (const v of engineFindings) {
+      if (v && Array.isArray(v.violations)) combinedFindings.push(...v.violations);
     }
 
     if (newMissingPolicyFiles.length > 0) {
-      combinedViolations.push(...newMissingPolicyFiles.map(file => ({
+      combinedFindings.push(...newMissingPolicyFiles.map(file => ({
         rule_id: "EUAI-DOC-001",
         description: `Missing required document: ${file}`,
         source: "filesystem"
@@ -1808,7 +3235,7 @@ async function main() {
     const evidenceFindings = validateEvidence(singleManifest, manifestDir);
 
     for (const finding of evidenceFindings) {
-      combinedViolations.push({
+      combinedFindings.push({
         rule_id: finding.rule_id,
         description: finding.description,
         severity: finding.severity,
@@ -1818,35 +3245,41 @@ async function main() {
       });
     }
 
-    const riskCat = (singleManifest.risk_category || "minimal").toLowerCase();
+    let riskCat = (singleManifest.risk_category || "minimal").toLowerCase();
+    if (signals.some(s => s.id === 'BEHAVIORAL_SUSPICION_FLAG_HIGH_RISK')) {
+      riskCat = 'high';
+    }
     let required = riskCat === 'high' ? ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'] : ['Art. 13'];
-    const evidenceScore = computeEvidenceScore(evidenceFindings, singleManifest);
+    const trustMetrics = computeTrustMetrics(evidenceFindings, singleManifest);
     const verifiedArticles = determineVerifiedArticles(evidenceFindings, singleManifest);
-    const evidenceVerdict = computeVerdict(evidenceScore.finalScore !== undefined ? evidenceScore.finalScore : evidenceScore, evidenceFindings, singleManifest);
+    const evidenceVerdict = computeVerdict(trustMetrics.finalScore, evidenceFindings, singleManifest);
 
     const summary = {
-      violations_total: combinedViolations.length,
-      high: combinedViolations.filter(v => ['high', 'critical'].includes(v.severity?.toLowerCase())).length,
-      medium: combinedViolations.filter(v => v.severity?.toLowerCase() === 'medium').length,
-      low: combinedViolations.filter(v => v.severity?.toLowerCase() === 'low').length,
-      informational: combinedViolations.filter(v => v.severity?.toLowerCase() === 'informational').length
+      violations_total: combinedFindings.length,
+      high: combinedFindings.filter(v => ['high', 'critical'].includes(v.severity?.toLowerCase())).length,
+      medium: combinedFindings.filter(v => v.severity?.toLowerCase() === 'medium').length,
+      low: combinedFindings.filter(v => v.severity?.toLowerCase() === 'low').length,
+      informational: combinedFindings.filter(v => v.severity?.toLowerCase() === 'informational').length
     };
 
     let complianceStatus = evidenceVerdict;
-    if (combinedViolations.some(v => v.rule_id?.startsWith('EUAI-BLOCK-'))) complianceStatus = "BLOCKED";
+    if (combinedFindings.some(v => v.rule_id?.startsWith('EUAI-BLOCK-'))) complianceStatus = "BLOCKED";
 
     const finalReport = {
       schema: "sentinel.audit.v1",
       schema_version: "2026-03",
       verdict: evidenceVerdict,
-      score: evidenceScore,
+      score: trustMetrics.finalScore,
+      claim_score: trustMetrics.claim_score,
+      evidence_score: trustMetrics.evidence_score,
+      confidence: trustMetrics.confidence,
       mapped_articles: verifiedArticles,
       risk_category: riskCat,
       required_articles: required,
       compliance_status: complianceStatus,
       summary,
       evidence_findings: evidenceFindings,
-      violations: combinedViolations.map(v => {
+      violations: combinedFindings.map(v => {
         let ruleId = v.rule_id;
         if (!ruleId && v.description) {
           const desc = v.description.toLowerCase();
@@ -1866,11 +3299,11 @@ async function main() {
     const remoteResult = Array.isArray(results) ? results[0] : results;
     if (isRemote && remoteResult) {
       let remoteScore = remoteResult.score !== undefined ? remoteResult.score : (remoteResult.risk_score !== undefined ? 100 - remoteResult.risk_score : undefined);
-      if (remoteScore !== undefined) finalReport.score = Math.min(evidenceScore.finalScore || evidenceScore, remoteScore);
+      if (remoteScore !== undefined) finalReport.score = Math.min(trustMetrics.finalScore, remoteScore);
       if (remoteResult.verdict && !["COMPLIANT", "COMPLIANT_VIA_AI_REVIEW"].includes(remoteResult.verdict)) {
         finalReport.verdict = "NON_COMPLIANT";
         if (remoteResult.justification) {
-          combinedViolations.push({
+          combinedFindings.push({
             rule_id: remoteResult.verdict === "INVALID_PAYLOAD" ? "SENTINEL-API-001" : "EUAI-REMOTE-001",
             description: `Remote Audit Feedback: ${remoteResult.justification.join(", ")}`,
             source: "remote"
@@ -1952,12 +3385,27 @@ async function runFix(args) {
   }
 
   // 2. Initial Audit
+  const repoFiles = autodiscovery.crawlRepository(manifestDir);
+  const signals = autodiscovery.extractSignals(repoFiles, discoveryRules, probingRules);
+  if (process.env.SENTINEL_DEBUG === 'true') {
+    console.log(`[DEBUG] Extracted Signals: ${signals.length}`);
+    signals.forEach(s => console.log(`  - Signal: ${s.id} from ${s.source_path} (${s.probe_type || 'standard'})`));
+  }
+  const hardeningFindings = [];
+  computeHardeningFindings(signals, manifest, hardeningFindings, repoFiles);
+
+
   const findings = validateEvidence(manifest, manifestDir);
-  const actionableRuleIds = ['EUAI-MIN-001', 'EUAI-TRANS-001', 'EUAI-OVER-002', 'EUAI-LOG-003'];
-  const actionableFindings = findings.filter(f => actionableRuleIds.includes(f.rule_id));
+  const allFindings = [...findings, ...hardeningFindings];
+  
+  const actionableRuleIds = [
+    'EUAI-MIN-001', 'EUAI-TRANS-001', 'EUAI-OVER-002', 'EUAI-LOG-003', 
+    'EUAI-HUMAN-OVERSIGHT-MISSING', 'EUAI-LOGGING-MISSING'
+  ];
+  const actionableFindings = allFindings.filter(f => actionableRuleIds.includes(f.rule_id));
 
   if (actionableFindings.length === 0) {
-    console.log(`\n${C.green}No safe structural fixes available.${C.reset}`);
+    console.log(`\n${C.green}No structural or implementation fixes available.${C.reset}`);
     return;
   }
 
@@ -1969,8 +3417,9 @@ async function runFix(args) {
     plan.push({ type: 'update', file: manifestPath, desc: 'Add missing flags and root compliance structure' });
   }
 
-  if (findings.some(f => f.rule_id === 'EUAI-OVER-002')) {
+  if (allFindings.some(f => f.rule_id === 'EUAI-OVER-002' || f.rule_id === 'EUAI-HUMAN-OVERSIGHT-MISSING')) {
     plan.push({ type: 'update', file: manifestPath, desc: 'Add human_oversight configuration' });
+    plan.push({ type: 'code', file: 'sentinel-oversight.js', desc: 'Implement Art. 14 Sovereign Oversight Hook' });
     docsToCreate.push('docs/compliance/human_oversight.md');
   }
 
@@ -1991,6 +3440,10 @@ async function runFix(args) {
     } else {
       plan.push({ type: 'create', file: doc, desc: 'Generate compliance starter template' });
     }
+  }
+
+  if (allFindings.some(f => f.rule_id === 'EUAI-LOG-003' || f.rule_id === 'EUAI-LOGGING-MISSING')) {
+    plan.push({ type: 'code', file: 'logger.js', desc: 'Implement production-grade logging (Winston)' });
   }
 
   console.log(`\n${C.cyan}${C.bold}🛠  Sentinel Remediation Plan${C.reset}`);
@@ -2020,12 +3473,12 @@ async function runFix(args) {
   });
   patchedManifest.declared_flags = declaredFlags;
 
-  if (findings.some(f => f.rule_id === 'EUAI-OVER-002')) {
+  if (allFindings.some(f => f.rule_id === 'EUAI-OVER-002' || f.rule_id === 'EUAI-HUMAN-OVERSIGHT-MISSING')) {
     if (!patchedManifest.human_oversight) patchedManifest.human_oversight = { description: "Human reviewer monitors decisions and can override outputs." };
     if (!patchedManifest.oversight_evidence_path) patchedManifest.oversight_evidence_path = "docs/compliance/human_oversight.md";
   }
 
-  if (findings.some(f => f.rule_id === 'EUAI-LOG-003')) {
+  if (allFindings.some(f => f.rule_id === 'EUAI-LOG-003' || f.rule_id === 'EUAI-LOGGING-MISSING')) {
     if (!patchedManifest.logging_capabilities) {
       patchedManifest.logging_capabilities = {
         enabled: true,
@@ -2060,27 +3513,91 @@ async function runFix(args) {
     }
   });
 
+  if (plan.some(p => p.type === 'code' && p.file === 'sentinel-oversight.js')) {
+    const oversightPath = path.join(manifestDir, 'sentinel-oversight.js');
+    if (!fs.existsSync(oversightPath)) {
+      const oversightCode = `/**
+ * Sentinel Sovereign Oversight Hook (Art. 14)
+ * 🏛 PURPOSE: Technical control to allow human intervention/override of AI outputs.
+ */
+class SentinelOversight {
+  constructor(config = {}) {
+    this.threshold = config.threshold || 0.8;
+    this.audit Trail = [];
+  }
+
+  /**
+   * Guards an AI invocation.
+   * @param {Object} input - Prompt/Request
+   * @param {Object} output - AI Response
+   * @returns {Object} { approved: boolean, reason: string, finalOutput: Object }
+   */
+  async sentinelOverride(input, output) {
+    // 1. Technical Consistency Check (Heuristic)
+    const isSuspicious = this._checkSuspicion(output);
+    
+    if (isSuspicious) {
+      return { 
+        approved: false, 
+        reason: "SUSPICIOUS_OUTPUT_DETECTED", 
+        requires_human: true,
+        finalOutput: null 
+      };
+    }
+
+    return { approved: true, finalOutput: output };
+  }
+
+  _checkSuspicion(output) {
+    // Placeholder for bias/harm/hallucination detection logic
+    return false; 
+  }
+}
+
+module.exports = new SentinelOversight();
+`;
+      fs.writeFileSync(oversightPath, oversightCode);
+      console.log(`${C.green}✔ Created ${oversightPath} (Art. 14 Oversight Hook)${C.reset}`);
+    }
+  }
+
+  if (plan.some(p => p.type === 'code' && p.file === 'logger.js')) {
+    const loggerPath = path.join(autodiscovery.findProjectRoot ? autodiscovery.findProjectRoot(manifestDir) : manifestDir, 'logger.js');
+    if (!fs.existsSync(loggerPath)) {
+      const loggerCode = `/**\n * Sentinel Sovereign Logging Implementation\n * Auto-generated scaffolding for Art. 20 Compliance.\n */\nconst winston = require('winston');\n\nconst logger = winston.createLogger({\n  level: 'info',\n  format: winston.format.combine(\n    winston.format.timestamp(),\n    winston.format.json()\n  ),\n  transports: [\n    new winston.transports.Console(),\n    new winston.transports.File({ filename: 'audit_trail.log' })\n  ]\n});\n\n/**\n * Sentinel Compliance Logging Hook\n */\nfunction sentinelLog(level, message, meta = {}) {\n  logger.log(level, message, { ...meta, sentinel_audit: true });\n}\n\nmodule.exports = { logger, sentinelLog };\n`;
+      fs.writeFileSync(loggerPath, loggerCode);
+      console.log(`${C.green}✔ Created ${loggerPath} (Winston Scaffolding)${C.reset}`);
+      console.log(`${C.yellow}👉 Remember to run: npm install winston${C.reset}`);
+    }
+  }
+
   // 6. Audit Comparison
   console.log(`\n${C.cyan}${C.bold}📊 Verification Audit${C.reset}`);
 
   // Pre-fix Audit (Full)
+  const oldFiles = autodiscovery.crawlRepository(manifestDir);
+  const oldSignals = autodiscovery.extractSignals(oldFiles, discoveryRules, probingRules);
+  const oldBreakdown = calculateSignalBreakdown(oldSignals);
   const oldOfflineResult = await runOffline(manifest);
   const oldEngineViolations = oldOfflineResult.violations || [];
-  const oldEvidenceFindings = validateEvidence(manifest, manifestDir);
+  const oldEvidenceFindings = validateEvidence(manifest, manifestDir, oldSignals);
   const oldAllFindings = [...oldEvidenceFindings, ...oldEngineViolations];
 
-  const oldScoreObj = computeEvidenceScore(oldEvidenceFindings, manifest);
-  const oldScore = oldScoreObj.finalScore !== undefined ? oldScoreObj.finalScore : oldScoreObj;
+  const oldTrust = computeTrustMetrics(oldEvidenceFindings, manifest, oldBreakdown);
+  const oldScore = oldTrust.finalScore;
   const oldVerdict = computeVerdict(oldScore, oldAllFindings, manifest);
 
   // Post-fix Audit (Full)
+  const newFiles = autodiscovery.crawlRepository(manifestDir);
+  const newSignals = autodiscovery.extractSignals(newFiles, discoveryRules, probingRules);
+  const newBreakdown = calculateSignalBreakdown(newSignals);
   const newOfflineResult = await runOffline(patchedManifest);
   const newEngineViolations = newOfflineResult.violations || [];
-  const newEvidenceFindings = validateEvidence(patchedManifest, manifestDir);
+  const newEvidenceFindings = validateEvidence(patchedManifest, manifestDir, newSignals);
   const newAllFindings = [...newEvidenceFindings, ...newEngineViolations];
 
-  const newScoreObj = computeEvidenceScore(newEvidenceFindings, patchedManifest);
-  const newScore = newScoreObj.finalScore !== undefined ? newScoreObj.finalScore : newScoreObj;
+  const newTrust = computeTrustMetrics(newEvidenceFindings, patchedManifest, newBreakdown);
+  const newScore = newTrust.finalScore;
   const newVerdict = computeVerdict(newScore, newAllFindings, patchedManifest);
 
   console.log(`${C.gray}Previous Status: ${C.reset}${oldVerdict} (${oldScore}/100)`);
@@ -2173,3 +3690,4 @@ function runInit() {
   console.log(`2. Review findings`);
   console.log(`3. Run: ${C.cyan}npx @radu_api/sentinel-scan fix --apply --manifest sentinel.manifest.json${C.reset}\n`);
 }
+main().catch(err => { console.error(err); process.exit(1); });

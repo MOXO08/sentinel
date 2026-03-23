@@ -1,0 +1,15 @@
+{
+  "project_name": "test-vault-root",
+  "last_audit_id": "1234abcd",
+  "history": [
+    {
+      "audit_id": "1234abcd",
+      "timestamp": "2026-03-21T12:00:00Z",
+      "commit": "abcdef",
+      "verdict": "HOLD",
+      "technical_status": "ROBUST",
+      "governance_status": "GAP",
+      "file_path": "audit_1234abcd.json"
+    }
+  ]
+}

@@ -1,0 +1,390 @@
+{
+  "command": "check",
+  "manifest_path": "d:/AI Act Compliance API/validation-repos/minGPT/sentinel.manifest.json",
+  "status": "PASS",
+  "score": 10,
+  "claim_score": 10,
+  "evidence_score": 10,
+  "confidence": "LOW",
+  "phi": 0,
+  "exposure": 0.09,
+  "threshold": 10,
+  "verdict": "TECHNICAL MARKERS PRESENT",
+  "_context_validation": {
+    "declaredDomain": "not declared",
+    "declaredRisk": "NOT DECLARED",
+    "intendedUse": "not declared",
+    "technicalStatement": "Context not declared; contextual sufficiency check not performed",
+    "note": "Context validation is based on manifest-declared system profile and repository-scoped technical evidence only."
+  },
+  "_declaration_consistency": {
+    "declaredRisk": "NOT DECLARED",
+    "inferredSignal": "ELEVATED",
+    "confidence": "HIGH",
+    "reasons": [
+      "High Risk Execution Chain detected (Art 15/14 deficiency)",
+      "Unmitigated Execution Chain: AI execution observed without sufficient robustness/oversight markers.",
+      "Traceability Gap: AI execution markers present without industrial logging infrastructure."
+    ],
+    "result": "NOT DECLARED",
+    "technicalStatement": "Declaration consistency check not performed because context was not declared",
+    "note": "Declaration consistency is based on manifest declarations and repository-scoped technical evidence only. It is not a legal classification."
+  },
+  "_executive_summary": {
+    "aiUsage": "Experimental AI usage",
+    "controlStatus": "Critical gaps detected",
+    "riskInterpretation": "Elevated technical risk signal",
+    "keyReason": "High Risk Execution Chain detected (Art 15/14 deficiency). Unmitigated Execution Chain: AI execution observed without sufficient robustness/oversight markers."
+  },
+  "central_verdict": "TECHNICAL MARKERS PRESENT",
+  "technical_status": "ROBUST",
+  "governance_status": "ALIGNED",
+  "risk_category": "Minimal",
+  "semantic_quality": {
+    "evaluated": false
+  },
+  "exit_code": 1,
+  "findings_count": 6,
+  "score_breakdown": {
+    "Art. 13": {
+      "claim": 0.5,
+      "evidence": 0,
+      "weight": 1,
+      "contribution": 0.1
+    }
+  },
+  "top_findings": [
+    {
+      "description": "[Missing user notification]",
+      "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array.",
+      "article": "Article 13"
+    },
+    {
+      "rule_id": "EUAI-LOGGING-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Logging/Traceability found in code despite claims.",
+      "fix_snippet": "Implement Python logging control using standard logging module or loguru. Create a sentinel_log() wrapper function.",
+      "article": "Art. 20",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    },
+    {
+      "rule_id": "EUAI-HUMAN-OVERSIGHT-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Human Control (Kill-switch/Override) found in code despite claims.",
+      "fix_snippet": "Implement Python manual override hook using a decorator or function. Create a sentinel_override() wrapper function.",
+      "article": "Art. 14",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    },
+    {
+      "rule_id": "EUAI-AI-TRANSPARENCY-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of AI Disclosure (Banner/System-label) found in code despite claims.",
+      "fix_snippet": "No specific code location identified. Apply recommended Python compliance control at the primary AI execution entry point.",
+      "article": "Art. 13",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    },
+    {
+      "rule_id": "EUAI-HARDENING-000",
+      "description": "[Implementation] Hardening DETECTED: Detected technical indicator of AI Execution Logic in code.",
+      "fix_snippet": null,
+      "article": "EXECUTION",
+      "source": "implementation",
+      "hardening_verdict": "PASS"
+    }
+  ],
+  "_internal": {
+    "total_signals": 8,
+    "signals": [
+      {
+        "id": "CODE_ML_MODEL_LOAD",
+        "kind": "code_signature",
+        "source_path": "mingpt\\model.py",
+        "structural_type": "invocation",
+        "confidence": 0.8,
+        "evidence_weight": 0.7,
+        "imports": [
+          "torch.nn",
+          "mingpt.utils",
+          "math",
+          "torch"
+        ],
+        "source_sha256": "unknown",
+        "evidence_sha256": "unknown"
+      },
+      {
+        "id": "CODE_AI_CALL",
+        "kind": "code_signature_call",
+        "probe_type": "strong",
+        "source_path": "mingpt\\trainer.py",
+        "structural_type": "invocation",
+        "article": "EXECUTION",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "run(",
+        "line": 61,
+        "snippet": "def run(self):",
+        "evidence_context": "            callback(self)\r\n\r\n    def run(self):\r\n        model, config = self.model, self.config\r\n\r\n        # setup the optimizer\r",
+        "imports": [
+          "collections",
+          "torch.utils.data.dataloader",
+          "mingpt.utils",
+          "time",
+          "torch"
+        ],
+        "governance_gap": "Art. 14",
+        "source_sha256": "unknown",
+        "evidence_sha256": "19618b0b2c444c840dfcecf17091f4c484900a209ab05486bc44de1e383b4f26"
+      },
+      {
+        "id": "CODE_ML_INFERENCE",
+        "kind": "code_signature",
+        "source_path": "projects\\adder\\adder.py",
+        "structural_type": "invocation",
+        "confidence": 0.8,
+        "evidence_weight": 0.6,
+        "imports": [
+          "torch.utils.data",
+          "torch.utils.data.dataloader",
+          "mingpt.model",
+          "mingpt.trainer",
+          "mingpt.utils",
+          "os",
+          "sys",
+          "json",
+          "torch"
+        ],
+        "source_sha256": "unknown",
+        "evidence_sha256": "unknown"
+      },
+      {
+        "id": "CODE_AI_CALL",
+        "kind": "code_signature_call",
+        "probe_type": "strong",
+        "source_path": "projects\\adder\\adder.py",
+        "structural_type": "invocation",
+        "article": "EXECUTION",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "run(",
+        "line": 207,
+        "snippet": "trainer.run()",
+        "evidence_context": "\r\n    # run the optimization\r\n    trainer.run()\r\n",
+        "imports": [
+          "torch.utils.data",
+          "torch.utils.data.dataloader",
+          "mingpt.model",
+          "mingpt.trainer",
+          "mingpt.utils",
+          "os",
+          "sys",
+          "json",
+          "torch"
+        ],
+        "governance_gap": "Art. 14",
+        "source_sha256": "unknown",
+        "evidence_sha256": "f4718217e123c243952bf950c45cd1d141be8b5727a5b3d80abc1bf0fd4aec06"
+      },
+      {
+        "id": "CODE_ML_INFERENCE",
+        "kind": "code_signature",
+        "source_path": "projects\\chargpt\\chargpt.py",
+        "structural_type": "invocation",
+        "confidence": 0.8,
+        "evidence_weight": 0.6,
+        "imports": [
+          "torch.utils.data",
+          "torch.utils.data.dataloader",
+          "mingpt.model",
+          "mingpt.trainer",
+          "mingpt.utils",
+          "os",
+          "sys",
+          "torch"
+        ],
+        "source_sha256": "unknown",
+        "evidence_sha256": "unknown"
+      },
+      {
+        "id": "CODE_AI_CALL",
+        "kind": "code_signature_call",
+        "probe_type": "strong",
+        "source_path": "projects\\chargpt\\chargpt.py",
+        "structural_type": "invocation",
+        "article": "EXECUTION",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "run(",
+        "line": 133,
+        "snippet": "trainer.run()",
+        "evidence_context": "\r\n    # run the optimization\r\n    trainer.run()\r\n",
+        "imports": [
+          "torch.utils.data",
+          "torch.utils.data.dataloader",
+          "mingpt.model",
+          "mingpt.trainer",
+          "mingpt.utils",
+          "os",
+          "sys",
+          "torch"
+        ],
+        "governance_gap": "Art. 14",
+        "source_sha256": "unknown",
+        "evidence_sha256": "f4718217e123c243952bf950c45cd1d141be8b5727a5b3d80abc1bf0fd4aec06"
+      },
+      {
+        "id": "CODE_ML_MODEL_LOAD",
+        "kind": "code_signature",
+        "source_path": "tests\\test_huggingface_import.py",
+        "structural_type": "invocation",
+        "confidence": 0.8,
+        "evidence_weight": 0.7,
+        "imports": [
+          "transformers",
+          "mingpt.model",
+          "mingpt.bpe",
+          "unittest",
+          "torch"
+        ],
+        "source_sha256": "unknown",
+        "evidence_sha256": "unknown"
+      },
+      {
+        "id": "CODE_ML_INFERENCE",
+        "kind": "code_signature",
+        "source_path": "tests\\test_huggingface_import.py",
+        "structural_type": "invocation",
+        "confidence": 0.8,
+        "evidence_weight": 0.6,
+        "imports": [
+          "transformers",
+          "mingpt.model",
+          "mingpt.bpe",
+          "unittest",
+          "torch"
+        ],
+        "source_sha256": "unknown",
+        "evidence_sha256": "unknown"
+      }
+    ],
+    "signal_breakdown": {
+      "ai_assets": 0,
+      "execution": 3,
+      "connectivity": 0,
+      "transparency": 0,
+      "oversight": 0,
+      "logging": 0
+    },
+    "all_findings": [
+      {
+        "article": "Article 13",
+        "description": "[Missing user notification]",
+        "severity": "HIGH",
+        "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array."
+      },
+      {
+        "article": "Art. 20",
+        "rule_id": "EUAI-LOGGING-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Logging/Traceability found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Implement Python logging control using standard logging module or loguru. Create a sentinel_log() wrapper function.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 29,
+          "patterns": [
+            "winston",
+            "pino",
+            "new Logger|createLogger|winston\\.createLogger",
+            "sentinelLog",
+            "console\\.log",
+            "logger\\.error|console\\.error",
+            "console\\.trace|logger\\.trace"
+          ]
+        }
+      },
+      {
+        "article": "Art. 14",
+        "rule_id": "EUAI-HUMAN-OVERSIGHT-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Human Control (Kill-switch/Override) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Implement Python manual override hook using a decorator or function. Create a sentinel_override() wrapper function.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 29,
+          "patterns": [
+            "manual_override|user_confirmation|force_override",
+            "emergency_stop|kill_switch|panic_button",
+            "sentinelOverride",
+            "validate_by_human|human_check"
+          ]
+        }
+      },
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-AI-TRANSPARENCY-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of AI Disclosure (Banner/System-label) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "No specific code location identified. Apply recommended Python compliance control at the primary AI execution entry point.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 29,
+          "patterns": [
+            "ai_disclosure_provided|transparency_label|powered_by_ai",
+            "about_this_ai|system_card"
+          ]
+        }
+      },
+      {
+        "article": "EXECUTION",
+        "rule_id": "EUAI-HARDENING-000",
+        "description": "[Implementation] Hardening DETECTED: Detected technical indicator of AI Execution Logic in code.",
+        "deduction": 0,
+        "severity": "info",
+        "source": "implementation",
+        "fix_snippet": null,
+        "hardening_verdict": "PASS",
+        "evidence_location": {
+          "file": "mingpt\\trainer.py",
+          "line": 61,
+          "snippet": "def run(self):",
+          "context": "            callback(self)\r\n\r\n    def run(self):\r\n        model, config = self.model, self.config\r\n\r\n        # setup the optimizer\r",
+          "evidence_hash": "SIG-6E288F823A5F325D"
+        },
+        "search_metadata": {
+          "files_scanned": 29,
+          "patterns": [
+            "\\b(generateText|generateObject|streamText|streamObject|useChat|useCompletion|useObject|complete|predict|chat|invoke|run)\\b(?:<[^>]+>)?\\s*\\(",
+            "export\\s+function\\s+(generate|stream|predict|createAI)",
+            "new\\s+(OpenAI|Anthropic|GoogleGenerativeAI|Mistral)\\b(?:<[^>]+>)?\\s*\\(",
+            "aiModel|llmClient|ai_response|bot_output",
+            "require\\s*\\(\\s*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]\\)|import.*from.*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]"
+          ]
+        }
+      },
+      {
+        "article": "CONNECTIVITY",
+        "rule_id": "EUAI-CONNECTIVITY-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Technical Connectivity found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "No specific code location identified. Apply recommended Python compliance control at the primary AI execution entry point.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 29,
+          "patterns": [
+            "fetch\\s*\\(|axios\\.(get|post|request)|http\\.request\\(|https\\.request\\(|urllib\\.request",
+            "new\\s+WebSocket\\(|socket\\.io|net\\.createConnection",
+            "https?://[a-zA-Z0-9.-]+\\.[a-z]{2,}/v[0-9]/"
+          ]
+        }
+      }
+    ],
+    "files": 29
+  }
+}

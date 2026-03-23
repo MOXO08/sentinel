@@ -1,0 +1,78 @@
+{
+  "project_name": "sentinel-cli",
+  "last_audit_id": "e58d70108a84745b",
+  "history": [
+    {
+      "audit_id": "383b72c47229a703",
+      "timestamp": "2026-03-21T16:45:22.768Z",
+      "commit": "abfe88f",
+      "verdict": "REJECTED",
+      "technical_status": "WEAK",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_383b72c47229a703.json"
+    },
+    {
+      "audit_id": "07143ee954ed502c",
+      "timestamp": "2026-03-21T17:16:39.955Z",
+      "commit": "abfe88f",
+      "verdict": "REJECTED",
+      "technical_status": "WEAK",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_07143ee954ed502c.json"
+    },
+    {
+      "audit_id": "d802abbf7de75bed",
+      "timestamp": "2026-03-21T17:18:19.755Z",
+      "commit": "abfe88f",
+      "verdict": "REJECTED",
+      "technical_status": "WEAK",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_d802abbf7de75bed.json"
+    },
+    {
+      "audit_id": "6887fe79dbf73722",
+      "timestamp": "2026-03-21T17:19:28.854Z",
+      "commit": "abfe88f",
+      "verdict": "REJECTED",
+      "technical_status": "WEAK",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_6887fe79dbf73722.json"
+    },
+    {
+      "audit_id": "4a0c81f4d1d3044a",
+      "timestamp": "2026-03-21T17:19:51.327Z",
+      "commit": "abfe88f",
+      "verdict": "REJECTED",
+      "technical_status": "WEAK",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_4a0c81f4d1d3044a.json"
+    },
+    {
+      "audit_id": "6758ab72f367328d",
+      "timestamp": "2026-03-21T17:20:14.508Z",
+      "commit": "abfe88f",
+      "verdict": "REJECTED",
+      "technical_status": "WEAK",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_6758ab72f367328d.json"
+    },
+    {
+      "audit_id": "99bae176de95caf9",
+      "timestamp": "2026-03-21T17:25:24.166Z",
+      "commit": "abfe88f",
+      "verdict": "REJECTED",
+      "technical_status": "WEAK",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_99bae176de95caf9.json"
+    },
+    {
+      "audit_id": "e58d70108a84745b",
+      "timestamp": "2026-03-23T06:26:27.439Z",
+      "commit": "abfe88f",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_e58d70108a84745b.json"
+    }
+  ]
+}

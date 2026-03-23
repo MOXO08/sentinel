@@ -1,21 +1,44 @@
 {
-  "version": "1.0",
+  "version": "1.3",
   "dependencies": {
-    "aws-sdk": { "weight": 0.4, "note": "Potential cloud infra usage" },
-    "aws-rekognition": { "weight": 0.9, "category": "biometric", "note": "Specific biometric identification service" },
-    "face-api.js": { "weight": 0.9, "category": "biometric", "note": "Browser-based face detection/recognition" },
-    "opencv-wasm": { "weight": 0.7, "category": "surveillance", "note": "Computer vision capabilities" },
-    "tensorflow": { "weight": 0.5, "note": "Core AI model execution" },
-    "pytorch": { "weight": 0.5, "note": "Core AI model execution" },
-    "langchain": { "weight": 0.3, "note": "LLM orchestration" }
+    "aws-sdk": { "weight": 0.4, "note": "Potential cloud infra usage", "articles": ["Art. 13"] },
+    "aws-rekognition": { "weight": 0.9, "category": "biometric", "note": "Specific biometric identification service", "articles": ["Art. 5", "Art. 10", "Art. 14"] },
+    "@aws-sdk/client-bedrock-runtime": { "weight": 0.8, "note": "AWS Bedrock AI usage", "articles": ["Art. 13", "Art. 14"] },
+    "face-api.js": { "weight": 0.9, "category": "biometric", "note": "Browser-based face detection/recognition", "articles": ["Art. 5", "Art. 10", "Art. 14"] },
+    "opencv-wasm": { "weight": 0.7, "category": "surveillance", "note": "Computer vision capabilities", "articles": ["Art. 10", "Art. 14"] },
+    "tensorflow": { "weight": 0.5, "note": "Core AI model execution", "articles": ["Art. 10", "Art. 14"] },
+    "pytorch": { "weight": 0.5, "note": "Core AI model execution", "articles": ["Art. 10", "Art. 14"] },
+    "torch": { "weight": 0.6, "note": "Python PyTorch usage", "articles": ["Art. 10", "Art. 14"] },
+    "transformers": { "weight": 0.7, "note": "Hugging Face Transformers (Python)", "articles": ["Art. 10", "Art. 14"] },
+    "torchvision": { "weight": 0.5, "note": "Computer vision models", "articles": ["Art. 10", "Art. 14"] },
+    "scikit-learn": { "weight": 0.4, "note": "Traditional ML usage", "articles": ["Art. 14", "Art. 15"] },
+    "numpy": { "weight": 0.1, "note": "Generic science lib (low signal alone)", "articles": ["General"] },
+    "langchain": { "weight": 0.3, "note": "LLM orchestration", "articles": ["Art. 13", "Art. 14"] },
+    "@vercel/ai": { "weight": 0.7, "note": "Vercel AI SDK usage", "articles": ["Art. 13", "Art. 14"] },
+    "openai": { "weight": 0.9, "note": "Direct OpenAI integration", "articles": ["Art. 13", "Art. 50"] },
+    "@anthropic-ai/sdk": { "weight": 0.9, "note": "Direct Anthropic integration", "articles": ["Art. 13", "Art. 50"] },
+    "@google/generative-ai": { "weight": 0.9, "note": "Google Gemini API usage", "articles": ["Art. 13", "Art. 50"] },
+    "pinecone": { "weight": 0.6, "note": "Vector Database usage", "articles": ["Art. 10"] },
+    "chromadb": { "weight": 0.6, "note": "Vector Database usage", "articles": ["Art. 10"] },
+    "onnxruntime-node": { "weight": 0.8, "note": "Edge ML execution (ONNX)", "articles": ["Art. 10", "Art. 15"] },
+    "onnxruntime-web": { "weight": 0.8, "note": "Edge ML execution (Browser)", "articles": ["Art. 10", "Art. 15"] }
   },
   "code_signatures": [
-    { "id": "BIOMETRIC_ID", "pattern": "compareFaces|detectFaces|facial_recognition", "weight": 0.9, "category": "biometrics" },
-    { "id": "SOCIAL_SCORING", "pattern": "social_score|credit_worthiness|reputation_index", "weight": 1.0, "category": "unacceptable" },
-    { "id": "RECRUITMENT_AI", "pattern": "resume_scanner|applicant_ranker|cv_screening", "weight": 0.8, "category": "hr" }
+    { "id": "BIOMETRIC_ID", "pattern": "compareFaces|detectFaces|facial_recognition", "weight": 0.9, "category": "biometrics", "articles": ["Art. 5", "Art. 10"] },
+    { "id": "SOCIAL_SCORING", "pattern": "social_score|credit_worthiness|reputation_index", "weight": 1.0, "category": "unacceptable", "articles": ["Art. 5"] },
+    { "id": "RECRUITMENT_AI", "pattern": "resume_scanner|applicant_ranker|cv_screening", "weight": 0.8, "category": "hr", "articles": ["Annex III", "Art. 10", "Art. 14"] },
+    { "id": "LLM_OH_SDK", "pattern": "useChat|useCompletion|generateText|streamText|streamObject|generateObject", "weight": 0.8, "category": "generative_ai", "articles": ["Art. 13", "Art. 50"] },
+    { "id": "LLM_CHAT_COMPLETION", "pattern": "createChatCompletion|messages.create|generateContent", "weight": 0.8, "category": "generative_ai", "articles": ["Art. 13", "Art. 50"] },
+    { "id": "LLM_STREAMING", "pattern": "StreamingTextResponse|AnthropicStream|OpenAIStream|DataStreamResponse", "weight": 0.7, "category": "generative_ai", "articles": ["Art. 13"] },
+    { "id": "VECTOR_SEARCH", "pattern": "vector_search|semantic_search|query_embeddings|VectorStore", "weight": 0.6, "category": "rag", "articles": ["Art. 10"] },
+    { "id": "ML_MODEL_LOAD", "pattern": "from_pretrained|load_model|CheckpointLoader|AutoModel", "weight": 0.7, "category": "machine_learning", "articles": ["Art. 10", "Art. 15"] },
+    { "id": "ML_INFERENCE", "pattern": "pipeline\\(|\\.predict\\(|\\.forward\\(|\\.generate\\(", "weight": 0.6, "category": "machine_learning", "articles": ["Art. 14", "Art. 15"] },
+    { "id": "ONNX_RUNTIME", "pattern": "InferenceSession|onnx\\.load|ort\\.env", "weight": 0.8, "category": "machine_learning", "articles": ["Art. 10", "Art. 15"] },
+    { "id": "SENTINEL_OVERRIDE", "pattern": "sentinelOverride|manual_override|kill_switch", "weight": 1.0, "category": "oversight", "articles": ["Art. 14"] },
+    { "id": "SENTINEL_LOGGER", "pattern": "sentinelLog|createLogger|winston\\.createLogger", "weight": 0.8, "category": "logging", "articles": ["Art. 20"] }
   ],
   "doc_hints": [
-    { "id": "HINT_BIOMETRIC", "pattern": "biometric data|facial analytics|person identification", "weight": 0.7 },
-    { "id": "HINT_HIGH_RISK", "pattern": "Annex III|High-Risk AI System|Article 6", "weight": 0.8 }
+    { "id": "HINT_BIOMETRIC", "pattern": "biometric data|facial analytics|person identification", "weight": 0.7, "articles": ["Art. 10", "Art. 11"] },
+    { "id": "HINT_HIGH_RISK", "pattern": "Annex III|High-Risk AI System|Article 6", "weight": 0.8, "articles": ["Art. 6"] }
   ]
 }

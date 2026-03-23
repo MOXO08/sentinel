@@ -1,0 +1,133 @@
+{
+  "command": "check",
+  "manifest_path": "D:\\AI Act Compliance API\\sentinel-cli\\sentinel-verified\\sentinel.manifest.json",
+  "status": "FAIL",
+  "score": 13.5,
+  "claim_score": 14,
+  "evidence_score": 14,
+  "confidence": "LOW",
+  "phi": 0,
+  "exposure": 0.86,
+  "threshold": 90,
+  "verdict": "NON_COMPLIANT",
+  "risk_category": "high",
+  "exit_code": 1,
+  "findings_count": 4,
+  "score_breakdown": {
+    "Art. 9": {
+      "claim": 1,
+      "evidence": 0,
+      "weight": 0.25,
+      "contribution": 0.05
+    },
+    "Art. 10": {
+      "claim": 0,
+      "evidence": 0,
+      "weight": 0.25,
+      "contribution": 0
+    },
+    "Art. 13": {
+      "claim": 1,
+      "evidence": 0,
+      "weight": 0.15,
+      "contribution": 0.03
+    },
+    "Art. 14": {
+      "claim": 1,
+      "evidence": 0,
+      "weight": 0.2,
+      "contribution": 0.04000000000000001
+    },
+    "Art. 20": {
+      "claim": 0.5,
+      "evidence": 0,
+      "weight": 0.15,
+      "contribution": 0.015
+    }
+  },
+  "top_findings": [
+    {
+      "rule_id": "EUAI-CONSISTENCY-001",
+      "description": "[Documentation] Low consistency: Evidence does not sufficiently address Article requirements. Missing keywords: limitation, purpose, instructions",
+      "fix_snippet": "Ensure documentation explicitly addresses: limitation, purpose, instructions.",
+      "article": "Art. 13",
+      "source": "evidence"
+    },
+    {
+      "rule_id": "EUAI-HARDENING-001",
+      "description": "[Implementation] Hardening FAIL: No technical proof of Logging/Traceability found in code despite claims.",
+      "fix_snippet": "Implement a professional logging library (winston, pino).",
+      "article": "Art. 20",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    },
+    {
+      "rule_id": "EUAI-HARDENING-001",
+      "description": "[Implementation] Hardening FAIL: No technical proof of Human Control (Kill-switch/Override) found in code despite claims.",
+      "fix_snippet": "Implement a manual override hook or emergency stop function.",
+      "article": "Art. 14",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    },
+    {
+      "rule_id": "EUAI-HARDENING-001",
+      "description": "[Implementation] Hardening FAIL: No technical proof of AI Disclosure (Banner/System-label) found in code despite claims.",
+      "fix_snippet": "Add an explicit 'powered by AI' or 'automated decision' disclosure to your interface/code.",
+      "article": "Art. 13",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    }
+  ],
+  "_internal": {
+    "total_signals": 0,
+    "signal_breakdown": {
+      "ai_assets": 0,
+      "transparency": 0,
+      "oversight": 0,
+      "logging": 0
+    },
+    "all_findings": [
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-CONSISTENCY-001",
+        "description": "[Documentation] Low consistency: Evidence does not sufficiently address Article requirements. Missing keywords: limitation, purpose, instructions",
+        "deduction": 6,
+        "severity": "medium",
+        "hard_fail": false,
+        "source": "evidence",
+        "fix_snippet": "Ensure documentation explicitly addresses: limitation, purpose, instructions."
+      },
+      {
+        "article": "Art. 20",
+        "rule_id": "EUAI-HARDENING-001",
+        "description": "[Implementation] Hardening FAIL: No technical proof of Logging/Traceability found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Implement a professional logging library (winston, pino).",
+        "hardening_verdict": "FAIL"
+      },
+      {
+        "article": "Art. 14",
+        "rule_id": "EUAI-HARDENING-001",
+        "description": "[Implementation] Hardening FAIL: No technical proof of Human Control (Kill-switch/Override) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Implement a manual override hook or emergency stop function.",
+        "hardening_verdict": "FAIL"
+      },
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-HARDENING-001",
+        "description": "[Implementation] Hardening FAIL: No technical proof of AI Disclosure (Banner/System-label) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Add an explicit 'powered by AI' or 'automated decision' disclosure to your interface/code.",
+        "hardening_verdict": "FAIL"
+      }
+    ],
+    "files": 1514
+  }
+}

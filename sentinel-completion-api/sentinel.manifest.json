@@ -1,0 +1,9 @@
+{
+  "version": "1.0.0",
+  "risk_category": "high",
+  "declared_flags": [
+    "ai_disclosure",
+    "human_oversight_enabled"
+  ],
+  "app_name": "sentinel-completion-api"
+}

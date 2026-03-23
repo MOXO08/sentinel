@@ -1,0 +1,8 @@
+{
+  "app_name": "sentinel-data-pipeline",
+  "declared_flags": [
+    "data_governance_documented"
+  ],
+  "risk_category": "high",
+  "version": "1.0.0"
+}

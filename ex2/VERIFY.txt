@@ -1,0 +1,28 @@
+SENTINEL AUDIT VERIFICATION GUIDE (Phase 13.1)
+==============================================
+
+Acest pachet de audit este securizat prin mecanismul Triple-Lock Forensic.
+Urmați instrucțiunile de mai jos pentru a valida integritatea și autenticitatea.
+
+1. Validarea Integrității Pachetului (Manifest Coverage):
+   Comanda:
+   sha256sum -c checksums.sha256
+   
+   Rezultat așteptat:
+   Toate fișierele (audit.json, report.html, rules/*, evidence/*, etc.) trebuie să raporteze [OK].
+   Notă: signature.bin și checksums.sha256 sunt esențiale pentru sigiliu și nu se auto-includ.
+
+2. Validarea Semnăturii Autorității (Trust Check):
+   Comanda:
+   openssl dgst -sha256 -verify authority.pub -signature signature.bin checksums.sha256
+
+   Rezultat așteptat:
+   Verified OK
+   Notă: signature.bin este sigiliul extern care garantează că manifestul nu a fost alterat.
+
+3. Validarea Trasabilității (Source vs Evidence):
+   - Fișierul audit.json conține "source_sha256" (hash-ul original din repo).
+   - Fișierul audit.json conține "evidence_sha256" (hash-ul snippet-ului din /evidence).
+   Verificați coerența acestor hash-uri pentru a confirma originea probelor.
+
+IMPORTANT: Eșecul oricărui pas de mai sus invalidează întreg auditul.

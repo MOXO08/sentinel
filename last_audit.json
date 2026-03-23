@@ -1,0 +1,89 @@
+{
+  "command": "check",
+  "manifest_path": "sentinel.manifest.json",
+  "status": "PASS",
+  "score": 10,
+  "claim_score": 10,
+  "evidence_score": 10,
+  "confidence": "LOW",
+  "phi": 0,
+  "exposure": 0.09,
+  "threshold": 0,
+  "verdict": "NON_COMPLIANT",
+  "central_verdict": "REJECTED",
+  "technical_status": "WEAK",
+  "governance_status": "ALIGNED",
+  "risk_category": "Minimal",
+  "exit_code": 0,
+  "findings_count": 3,
+  "score_breakdown": {
+    "Art. 13": {
+      "claim": 0.5,
+      "evidence": 0,
+      "weight": 1,
+      "contribution": 0.1
+    }
+  },
+  "top_findings": [
+    {
+      "description": "[Missing user notification]",
+      "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array.",
+      "article": "Article 13"
+    },
+    {
+      "rule_id": "EUAI-HARDENING-001",
+      "description": "[Implementation] Hardening FAIL: No technical proof of Human Control (Kill-switch/Override) found in code despite claims.",
+      "fix_snippet": "Implement a manual override hook or emergency stop function.",
+      "article": "Art. 14",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    },
+    {
+      "rule_id": "EUAI-HARDENING-001",
+      "description": "[Implementation] Hardening FAIL: No technical proof of AI Disclosure (Banner/System-label) found in code despite claims.",
+      "fix_snippet": "Add an explicit 'powered by AI' or 'automated decision' disclosure to your interface/code.",
+      "article": "Art. 13",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    }
+  ],
+  "_internal": {
+    "total_signals": 0,
+    "signals": [],
+    "signal_breakdown": {
+      "ai_assets": 0,
+      "transparency": 0,
+      "oversight": 0,
+      "logging": 0
+    },
+    "all_findings": [
+      {
+        "article": "Article 13",
+        "description": "[Missing user notification]",
+        "severity": "HIGH",
+        "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array."
+      },
+      {
+        "article": "Art. 14",
+        "rule_id": "EUAI-HARDENING-001",
+        "description": "[Implementation] Hardening FAIL: No technical proof of Human Control (Kill-switch/Override) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Implement a manual override hook or emergency stop function.",
+        "hardening_verdict": "FAIL"
+      },
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-HARDENING-001",
+        "description": "[Implementation] Hardening FAIL: No technical proof of AI Disclosure (Banner/System-label) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Add an explicit 'powered by AI' or 'automated decision' disclosure to your interface/code.",
+        "hardening_verdict": "FAIL"
+      }
+    ],
+    "files": 1575
+  }
+}

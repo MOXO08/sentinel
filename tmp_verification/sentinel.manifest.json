@@ -1,0 +1,13 @@
+{
+  "app_name": "unnamed-ai-service",
+  "version": "1.0.0",
+  "risk_category": "high",
+  "declared_flags": [
+    "transparency_disclosure_provided",
+    "user_notification_ai_interaction"
+  ],
+  "human_oversight": {
+    "description": "Human reviewer monitors decisions and can override outputs."
+  },
+  "oversight_evidence_path": "docs/compliance/human_oversight.md"
+}

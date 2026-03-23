@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Sovereign Framework Portfolio Report</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary: #1a237e; --secondary: #3949ab; --bg: #f8f9fa; --text: #2c3e50; --success: #2e7d32; --danger: #c62828; --border: #e0e6ed; }
+        body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+        .container { max-width: 1000px; margin: 0 auto; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,0.05); min-height: 100vh; }
+        .cover { height: 35vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: linear-gradient(135deg, #1a237e 0%, #0d124a 100%); color: #fff; text-align: center; }
+        section { padding: 40px 60px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 40px; }
+        .stat-card { background: #fdfdfd; border: 1px solid var(--border); padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: var(--primary); }
+        .stat-card .label { font-size: 10px; text-transform: uppercase; color: #666; margin-bottom: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th { background: #f8f9fa; text-align: left; padding: 12px; font-size: 10px; text-transform: uppercase; color: #666; border-bottom: 2px solid var(--border); }
+        td { padding: 15px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+        .trust-tag { font-size: 9px; padding: 2px 6px; border-radius: 10px; font-weight: bold; text-transform: uppercase; }
+        .trust-high { background: #e8f5e9; color: #2e7d32; }
+        .trust-medium { background: #fff3e0; color: #ef6c00; }
+        .trust-low { background: #ffebee; color: #c62828; }
+        .score-bar { width: 100%; height: 6px; background: #eee; border-radius: 3px; position: relative; }
+        .score-fill { height: 100%; border-radius: 3px; background: var(--secondary); }
+        .status-badge { padding: 3px 8px; border-radius: 4px; font-weight: 600; font-size: 9px; }
+        .badge-pass { background: rgba(46,125,50,0.1); color: var(--success); }
+        .badge-fail { background: rgba(198,40,40,0.1); color: var(--danger); }
+        .signal-pill { font-size: 8px; background: #eee; padding: 1px 4px; border-radius: 3px; color: #555; margin-right: 3px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="cover">
+            <div style="text-transform: uppercase; letter-spacing: 5px; opacity: 0.7; font-size: 11px;">Sentinel Ecosystem</div>
+            <h1 style="font-family: 'Playfair Display', serif; font-size: 40px; margin: 10px 0;">SOVEREIGN</h1>
+            <div style="font-weight: 300; font-size: 14px; opacity: 0.9;">Portfolio Compliance Intelligence</div>
+        </div>
+        <section>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="label">Avg Score</div><div class="value">6.5</div></div>
+                <div class="stat-card"><div class="label">Compliance</div><div class="value">3%</div></div>
+                <div class="stat-card"><div class="label">Assets</div><div class="value">38</div></div>
+                <div class="stat-card"><div class="label">Audit Rigor</div><div class="value">134</div></div>
+            </div>
+            <table>
+                <thead>
+                    <tr><th>Repository</th><th>Signals</th><th>Trust</th><th>Score</th><th>Status</th></tr>
+                </thead>
+                <tbody>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">init-test-2</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">init-test</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">root</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">119 signals (φ: 100%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:30</span>
+                                <span class="signal-pill">T:22</span>
+                                <span class="signal-pill">O:3</span>
+                                <span class="signal-pill">L:86</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-high">HIGH</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.01</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 90%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 90/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-pass">
+                                COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">rustwasm-worker-template</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-agent-runtime</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.96</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 3.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 3.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-ai-demo</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-ai-demo-sentinel-ai-demo</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-bias-detector</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.97</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 2.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 2.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-ci-template</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-completion-api</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">11 signals (φ: 100%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:9</span>
+                                <span class="signal-pill">T:1</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:2</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-high">HIGH</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.34</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 65.7%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 65.7/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-config-manager</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-data-pipeline</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.97</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 2.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 2.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-demo-hr-ai</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.98</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 1.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 1.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-embedding-service</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.96</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 3.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 3.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-example-ai-app</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-forecast-engine</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.97</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 2.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 2.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-init-test-2</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-init-test</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-landing</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-llm-orchestrator</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.96</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 3.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 3.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-ml-research</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.97</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 2.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 2.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-nextjs-starter</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.09</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 10%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 10/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-numpy-backend</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.97</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 2.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 2.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-pandas-cleaning</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.97</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 2.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 2.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-proxy-layer</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-python-api-example</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.92</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 8.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 8.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-pytorch-utils</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.97</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 2.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 2.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">3 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:3</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.09</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 10%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 10/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-scan-action</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">1 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:1</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-test-public</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.09</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 10%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 10/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-utils-lib</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-ux-test-3</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.09</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 10%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 10/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-ux-test</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">sentinel-verified</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.86</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 13.5%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 13.5/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">stabilization-test</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">test-public</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">ux-test-3</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="font-weight: 600;">ux-test</td>
+                        <td style="min-width: 140px;">
+                            <div style="font-size: 11px; font-weight: bold;">0 signals (φ: 0%)</div>
+                            
+                            <div style="margin-top: 4px;">
+                                <span class="signal-pill">A:0</span>
+                                <span class="signal-pill">T:0</span>
+                                <span class="signal-pill">O:0</span>
+                                <span class="signal-pill">L:0</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="trust-tag trust-low">LOW</span><br/>
+                            <span style="font-size: 9px; color: #999;">Exp: 0.1</span>
+                        </td>
+                        <td>
+                            <div class="score-bar"><div class="score-fill" style="width: 0%"></div></div>
+                            <div style="font-size: 9px; margin-top: 4px;">Compliance Score: 0/100</div>
+                        </td>
+                        <td>
+                            <span class="status-badge badge-fail">
+                                NON_COMPLIANT
+                            </span>
+                        </td>
+                    </tr>
+                    
+                </tbody>
+            </table>
+        </section>
+        <footer style="text-align: center; padding: 20px; color: #999; font-size: 11px; border-top: 1px solid #eee;">
+            Generated by Sovereign CLI Portfolio Orchestrator. Finalized metrics from Audit JSON SSoT.
+        </footer>
+    </div>
+</body>
+</html>

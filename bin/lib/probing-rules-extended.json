@@ -1,0 +1,9 @@
+{
+  "version": "2.0-ext",
+  "probes": {
+    "extended_logging": {
+      "article": "Art. 20 (Extended)",
+      "strong_signals": []
+    }
+  }
+}

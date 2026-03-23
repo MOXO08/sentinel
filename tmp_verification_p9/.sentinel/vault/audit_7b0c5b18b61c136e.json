@@ -1,0 +1,318 @@
+{
+  "audit_metadata": {
+    "audit_id": "7b0c5b18b61c136e",
+    "timestamp": "2026-03-23T06:01:24.449Z",
+    "commit": "abfe88f"
+  },
+  "executive_state": {
+    "verdict": "HOLD",
+    "technical_status": "ROBUST",
+    "governance_status": "GAP"
+  },
+  "command": "check",
+  "manifest_path": "sentinel.manifest.json",
+  "status": "PASS",
+  "score": 14.8,
+  "claim_score": 15,
+  "evidence_score": 15,
+  "confidence": "LOW",
+  "phi": 0.2,
+  "exposure": 0.85,
+  "threshold": 0,
+  "verdict": "NON_COMPLIANT",
+  "_context_validation": null,
+  "_declaration_consistency": null,
+  "_executive_summary": null,
+  "central_verdict": "HOLD",
+  "technical_status": "ROBUST",
+  "governance_status": "GAP",
+  "risk_category": "high",
+  "exit_code": 1,
+  "findings_count": 7,
+  "score_breakdown": {
+    "Art. 9": {
+      "claim": 0,
+      "evidence": 0,
+      "weight": 0.25,
+      "contribution": 0
+    },
+    "Art. 10": {
+      "claim": 0,
+      "evidence": 0.5,
+      "weight": 0.25,
+      "contribution": 0.1
+    },
+    "Art. 13": {
+      "claim": 0,
+      "evidence": 0,
+      "weight": 0.15,
+      "contribution": 0
+    },
+    "Art. 14": {
+      "claim": 0,
+      "evidence": 0,
+      "weight": 0.2,
+      "contribution": 0
+    },
+    "Art. 20": {
+      "claim": 0,
+      "evidence": 0.4,
+      "weight": 0.15,
+      "contribution": 0.04800000000000001
+    }
+  },
+  "top_findings": [
+    {
+      "rule_id": "EUAI-MIN-001",
+      "description": "[Missing baseline structure]",
+      "fix_snippet": "Add required top-level flags and evidence fields.",
+      "article": "General",
+      "source": "evidence"
+    },
+    {
+      "rule_id": "EUAI-TRANS-001",
+      "description": "[Missing transparency flag]",
+      "fix_snippet": "Add 'transparency_disclosure_provided' to 'declared_flags' array.",
+      "article": "Art. 13",
+      "source": "evidence"
+    },
+    {
+      "description": "[Missing user notification]",
+      "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array.",
+      "article": "Article 13"
+    },
+    {
+      "rule_id": "EUAI-LOGGING-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Logging/Traceability found in code despite claims.",
+      "fix_snippet": "Implement winston/pino to satisfy Art 20 traceability. Current logic in governance.js relies on generic tracers.",
+      "article": "Art. 20",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    },
+    {
+      "rule_id": "EUAI-HUMAN-OVERSIGHT-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Human Control (Kill-switch/Override) found in code despite claims.",
+      "fix_snippet": "Implement a manual override hook (e.g., manualApprovalRequired()) in undefined to satisfy Art 14.",
+      "article": "Art. 14",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    }
+  ],
+  "_internal": {
+    "total_signals": 3,
+    "signals": [
+      {
+        "id": "CODE_AI_MODEL_INIT",
+        "kind": "code_signature_call",
+        "probe_type": "strong",
+        "source_path": "chatbot.js",
+        "structural_type": "invocation",
+        "article": "EXECUTION",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "new OpenAI(",
+        "line": 8,
+        "snippet": "const client = new OpenAI();",
+        "evidence_context": "\nasync function askAI(prompt) {\n  const client = new OpenAI();\n  const result = await client.chat.completions.create();\n  \n  return technicalSentinelHook(prompt, result); ",
+        "imports": [
+          "./governance",
+          "openai"
+        ],
+        "governance_gap": "Art. 14",
+        "source_sha256": "8332f9cede8d47a39a7bfb88677deb093909bb6f20599a0735c20bb1eed3cab4",
+        "evidence_sha256": "db1bdaa16204e815814c45110565224638d6fc8a08c454d2aee90befb66c1e52"
+      },
+      {
+        "id": "CODE_AI_LOAD",
+        "kind": "code_signature_load",
+        "probe_type": "traceability",
+        "source_path": "chatbot.js",
+        "structural_type": "mention",
+        "article": "EXECUTION",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "matched_text": "require('openai')",
+        "line": 5,
+        "snippet": "const OpenAI = require('openai');",
+        "evidence_context": " */\nconst { technicalSentinelHook } = require('./governance'); \nconst OpenAI = require('openai');\n\nasync function askAI(prompt) {\n  const client = new OpenAI();",
+        "imports": [
+          "./governance",
+          "openai"
+        ],
+        "source_sha256": "8332f9cede8d47a39a7bfb88677deb093909bb6f20599a0735c20bb1eed3cab4",
+        "evidence_sha256": "65138d8dc4a371c09e6a5f2d9eb9936ca40952c7d11234cdf80cc2fac377db74"
+      },
+      {
+        "id": "CODE_LOG",
+        "kind": "code_signature_call",
+        "probe_type": "weak",
+        "source_path": "governance.js",
+        "structural_type": "invocation",
+        "article": "Art. 20",
+        "confidence": 0.5,
+        "evidence_weight": 0.5,
+        "matched_text": "console.log",
+        "line": 6,
+        "snippet": "console.log(\"Governing AI output...\");",
+        "evidence_context": "function technicalSentinelHook(input, output) {\n  // sentinelOverride\n  console.log(\"Governing AI output...\");\n  return { approved: true, output };\n}\n",
+        "imports": [],
+        "source_sha256": "b60f8d0c2457a0801aae784c3743aaff00bfcfbe6327548b3b664965b76cb83a",
+        "evidence_sha256": "5231bcc61450fec8d29ab0f05e4b63a0a1ca91ae656689afb21aa90542a62302"
+      }
+    ],
+    "signal_breakdown": {
+      "ai_assets": 1,
+      "execution": 1,
+      "connectivity": 0,
+      "transparency": 0,
+      "oversight": 0,
+      "logging": 1
+    },
+    "all_findings": [
+      {
+        "article": "General",
+        "rule_id": "EUAI-MIN-001",
+        "description": "[Missing baseline structure]",
+        "deduction": 30,
+        "severity": "critical",
+        "hard_fail": true,
+        "source": "evidence",
+        "fix_snippet": "Add required top-level flags and evidence fields."
+      },
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-TRANS-001",
+        "description": "[Missing transparency flag]",
+        "deduction": 15,
+        "severity": "high",
+        "hard_fail": false,
+        "source": "evidence",
+        "fix_snippet": "Add 'transparency_disclosure_provided' to 'declared_flags' array."
+      },
+      {
+        "article": "Article 13",
+        "description": "[Missing user notification]",
+        "severity": "HIGH",
+        "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array."
+      },
+      {
+        "article": "Art. 20",
+        "rule_id": "EUAI-LOGGING-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Logging/Traceability found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Implement winston/pino to satisfy Art 20 traceability. Current logic in governance.js relies on generic tracers.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 16,
+          "patterns": [
+            "winston",
+            "pino",
+            "new Logger|createLogger|winston\\.createLogger",
+            "sentinelLog",
+            "console\\.log",
+            "logger\\.error|console\\.error",
+            "console\\.trace|logger\\.trace"
+          ]
+        }
+      },
+      {
+        "article": "Art. 14",
+        "rule_id": "EUAI-HUMAN-OVERSIGHT-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Human Control (Kill-switch/Override) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Implement a manual override hook (e.g., manualApprovalRequired()) in undefined to satisfy Art 14.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 16,
+          "patterns": [
+            "manual_override|user_confirmation|force_override",
+            "emergency_stop|kill_switch|panic_button",
+            "sentinelOverride",
+            "validate_by_human|human_check"
+          ]
+        }
+      },
+      {
+        "article": "EXECUTION",
+        "rule_id": "EUAI-HARDENING-000",
+        "description": "[Implementation] Hardening DETECTED: Detected technical indicator of AI Execution Logic in code.",
+        "deduction": 0,
+        "severity": "info",
+        "source": "implementation",
+        "fix_snippet": null,
+        "hardening_verdict": "PASS",
+        "evidence_location": {
+          "file": "chatbot.js",
+          "line": 8,
+          "snippet": "const client = new OpenAI();",
+          "context": "\nasync function askAI(prompt) {\n  const client = new OpenAI();\n  const result = await client.chat.completions.create();\n  \n  return technicalSentinelHook(prompt, result); ",
+          "evidence_hash": "SIG-3E763701C908BD7F"
+        },
+        "search_metadata": {
+          "files_scanned": 16,
+          "patterns": [
+            "\\b(generateText|generateObject|streamText|streamObject|useChat|useCompletion|useObject|complete|predict|chat|invoke|run)\\b(?:<[^>]+>)?\\s*\\(",
+            "export\\s+function\\s+(generate|stream|predict|createAI)",
+            "new\\s+(OpenAI|Anthropic|GoogleGenerativeAI|Mistral)\\b(?:<[^>]+>)?\\s*\\(",
+            "aiModel|llmClient|ai_response|bot_output",
+            "require\\s*\\(\\s*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]\\)|import.*from.*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]"
+          ]
+        },
+        "connectivity": {
+          "identifier": "client",
+          "definition": "chatbot.js",
+          "reference_count": 13,
+          "files": [
+            ".sentinel\\vault\\audit_1975462819c7affb.json",
+            "sentinel-audit.html"
+          ],
+          "classification": "Multiple references detected"
+        }
+      },
+      {
+        "article": "CONNECTIVITY",
+        "rule_id": "EUAI-CONNECTIVITY-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Technical Connectivity found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "No external connectivity markers found. Verify if model execution is fully localized.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 16,
+          "patterns": [
+            "fetch\\s*\\(|axios\\.(get|post|request)|http\\.request\\(|https\\.request\\(|urllib\\.request",
+            "new\\s+WebSocket\\(|socket\\.io|net\\.createConnection",
+            "https?://[a-zA-Z0-9.-]+\\.[a-z]{2,}/v[0-9]/"
+          ]
+        }
+      }
+    ],
+    "files": 16
+  },
+  "enterprise_confidence": 1,
+  "defensibility": "STRONG",
+  "integrity_issues": [],
+  "_sig_internal": {
+    "verified_signals": 0,
+    "reported_signals": 0,
+    "signal_verification_ratio": "1.00",
+    "documentation_substance_score": "PASS"
+  },
+  "_audit_signature": {
+    "algorithm": "sha256",
+    "canonicalization": "RFC8785-Lite",
+    "signed_at": "2026-03-23T06:01:24.447Z",
+    "digest": "171390e58f659ba461754f215c8cee98bf1e10707ba507fe9049d12cb2594b30"
+  },
+  "_dual_track": {
+    "centralVerdict": "HOLD",
+    "technicalStatus": "ROBUST",
+    "governanceStatus": "GAP",
+    "forensicExclusionsCount": 0
+  }
+}

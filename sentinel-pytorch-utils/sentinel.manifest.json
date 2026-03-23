@@ -1,0 +1,8 @@
+{
+  "app_name": "sentinel-pytorch-utils",
+  "declared_flags": [
+    "data_governance_documented"
+  ],
+  "risk_category": "high",
+  "version": "1.0.0"
+}

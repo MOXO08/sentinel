@@ -1,0 +1,107 @@
+{
+  "command": "check",
+  "manifest_path": "D:\\AI Act Compliance API\\sentinel-cli\\rustwasm-worker-template\\sentinel.manifest.json",
+  "status": "FAIL",
+  "score": 0,
+  "claim_score": 0,
+  "evidence_score": 0,
+  "confidence": "LOW",
+  "phi": 0,
+  "exposure": 1,
+  "threshold": 90,
+  "verdict": "NON_COMPLIANT",
+  "risk_category": "high",
+  "exit_code": 1,
+  "findings_count": 3,
+  "score_breakdown": {
+    "Art. 9": {
+      "claim": 0,
+      "evidence": 0,
+      "weight": 0.25,
+      "contribution": 0
+    },
+    "Art. 10": {
+      "claim": 0,
+      "evidence": 0,
+      "weight": 0.25,
+      "contribution": 0
+    },
+    "Art. 13": {
+      "claim": 0,
+      "evidence": 0,
+      "weight": 0.15,
+      "contribution": 0
+    },
+    "Art. 14": {
+      "claim": 0,
+      "evidence": 0,
+      "weight": 0.2,
+      "contribution": 0
+    },
+    "Art. 20": {
+      "claim": 0,
+      "evidence": 0,
+      "weight": 0.15,
+      "contribution": 0
+    }
+  },
+  "top_findings": [
+    {
+      "rule_id": "EUAI-MIN-001",
+      "description": "[Missing baseline structure]",
+      "fix_snippet": "Add required top-level flags and evidence fields.",
+      "article": "General",
+      "source": "evidence"
+    },
+    {
+      "rule_id": "EUAI-TRANS-001",
+      "description": "[Missing transparency flag]",
+      "fix_snippet": "Add 'transparency_disclosure_provided' to 'declared_flags' array.",
+      "article": "Art. 13",
+      "source": "evidence"
+    },
+    {
+      "description": "[Missing user notification]",
+      "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array.",
+      "article": "Article 13"
+    }
+  ],
+  "_internal": {
+    "total_signals": 0,
+    "signal_breakdown": {
+      "ai_assets": 0,
+      "transparency": 0,
+      "oversight": 0,
+      "logging": 0
+    },
+    "all_findings": [
+      {
+        "article": "General",
+        "rule_id": "EUAI-MIN-001",
+        "description": "[Missing baseline structure]",
+        "deduction": 30,
+        "severity": "critical",
+        "hard_fail": true,
+        "source": "evidence",
+        "fix_snippet": "Add required top-level flags and evidence fields."
+      },
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-TRANS-001",
+        "description": "[Missing transparency flag]",
+        "deduction": 15,
+        "severity": "high",
+        "hard_fail": false,
+        "source": "evidence",
+        "fix_snippet": "Add 'transparency_disclosure_provided' to 'declared_flags' array."
+      },
+      {
+        "article": "Article 13",
+        "description": "[Missing user notification]",
+        "severity": "HIGH",
+        "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array."
+      }
+    ],
+    "files": 1514
+  }
+}

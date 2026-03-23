@@ -1,0 +1,85 @@
+{
+  "version": "1.3",
+  "probes": {
+    "logging": {
+      "article": "Art. 20",
+      "strong_signals": [
+        { "id": "DEP_WINSTON", "pattern": "winston", "kind": "dependency" },
+        { "id": "DEP_PINO", "pattern": "pino", "kind": "dependency" },
+        { "id": "CODE_LOGGER_INIT", "pattern": "new Logger|createLogger|winston\\.createLogger", "kind": "code_signature_load" },
+        { "id": "SENTINEL_LOGGER", "pattern": "sentinelLog", "kind": "code_signature_call" }
+      ],
+      "traceability_signals": [
+        { "id": "CODE_LOG_ERROR", "pattern": "logger\\.error|console\\.error", "kind": "code_signature_call" },
+        { "id": "CODE_TRACE", "pattern": "console\\.trace|logger\\.trace", "kind": "code_signature_call" }
+      ],
+      "weak_signals": [
+        { "id": "CODE_LOG", "pattern": "console\\.log", "kind": "code_signature_call" }
+      ]
+    },
+    "data_quality": {
+      "article": "Art. 10",
+      "strong_signals": [
+        { "id": "CODE_BIAS_CHECK", "pattern": "fairness_metrics|bias_detection|aif360|fairlearn", "kind": "code_signature_call" },
+        { "id": "CODE_DRIFT_MONITOR", "pattern": "drift_detection|concept_drift|dvc", "kind": "code_signature_call" }
+      ],
+      "weak_signals": [
+        { "id": "CODE_DATA_CLEAN", "pattern": "dropna|fillna|impute|StandardScaler|MinMaxScaler", "kind": "code_signature_call" }
+      ]
+    },
+    "robustness": {
+      "article": "Art. 15",
+      "strong_signals": [
+        { "id": "CODE_ADVERSARIAL_TEST", "pattern": "adversarial_perturbation|robustness_check|failure_injection", "kind": "code_signature_call" },
+        { "id": "CODE_STRESS_TEST", "pattern": "stress_test|load_test", "kind": "code_signature_call" }
+      ],
+      "weak_signals": [
+        { "id": "CODE_SANITIZATION", "pattern": "sanitize|escapeHTML|validateInput", "kind": "code_signature_call" }
+      ]
+    },
+    "human_oversight": {
+      "article": "Art. 14",
+      "strong_signals": [
+        { "id": "CODE_OVERRIDE", "pattern": "manual_override|user_confirmation|force_override", "kind": "code_signature_call" },
+        { "id": "CODE_KILL_SWITCH", "pattern": "emergency_stop|kill_switch|panic_button", "kind": "code_signature_call" },
+        { "id": "SENTINEL_OVERRIDE", "pattern": "sentinelOverride", "kind": "code_signature_call" }
+      ],
+      "weak_signals": [
+        { "id": "CODE_HUMAN_CHECK", "pattern": "validate_by_human|human_check", "kind": "code_signature_call" }
+      ]
+    },
+    "ai_transparency": {
+      "article": "Art. 13",
+      "strong_signals": [
+        { "id": "CODE_DISCLOSURE", "pattern": "ai_disclosure_provided|transparency_label|powered_by_ai", "kind": "code_signature_call" }
+      ],
+      "weak_signals": [
+        { "id": "CODE_SYSTEM_INFO", "pattern": "about_this_ai|system_card", "kind": "code_signature_call" }
+      ]
+    },
+    "ai_execution": {
+      "article": "EXECUTION",
+      "strong_signals": [
+        { "id": "CODE_AI_CALL", "pattern": "\\b(generateText|generateObject|streamText|streamObject|useChat|useCompletion|useObject|complete|predict|chat|invoke|run)\\b(?:<[^>]+>)?\\s*\\(", "kind": "code_signature_call" },
+        { "id": "CODE_AI_EXPORT", "pattern": "export\\s+function\\s+(generate|stream|predict|createAI)", "kind": "code_signature_call" },
+        { "id": "CODE_AI_MODEL_INIT", "pattern": "new\\s+(OpenAI|Anthropic|GoogleGenerativeAI|Mistral)\\b(?:<[^>]+>)?\\s*\\(", "kind": "code_signature_call" }
+      ],
+      "traceability_signals": [
+        { "id": "CODE_AI_LOAD", "pattern": "require\\s*\\(\\s*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]\\)|import.*from.*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]", "kind": "code_signature_load" }
+      ],
+      "weak_signals": [
+        { "id": "CODE_AI_VAR", "pattern": "aiModel|llmClient|ai_response|bot_output", "kind": "code_signature_load" }
+      ]
+    },
+    "connectivity": {
+      "article": "CONNECTIVITY",
+      "strong_signals": [
+        { "id": "CODE_HTTP_CALL", "pattern": "fetch\\s*\\(|axios\\.(get|post|request)|http\\.request\\(|https\\.request\\(|urllib\\.request", "kind": "code_signature_call" },
+        { "id": "CODE_SOCKET_INIT", "pattern": "new\\s+WebSocket\\(|socket\\.io|net\\.createConnection", "kind": "code_signature_call" }
+      ],
+      "weak_signals": [
+        { "id": "CODE_URI_PATTERN", "pattern": "https?://[a-zA-Z0-9.-]+\\.[a-z]{2,}/v[0-9]/", "kind": "code_signature_call" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "audit_metadata": {
+    "audit_id": "1234abcd",
+    "timestamp": "2026-03-21T12:00:00Z",
+    "commit": "abcdef"
+  },
+  "executive_state": {
+    "verdict": "HOLD",
+    "technical_status": "ROBUST",
+    "governance_status": "GAP"
+  },
+  "rule": "test",
+  "severity": "high"
+}

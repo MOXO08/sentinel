@@ -1,0 +1,513 @@
+{
+  "audit_metadata": {
+    "audit_id": "c4a32e6f396b6f85",
+    "timestamp": "2026-03-23T05:46:34.074Z",
+    "commit": "abfe88f"
+  },
+  "executive_state": {
+    "verdict": "HOLD",
+    "technical_status": "ROBUST",
+    "governance_status": "ALIGNED"
+  },
+  "command": "check",
+  "manifest_path": "sentinel.manifest.json",
+  "status": "FAIL",
+  "score": 64.2,
+  "claim_score": 64,
+  "evidence_score": 64,
+  "confidence": "HIGH",
+  "phi": 1,
+  "exposure": 0.36,
+  "threshold": 100,
+  "verdict": "PARTIAL",
+  "_context_validation": null,
+  "_declaration_consistency": null,
+  "_executive_summary": null,
+  "central_verdict": "HOLD",
+  "technical_status": "ROBUST",
+  "governance_status": "ALIGNED",
+  "risk_category": "high",
+  "exit_code": 1,
+  "findings_count": 5,
+  "score_breakdown": {
+    "Art. 9": {
+      "claim": 0,
+      "evidence": 1,
+      "weight": 0.25,
+      "contribution": 0.2
+    },
+    "Art. 10": {
+      "claim": 0,
+      "evidence": 1,
+      "weight": 0.25,
+      "contribution": 0.2
+    },
+    "Art. 13": {
+      "claim": 0.5,
+      "evidence": 0,
+      "weight": 0.15,
+      "contribution": 0.015
+    },
+    "Art. 14": {
+      "claim": 0,
+      "evidence": 0.6666666666666666,
+      "weight": 0.2,
+      "contribution": 0.10666666666666667
+    },
+    "Art. 20": {
+      "claim": 0,
+      "evidence": 1,
+      "weight": 0.15,
+      "contribution": 0.12
+    }
+  },
+  "top_findings": [
+    {
+      "rule_id": "EUAI-HARDENING-000",
+      "description": "[Implementation] Hardening DETECTED: Detected technical indicator of Logging/Traceability in code.",
+      "fix_snippet": null,
+      "article": "Art. 20",
+      "source": "implementation",
+      "hardening_verdict": "PASS"
+    },
+    {
+      "rule_id": "EUAI-HARDENING-000",
+      "description": "[Implementation] Hardening DETECTED: Detected technical indicator of Human Control (Kill-switch/Override) in code.",
+      "fix_snippet": null,
+      "article": "Art. 14",
+      "source": "implementation",
+      "hardening_verdict": "PASS"
+    },
+    {
+      "rule_id": "EUAI-AI-TRANSPARENCY-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of AI Disclosure (Banner/System-label) found in code despite claims.",
+      "fix_snippet": "Add an explicit 'powered by AI' disclosure to your interface/code to satisfy Art 13 transparency requirements.",
+      "article": "Art. 13",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    },
+    {
+      "rule_id": "EUAI-HARDENING-000",
+      "description": "[Implementation] Hardening DETECTED: Detected technical indicator of AI Execution Logic in code.",
+      "fix_snippet": null,
+      "article": "EXECUTION",
+      "source": "implementation",
+      "hardening_verdict": "PASS"
+    },
+    {
+      "rule_id": "EUAI-CONNECTIVITY-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Technical Connectivity found in code despite claims.",
+      "fix_snippet": "No external connectivity markers found. Verify if model execution is fully localized.",
+      "article": "CONNECTIVITY",
+      "source": "implementation",
+      "hardening_verdict": "FAIL"
+    }
+  ],
+  "_internal": {
+    "total_signals": 15,
+    "signals": [
+      {
+        "id": "CODE_LLM_OH_SDK",
+        "kind": "code_signature",
+        "source_path": "chatbot.js",
+        "structural_type": "import",
+        "confidence": 0.8,
+        "evidence_weight": 0.8,
+        "source_sha256": "0996b30665f04720b2a3b02a2d47e987f9d3c7a2c180e8fff62567d60bf878bc",
+        "evidence_sha256": "unknown"
+      },
+      {
+        "id": "CODE_LOG",
+        "kind": "code_signature_call",
+        "probe_type": "weak",
+        "source_path": "chatbot.js",
+        "structural_type": "invocation",
+        "article": "Art. 20",
+        "confidence": 0.5,
+        "evidence_weight": 0.5,
+        "matched_text": "console.log",
+        "line": 1,
+        "snippet": "import { generateText } from 'ai';\\n\\nasync function chatbot() {\\n  const { text } = await generateText({ prompt: 'hello' });\\n  console.log(text);\\n}",
+        "evidence_context": "import { generateText } from 'ai';\\n\\nasync function chatbot() {\\n  const { text } = await generateText({ prompt: 'hello' });\\n  console.log(text);\\n}\r\n",
+        "source_sha256": "0996b30665f04720b2a3b02a2d47e987f9d3c7a2c180e8fff62567d60bf878bc",
+        "evidence_sha256": "016b1ff937783c01e0f9cbc358d6856cfa67312bd860ef8e3a60f79d9ff9d1ee"
+      },
+      {
+        "id": "CODE_AI_CALL",
+        "kind": "code_signature_call",
+        "probe_type": "strong",
+        "source_path": "chatbot.js",
+        "structural_type": "invocation",
+        "article": "EXECUTION",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "generateText(",
+        "line": 1,
+        "snippet": "import { generateText } from 'ai';\\n\\nasync function chatbot() {\\n  const { text } = await generateText({ prompt: 'hello' });\\n  console.log(text);\\n}",
+        "evidence_context": "import { generateText } from 'ai';\\n\\nasync function chatbot() {\\n  const { text } = await generateText({ prompt: 'hello' });\\n  console.log(text);\\n}\r\n",
+        "source_sha256": "0996b30665f04720b2a3b02a2d47e987f9d3c7a2c180e8fff62567d60bf878bc",
+        "evidence_sha256": "016b1ff937783c01e0f9cbc358d6856cfa67312bd860ef8e3a60f79d9ff9d1ee"
+      },
+      {
+        "id": "CODE_SENTINEL_LOGGER",
+        "kind": "code_signature",
+        "source_path": "logger.js",
+        "structural_type": "invocation",
+        "confidence": 0.8,
+        "evidence_weight": 0.8,
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "unknown"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "probe_type": "strong",
+        "source_path": "logger.js",
+        "structural_type": "mention",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "winston",
+        "line": 5,
+        "snippet": "const winston = require('winston');",
+        "evidence_context": " * Auto-generated scaffolding for Art. 20 Compliance.\n */\nconst winston = require('winston');\n\nconst logger = winston.createLogger({\n  level: 'info',",
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "fdc68f8cf48a5c5d324b5d2f8788bd626df3648bb227c434c9ddf62cdc3d00fb"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "probe_type": "strong",
+        "source_path": "logger.js",
+        "structural_type": "literal",
+        "article": "Art. 20",
+        "confidence": 0.2,
+        "evidence_weight": 1,
+        "matched_text": "winston",
+        "line": 5,
+        "snippet": "const winston = require('winston');",
+        "evidence_context": " * Auto-generated scaffolding for Art. 20 Compliance.\n */\nconst winston = require('winston');\n\nconst logger = winston.createLogger({\n  level: 'info',",
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "fdc68f8cf48a5c5d324b5d2f8788bd626df3648bb227c434c9ddf62cdc3d00fb"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "probe_type": "strong",
+        "source_path": "logger.js",
+        "structural_type": "mention",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "winston",
+        "line": 7,
+        "snippet": "const logger = winston.createLogger({",
+        "evidence_context": "const winston = require('winston');\n\nconst logger = winston.createLogger({\n  level: 'info',\n  format: winston.format.combine(\n    winston.format.timestamp(),",
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "probe_type": "strong",
+        "source_path": "logger.js",
+        "structural_type": "mention",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "winston",
+        "line": 9,
+        "snippet": "format: winston.format.combine(",
+        "evidence_context": "const logger = winston.createLogger({\n  level: 'info',\n  format: winston.format.combine(\n    winston.format.timestamp(),\n    winston.format.json()\n  ),",
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "fcd414e67768ceb44dcf6bff9bb9d54f2ebc9ef225bd69aa270cb872250189ae"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "probe_type": "strong",
+        "source_path": "logger.js",
+        "structural_type": "mention",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "winston",
+        "line": 10,
+        "snippet": "winston.format.timestamp(),",
+        "evidence_context": "  level: 'info',\n  format: winston.format.combine(\n    winston.format.timestamp(),\n    winston.format.json()\n  ),\n  transports: [",
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "03c77f7b0b8c07dcad82de2743252999e87b824c5c6a3b104037aa9ba24f8d23"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "probe_type": "strong",
+        "source_path": "logger.js",
+        "structural_type": "mention",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "winston",
+        "line": 11,
+        "snippet": "winston.format.json()",
+        "evidence_context": "  format: winston.format.combine(\n    winston.format.timestamp(),\n    winston.format.json()\n  ),\n  transports: [\n    new winston.transports.Console(),",
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "7683f8b986cc0f45ffca52410cdf032bf31c906eff3c0fe58f35a46336e85d32"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "probe_type": "strong",
+        "source_path": "logger.js",
+        "structural_type": "mention",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "winston",
+        "line": 14,
+        "snippet": "new winston.transports.Console(),",
+        "evidence_context": "  ),\n  transports: [\n    new winston.transports.Console(),\n    new winston.transports.File({ filename: 'audit_trail.log' })\n  ]\n});",
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "86efee5f4ce8348563d4110b193becf832503feb548bd7c79ecc03eac47d3ec0"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "probe_type": "strong",
+        "source_path": "logger.js",
+        "structural_type": "mention",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "winston",
+        "line": 15,
+        "snippet": "new winston.transports.File({ filename: 'audit_trail.log' })",
+        "evidence_context": "  transports: [\n    new winston.transports.Console(),\n    new winston.transports.File({ filename: 'audit_trail.log' })\n  ]\n});\n",
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "1e1cb83f4b05d3a8d8f470fec30da051a4db60b901c640c041bab4f6aa048a6b"
+      },
+      {
+        "id": "CODE_LOGGER_INIT",
+        "kind": "code_signature_load",
+        "probe_type": "strong",
+        "source_path": "logger.js",
+        "structural_type": "invocation",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "winston.createLogger",
+        "line": 7,
+        "snippet": "const logger = winston.createLogger({",
+        "evidence_context": "const winston = require('winston');\n\nconst logger = winston.createLogger({\n  level: 'info',\n  format: winston.format.combine(\n    winston.format.timestamp(),",
+        "source_sha256": "a8cc31c880c144a2269b8a201e35b00707a478eefcba03992774e562b3f2e3ea",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "CODE_SENTINEL_OVERRIDE",
+        "kind": "code_signature",
+        "source_path": "sentinel-oversight.js",
+        "structural_type": "invocation",
+        "confidence": 0.8,
+        "evidence_weight": 1,
+        "source_sha256": "a162b28d1d9ae0116310b7e236d15970e5b86ad347471a6bf3bf38c3ed55f302",
+        "evidence_sha256": "unknown"
+      },
+      {
+        "id": "SENTINEL_OVERRIDE",
+        "kind": "code_signature_call",
+        "probe_type": "strong",
+        "source_path": "sentinel-oversight.js",
+        "structural_type": "invocation",
+        "article": "Art. 14",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "matched_text": "sentinelOverride",
+        "line": 17,
+        "snippet": "async sentinelOverride(input, output) {",
+        "evidence_context": "   * @returns {Object} { approved: boolean, reason: string, finalOutput: Object }\n   */\n  async sentinelOverride(input, output) {\n    // 1. Technical Consistency Check (Heuristic)\n    const isSuspicious = this._checkSuspicion(output);\n    ",
+        "source_sha256": "a162b28d1d9ae0116310b7e236d15970e5b86ad347471a6bf3bf38c3ed55f302",
+        "evidence_sha256": "ee2a3b6a3f0da20bee37132b434b9570fe3a273bb905c0b6cf788302afa6ac6d"
+      }
+    ],
+    "signal_breakdown": {
+      "ai_assets": 9,
+      "execution": 1,
+      "connectivity": 0,
+      "transparency": 0,
+      "oversight": 2,
+      "logging": 3
+    },
+    "all_findings": [
+      {
+        "article": "Art. 20",
+        "rule_id": "EUAI-HARDENING-000",
+        "description": "[Implementation] Hardening DETECTED: Detected technical indicator of Logging/Traceability in code.",
+        "deduction": 0,
+        "severity": "info",
+        "source": "implementation",
+        "fix_snippet": null,
+        "hardening_verdict": "PASS",
+        "evidence_location": {
+          "file": "chatbot.js",
+          "line": 1,
+          "snippet": "import { generateText } from 'ai';\\n\\nasync function chatbot() {\\n  const { text } = await generateText({ prompt: 'hello' });\\n  console.log(text);\\n}",
+          "context": "import { generateText } from 'ai';\\n\\nasync function chatbot() {\\n  const { text } = await generateText({ prompt: 'hello' });\\n  console.log(text);\\n}\r\n",
+          "evidence_hash": "SIG-1A3A793C0007F385"
+        },
+        "search_metadata": {
+          "files_scanned": 11,
+          "patterns": [
+            "winston",
+            "pino",
+            "new Logger|createLogger|winston\\.createLogger",
+            "sentinelLog",
+            "console\\.log",
+            "logger\\.error|console\\.error",
+            "console\\.trace|logger\\.trace"
+          ]
+        },
+        "connectivity": {
+          "identifier": "chatbot",
+          "definition": "chatbot.js",
+          "reference_count": 34,
+          "files": [
+            ".sentinel\\vault\\audit_181aae72034ede64.json",
+            ".sentinel\\vault\\audit_332abf4eb683ce70.json",
+            "sentinel-audit.html"
+          ],
+          "classification": "Multiple references detected"
+        }
+      },
+      {
+        "article": "Art. 14",
+        "rule_id": "EUAI-HARDENING-000",
+        "description": "[Implementation] Hardening DETECTED: Detected technical indicator of Human Control (Kill-switch/Override) in code.",
+        "deduction": 0,
+        "severity": "info",
+        "source": "implementation",
+        "fix_snippet": null,
+        "hardening_verdict": "PASS",
+        "evidence_location": {
+          "file": "sentinel-oversight.js",
+          "line": 17,
+          "snippet": "async sentinelOverride(input, output) {",
+          "context": "   * @returns {Object} { approved: boolean, reason: string, finalOutput: Object }\n   */\n  async sentinelOverride(input, output) {\n    // 1. Technical Consistency Check (Heuristic)\n    const isSuspicious = this._checkSuspicion(output);\n    ",
+          "evidence_hash": "SIG-A03C868F6CDB148C"
+        },
+        "search_metadata": {
+          "files_scanned": 11,
+          "patterns": [
+            "manual_override|user_confirmation|force_override",
+            "emergency_stop|kill_switch|panic_button",
+            "sentinelOverride",
+            "validate_by_human|human_check"
+          ]
+        },
+        "connectivity": {
+          "identifier": "isSuspicious",
+          "definition": "sentinel-oversight.js",
+          "reference_count": 3,
+          "files": [
+            ".sentinel\\vault\\audit_332abf4eb683ce70.json"
+          ],
+          "classification": "Multiple references detected"
+        }
+      },
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-AI-TRANSPARENCY-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of AI Disclosure (Banner/System-label) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "Add an explicit 'powered by AI' disclosure to your interface/code to satisfy Art 13 transparency requirements.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 11,
+          "patterns": [
+            "ai_disclosure_provided|transparency_label|powered_by_ai",
+            "about_this_ai|system_card"
+          ]
+        }
+      },
+      {
+        "article": "EXECUTION",
+        "rule_id": "EUAI-HARDENING-000",
+        "description": "[Implementation] Hardening DETECTED: Detected technical indicator of AI Execution Logic in code.",
+        "deduction": 0,
+        "severity": "info",
+        "source": "implementation",
+        "fix_snippet": null,
+        "hardening_verdict": "PASS",
+        "evidence_location": {
+          "file": "chatbot.js",
+          "line": 1,
+          "snippet": "import { generateText } from 'ai';\\n\\nasync function chatbot() {\\n  const { text } = await generateText({ prompt: 'hello' });\\n  console.log(text);\\n}",
+          "context": "import { generateText } from 'ai';\\n\\nasync function chatbot() {\\n  const { text } = await generateText({ prompt: 'hello' });\\n  console.log(text);\\n}\r\n",
+          "evidence_hash": "SIG-1A3A793C0007F385"
+        },
+        "search_metadata": {
+          "files_scanned": 11,
+          "patterns": [
+            "\\b(generateText|generateObject|streamText|streamObject|useChat|useCompletion|useObject|complete|predict|chat|invoke|run)\\b(?:<[^>]+>)?\\s*\\(",
+            "export\\s+function\\s+(generate|stream|predict|createAI)",
+            "new\\s+(OpenAI|Anthropic|GoogleGenerativeAI|Mistral)\\b(?:<[^>]+>)?\\s*\\(",
+            "aiModel|llmClient|ai_response|bot_output",
+            "require\\s*\\(\\s*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]\\)|import.*from.*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]"
+          ]
+        },
+        "connectivity": {
+          "identifier": "chatbot",
+          "definition": "chatbot.js",
+          "reference_count": 34,
+          "files": [
+            ".sentinel\\vault\\audit_181aae72034ede64.json",
+            ".sentinel\\vault\\audit_332abf4eb683ce70.json",
+            "sentinel-audit.html"
+          ],
+          "classification": "Multiple references detected"
+        }
+      },
+      {
+        "article": "CONNECTIVITY",
+        "rule_id": "EUAI-CONNECTIVITY-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Technical Connectivity found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "No external connectivity markers found. Verify if model execution is fully localized.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 11,
+          "patterns": [
+            "fetch\\s*\\(|axios\\.(get|post|request)|http\\.request\\(|https\\.request\\(|urllib\\.request",
+            "new\\s+WebSocket\\(|socket\\.io|net\\.createConnection",
+            "https?://[a-zA-Z0-9.-]+\\.[a-z]{2,}/v[0-9]/"
+          ]
+        }
+      }
+    ],
+    "files": 11
+  },
+  "enterprise_confidence": 0.3,
+  "defensibility": "WEAK",
+  "integrity_issues": [],
+  "_sig_internal": {
+    "verified_signals": 0,
+    "reported_signals": 3,
+    "signal_verification_ratio": "0.00",
+    "documentation_substance_score": "PASS"
+  },
+  "_audit_signature": {
+    "algorithm": "sha256",
+    "canonicalization": "RFC8785-Lite",
+    "signed_at": "2026-03-23T05:46:34.072Z",
+    "digest": "38d77d1d50da5c275a6eedae4516e42837603d63eabb95638a0b50822b77d07b"
+  },
+  "_dual_track": {
+    "centralVerdict": "HOLD",
+    "technicalStatus": "ROBUST",
+    "governanceStatus": "ALIGNED",
+    "forensicExclusionsCount": 0
+  }
+}

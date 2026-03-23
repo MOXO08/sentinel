@@ -5,6 +5,86 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
+
+/**
+ * Replaces comments with spaces of equal length to preserve line/column numbers.
+ */
+function stripComments(content, language) {
+  if (language === 'python') {
+    return content.replace(/#.*$/gm, match => ' '.repeat(match.length));
+  }
+  // JS/TS/CSS: /* */ and //
+  // Regex covers multiline /* */ and single line // that are preceded by space or start of line
+  return content.replace(/\/\*[\s\S]*?\*\/|(?:\s|^)\/\/.*$/gm, match => ' '.repeat(match.length));
+}
+
+/**
+ * Heuristic structural analysis of a match context.
+ */
+function analyzeStructuralContext(content, index, text) {
+  const head = content.substring(Math.max(0, index - 100), index);
+  const tail = content.substring(index + text.length, Math.min(content.length, index + text.length + 100));
+
+  const isCall = /[\(\<]\s*$/.test(text) || /^\s*[\(\<]/.test(tail); // Supports generateText( and generateText<
+  const isImport = /(?:import|require|from)\s+[\{\*a-zA-Z0-9_\s,]*$/.test(head.trim());
+  const isString = /['"`]\s*$/.test(head.substring(head.length - 2)) && /^\s*['"`]/.test(tail);
+
+  if (isCall) return 'invocation';
+  if (isImport) return 'import';
+  if (isString) return 'literal';
+  return 'mention';
+}
+
+/**
+ * Extracts import/require targets from file content.
+ */
+function extractImports(content, language) {
+  const imports = new Set();
+  
+  if (language === 'python') {
+    const fromRegex = /^from\s+([a-zA-Z0-9_\.]+)\s+import/gm;
+    const importRegex = /^import\s+([a-zA-Z0-9_\.]+)/gm;
+    let m;
+    while ((m = fromRegex.exec(content)) !== null) imports.add(m[1]);
+    while ((m = importRegex.exec(content)) !== null) imports.add(m[1]);
+  } else {
+    // JS/TS
+    const esmRegex = /import\s+(?:[\{\*a-zA-Z0-9_\s,]*from\s+)?['"]([^'"]+)['"]/g;
+    const cjsRegex = /require\s*\(\s*['"]([^'"]+)['"]\s*\)/g;
+    let m;
+    while ((m = esmRegex.exec(content)) !== null) imports.add(m[1]);
+    while ((m = cjsRegex.exec(content)) !== null) imports.add(m[1]);
+  }
+  
+  return Array.from(imports);
+}
+
+/**
+ * Builds a bi-directional dependency graph across the repository.
+ */
+function buildDependencyGraph(repoFiles) {
+  const graph = {
+    imports: {}, // file -> [imported targets]
+    imported_by: {} // target -> [files]
+  };
+
+  repoFiles.forEach(file => {
+    if (file.category !== 'source') return;
+    try {
+      const content = fs.readFileSync(file.fullPath, 'utf8');
+      const foundImports = extractImports(content, file.language);
+      
+      graph.imports[file.path] = foundImports;
+      foundImports.forEach(target => {
+        if (!graph.imported_by[target]) graph.imported_by[target] = [];
+        graph.imported_by[target].push(file.path);
+      });
+    } catch (e) {}
+  });
+
+  return graph;
+}
 
 /**
  * @typedef {Object} RepoFile
@@ -63,7 +143,19 @@ function crawlRepository(rootDir) {
   }
 
   walk(rootDir);
+  const extCounts = {};
+  files.forEach(f => {
+    const ext = path.extname(f.path) || 'no-ext';
+    extCounts[ext] = (extCounts[ext] || 0) + 1;
+  });
   return files;
+}
+
+/**
+ * Normalizes a path to use forward slashes (Unix-style).
+ */
+function normalizePath(p) {
+  return p.replace(/\\/g, '/');
 }
 
 /**
@@ -73,7 +165,7 @@ function classifyFile(relativePath, fullPath, size) {
   const ext = path.extname(relativePath).toLowerCase();
   const name = path.basename(relativePath).toLowerCase();
 
-  let category = 'source';
+  let category = 'unknown'; // Hardened default to avoid noise
   let language = 'unknown';
 
   if (['.json', '.yaml', '.yml', '.toml', '.xml'].includes(ext)) {
@@ -83,17 +175,21 @@ function classifyFile(relativePath, fullPath, size) {
     }
   } else if (['.md', '.txt', '.pdf', '.docx'].includes(ext)) {
     category = 'doc';
+  } else if (['.js', '.ts', '.tsx', '.jsx', '.mjs', '.cjs', '.mdx', '.py', '.rs', '.go', '.java', '.cpp'].includes(ext)) {
+    category = 'source';
   }
 
   // Language detection
   const langMap = {
-    '.js': 'javascript', '.ts': 'typescript', '.py': 'python',
-    '.rs': 'rust', '.go': 'go', '.java': 'java', '.cpp': 'cpp'
+    '.js': 'javascript', '.ts': 'typescript', '.tsx': 'typescript', '.jsx': 'javascript',
+    '.mjs': 'javascript', '.cjs': 'javascript', '.mdx': 'markdown',
+    '.py': 'python', '.rs': 'rust', '.go': 'go', '.java': 'java', '.cpp': 'cpp'
   };
   language = langMap[ext] || 'unknown';
 
   return {
     path: relativePath,
+    fullPath: fullPath,
     file_type: ext || 'no-ext',
     category,
     language,
@@ -105,17 +201,45 @@ function classifyFile(relativePath, fullPath, size) {
 /**
  * Extracts signals from the collected files based on rules.
  */
-function extractSignals(repoFiles, rules) {
-  const signals = [];
+function extractSignals(repoFiles, rules, probingRules = null, dependencyGraph = null, commitId = 'unknown') {
+  let signals = [];
+  const isDebug = process.env.SENTINEL_DEBUG === 'true';
+  const discoveryRules = rules; // for internal consistency
   
   for (const file of repoFiles) {
-    // 1. Dependency Signals
-    if (file.category === 'dependency' && file.path.endsWith('package.json')) {
+    const normalizedPath = normalizePath(file.path);
+    if (isDebug) console.log(`[DEBUG-EXTRACT] File: ${normalizedPath} | Category: ${file.category}`);
+    const isNoisePath = /(^|\/)(docs|migrations|dist|public)(\/|$)/i.test(normalizedPath);
+    const isComplianceDoc = normalizedPath.startsWith('docs/compliance/') || normalizedPath.includes('/docs/compliance/');
+    const fileImports = (dependencyGraph && dependencyGraph.imports[file.path]) || [];
+
+    // 1. Dependency Check
+    if (file.category === 'dependency') {
       try {
-        const content = fs.readFileSync(path.join(process.cwd(), file.path), 'utf8');
-        const pkg = JSON.parse(content);
-        const deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}) };
-        
+        const content = fs.readFileSync(file.fullPath, 'utf8');
+        let deps = {};
+        if (file.path.endsWith('package.json')) {
+           const pkg = JSON.parse(content);
+           deps = { ...(pkg.dependencies || {}), ...(pkg.devDependencies || {}), ...(pkg.peerDependencies || {}) };
+        } else if (file.path.endsWith('requirements.txt')) {
+           // Python Support: Scan requirements.txt
+           content.split('\n').forEach(line => {
+              const match = line.match(/^([a-zA-Z0-9_\-]+)/);
+              if (match) deps[match[1].toLowerCase()] = true;
+           });
+        } else if (file.path.endsWith('pyproject.toml')) {
+           // Python Support: Scan pyproject.toml
+           const lines = content.split('\n');
+           let inDeps = false;
+           for (const line of lines) {
+             if (line.match(/^\[.*dependencies\]/)) inDeps = true;
+             else if (line.startsWith('[')) inDeps = false;
+             else if (inDeps) {
+               const match = line.match(/^([a-zA-Z0-9_\-]+)\s*=/);
+               if (match) deps[match[1].toLowerCase()] = true;
+             }
+           }
+        }
         for (const [dep, ver] of Object.entries(deps)) {
           if (rules.dependencies[dep]) {
             signals.push({
@@ -128,44 +252,105 @@ function extractSignals(repoFiles, rules) {
           }
         }
       } catch (e) {
-        // Skip malformed JSON
+        // Skip malformed JSON or unreadable files
       }
     }
-    // 2. Code Signature & Doc Hint Signals
+    // 2. Code Signature & Hardening Probes (Forensic Layer)
     if (['source', 'doc'].includes(file.category)) {
       try {
-        const content = fs.readFileSync(path.join(process.cwd(), file.path), 'utf8');
+        // Skip technical scanning if it's a known noise path like docs or tests, UNLESS it's a doc hint Check
+        if (isNoisePath && !isComplianceDoc) continue;
+
+        const content = fs.readFileSync(file.fullPath, 'utf8');
+        const strippedContent = (file.category === 'source') ? stripComments(content, file.language) : content;
         
-        // Scan for code signatures if it's a source file
+        // Phase 10: Alias Tracking
+        const localAliases = new Set();
+        if (file.category === 'source') {
+           const aliasRegex = /(?:var|let|const)\s+([a-zA-Z0-9_$]+)\s*=\s*(?:[a-zA-Z0-9_$]+\.)?(sentinelOverride|sentinelLogger|sentinelAudit)/g;
+           let aliasMatch;
+           while ((aliasMatch = aliasRegex.exec(content)) !== null) {
+              localAliases.add(aliasMatch[1]);
+           }
+        }
+        
+        // --- Section 2: Code Signatures (from Manifest) ---
         if (file.category === 'source') {
           for (const rule of rules.code_signatures) {
             const regex = new RegExp(rule.pattern, 'gi');
-            if (regex.test(content)) {
+            if (regex.test(strippedContent)) {
+              // Structural check for code signatures (Simple check for first match)
+              const firstMatch = strippedContent.match(regex);
+              const structType = analyzeStructuralContext(strippedContent, strippedContent.search(regex), firstMatch[0]);
+              
               signals.push({
                 id: `CODE_${rule.id}`,
-                kind: 'code_signature',
+                kind: rule.kind || 'code_signature',
                 source_path: file.path,
-                confidence: 0.8, // RegEx is good but context-less
-                evidence_weight: rule.weight || 0.5
+                structural_type: structType,
+                confidence: structType === 'literal' ? 0.3 : 0.8,
+                evidence_weight: rule.weight || 0.5,
+                imports: fileImports
               });
             }
           }
         }
 
-        // Scan for doc hints if it's a doc file
-        if (file.category === 'doc') {
-          for (const rule of rules.doc_hints) {
-            const regex = new RegExp(rule.pattern, 'gi');
-            if (regex.test(content)) {
-              signals.push({
-                id: `DOC_${rule.id}`,
-                kind: 'doc_hint',
-                source_path: file.path,
-                confidence: 0.6, // Doc mentions are less definitive
-                evidence_weight: rule.weight || 0.3
+        // --- Section 3: Hardening Probes (Art 13/14/20 technical proof) ---
+        if (file.category === 'source' && probingRules && probingRules.probes) {
+          Object.entries(probingRules.probes).forEach(([probeKey, probe]) => {
+            // Helper for signal extraction
+            const extractProbeSignals = (signalList, type, defaultWeight) => {
+              if (!signalList) return;
+              signalList.forEach(ps => {
+                // Phase 10: Dynamic Alias Support
+                const basePattern = ps.pattern;
+                const aliases = [];
+                const aliasRegex = new RegExp(`(?:var|let|const)\\s+([a-zA-Z0-9_$]+)\\s*=\\s*(?:[a-zA-Z0-9_$]+\\.)?(${basePattern})`, 'g');
+                let am;
+                while ((am = aliasRegex.exec(content)) !== null) {
+                   aliases.push(am[1]);
+                }
+                
+                // Phase 10: String Literal Access (e.g., mod["sentinelOverride"])
+                const dynamicPropPattern = `\\[['"]${basePattern}['"]\\]`;
+                const patterns = [basePattern, dynamicPropPattern, ...aliases];
+                patterns.forEach(pattern => {
+                  const regex = new RegExp(pattern, 'gi');
+                  let match;
+                  while ((match = regex.exec(strippedContent)) !== null) {
+                    const lines = content.split('\n');
+                    const lineNum = (content.substring(0, match.index).split('\n').length);
+                  const structType = analyzeStructuralContext(strippedContent, match.index, match[0]);
+                  
+                  signals.push({
+                    id: ps.id,
+                    kind: ps.kind || 'hardening_probe',
+                    probe_type: type,
+                    source_path: file.path,
+                    structural_type: structType,
+                    article: probe.article,
+                    confidence: structType === 'literal' ? 0.2 : (ps.weight || defaultWeight),
+                    evidence_weight: ps.weight || defaultWeight,
+                    matched_text: match[0],
+                    line: lineNum,
+                    snippet: (lines[lineNum - 1] || '').trim(),
+                    evidence_context: extractContext(lines, lineNum),
+                    imports: fileImports
+                  });
+                  if (type === 'strong' && isDebug) {
+                    console.log(`[FORENSIC] Signal Match: ${ps.id} in ${file.path}:${lineNum}`);
+                  }
+                    if (signals.length > 5000) break;
+                  }
+                });
               });
-            }
-          }
+            };
+
+            extractProbeSignals(probe.strong_signals, 'strong', 1.0);
+            extractProbeSignals(probe.traceability_signals, 'traceability', 0.7);
+            extractProbeSignals(probe.weak_signals, 'weak', 0.5);
+          });
         }
       } catch (e) {
         // Skip files that can't be read
@@ -197,7 +382,218 @@ function extractSignals(repoFiles, rules) {
     }
   }
 
+  // 4. Behavioral Heuristics Layer (Phase 16.4 fallback)
+  if (signals.length === 0) {
+    const suspicionScore = analyzeBehavioralSuspicion(repoFiles);
+    if (suspicionScore >= 2) {
+       signals.push({
+         id: "BEHAVIORAL_SUSPICION_FLAG_HIGH_RISK",
+         kind: "code_signature",
+         source_path: "repository_behavior_analysis",
+         sha256: "unknown",
+         commit: "unknown",
+         confidence: 1.0,
+         evidence_weight: 1.0,
+         category: "unrecognized_ai_system",
+         articles: ["Art. 6", "Art. 13", "Art. 14"],
+         line: 1,
+         snippet: `[BEHAVIORAL HEURISTIC] High suspicion of obfuscated or non-standard AI integration. Score: ${suspicionScore}`,
+         source_sha256: "unknown",
+         evidence_sha256: "unknown"
+       });
+    }
+  }
+
+  // 5. Signal Validation Layer (Phase 16.5)
+  if (signals.length > 0) {
+    signals = validateSignalConnectivity(signals, repoFiles);
+  }
+
   return signals;
+}
+
+/**
+ * Validates that detected signals are functional and connected, not just decoys.
+ */
+function validateSignalConnectivity(signals, repoFiles) {
+  const validated = [];
+  const fileCache = new Map();
+
+  for (const signal of signals) {
+    if (signal.kind !== 'hardening_probe') {
+      validated.push(signal);
+      continue;
+    }
+
+    const filePath = path.join(process.cwd(), signal.source_path);
+    if (!fileCache.has(filePath)) {
+      try {
+        fileCache.set(filePath, fs.readFileSync(filePath, 'utf8'));
+      } catch (e) {
+        fileCache.set(filePath, '');
+      }
+    }
+    const content = fileCache.get(filePath);
+    const lines = content.split('\n');
+
+    let searchPattern = '';
+    if (signal.matched_text) {
+       searchPattern = signal.matched_text.replace(/\\b/g, '').replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+    } else {
+       const word = signal.id.split('_').pop().toLowerCase();
+       if (word.length > 3) searchPattern = word;
+    }
+
+    if (!searchPattern) {
+      validated.push(signal);
+      continue;
+    }
+
+    const regex = new RegExp(`\\b${searchPattern}\\b`, 'gi');
+    const matches = content.match(regex) || [];
+    
+    // Heuristic 1: Call/Usage Pattern (e.g. .term or term() or term:)
+    const isCalledOrAssigned = new RegExp(`\\b${searchPattern}\\b\\s*[\\(:=]|\\.\\b${searchPattern}\\b`, 'i').test(content);
+    
+    // Heuristic 2: Proximity to Logic
+    const signalLineIdx = signal.line - 1;
+    const start = Math.max(0, signalLineIdx - 5);
+    const end = Math.min(lines.length, signalLineIdx + 10);
+    const window = lines.slice(start, end).join('\n');
+    const inLogic = /\b(if|return|await|process|handler|try|exports|module|function)\b/i.test(window);
+
+    // Heuristic 3: Effect Check (Phase 16.6)
+    let hasEffect = true;
+    if (signal.id.includes('KILL_SWITCH') || signal.id.includes('OVERRIDE')) {
+       // Must have a blocking or flow-altering keyword in proximity or body
+       hasEffect = /\b(throw|process\.exit|exit\(|abort\(|return|stopExecution|break|continue|reject\(|@abort)\b/i.test(window);
+       // Reject vacuous bodies: { return true; }
+       if (hasEffect && /\{\s*return\s+(true|false|null|undefined|1|0)\s*;\s*\}/i.test(window)) {
+          hasEffect = false;
+       }
+    } else if (signal.id.includes('DISCLOSURE')) {
+       hasEffect = /\b(console\.(log|error|info|warn)|print\(|write\(|alert\(|Response|render|display|show|Toast|Label)\b/i.test(window);
+    }
+    
+    const isIsolated = matches.length === 1;
+
+    // VALID if:
+    // 1. It's not isolated (appears in multiple places like def + usage)
+    // 2. OR it is a Transparency Disclosure with a clear Output Effect (Phase 16.6 Fix)
+    // AND it has some functional context (is called, assigned, or near logic)
+    // AND it has a detectable effect (Phase 16.6)
+    
+    const isDisclosureWithEffect = signal.id.includes('DISCLOSURE') && hasEffect;
+
+    if ((!isIsolated || isDisclosureWithEffect) && (isCalledOrAssigned || inLogic) && hasEffect) {
+       validated.push(signal);
+    } else if (process.env.SENTINEL_DEBUG === 'true') {
+       console.error(`[INTEGRITY-LAYER] Dropping suspicious signal: ${signal.id} - Text: "${searchPattern}" (Matches: ${matches.length}, Logic: ${inLogic}, Effect: ${hasEffect}, DisclosureEffect: ${isDisclosureWithEffect})`);
+    }
+  }
+
+  return validated;
+}
+
+/**
+ * Analyzes the repository for behavioral suspicions of obfuscated AI usage.
+ * @param {RepoFile[]} repoFiles - All audited files
+ * @returns {number} The aggregated suspicion score
+ */
+function analyzeBehavioralSuspicion(repoFiles) {
+  let score = 0;
+  
+  // 1. Config AI Endpoints and Params
+  const configFiles = repoFiles.filter(f => f.path.match(/\.(json|yaml|yml|env|ini)$/i));
+  for (const file of configFiles) {
+    const normalizedPath = normalizePath(file.path);
+    const isNoisePath = /(^|\/)(docs|content|examples|tests|test|spec|migrations|dist|assets|public)(\/|$)/i.test(normalizedPath);
+    if (isNoisePath) continue;
+    try {
+      const content = fs.readFileSync(path.join(process.cwd(), file.path), 'utf8').toLowerCase();
+      // Look for recognizable endpoints or system prompts in config
+      if (content.match(/v1\/chat\/completions|api\.openai\.com|api\.anthropic\.com|bedrock\.aws/i)) {
+        score += 2;
+      }
+      if (content.match(/("system_prompt"|"temperature"\s*:\s*0\.|"max_tokens"|sk-ant-)/)) {
+        score += 1;
+      }
+    } catch(e) {}
+  }
+
+  // 2. Code Behavioral Obfuscation / Wrappers
+  const codeFiles = repoFiles.filter(f => f.path.match(/\.(js|ts|py|go|java)$/i));
+  for (const file of codeFiles) {
+    const normalizedPath = normalizePath(file.path);
+    const isNoisePath = /(^|\/)(docs|content|examples|tests|test|spec|migrations|dist|assets|public)(\/|$)/i.test(normalizedPath);
+    if (isNoisePath) continue;
+
+    try {
+        // Skip technical scanning if it's a known noise path like docs or tests, UNLESS it's a doc hint Check
+        if (file.category === 'source' && isNoisePath) continue;
+
+        const content = fs.readFileSync(path.join(process.cwd(), file.path), 'utf8');
+
+        // 2. Scan core code signatures
+        // Dynamic import with string concat: import('open' + 'ai')
+        if (content.match(/import\s*\(\s*['"][a-z]+['"]\s*\+\s*['"][a-z]+['"]\s*\)/i)) {
+        score += 2;
+      }
+      // Require with string concat: require('sc' + 'ikit')
+      if (content.match(/require\s*\(\s*['"][a-z]+['"]\s*\+\s*['"][a-z]+['"]\s*\)/i)) {
+        score += 2;
+      }
+      
+      // Generic wrapper: fetch + prompt/payload concept
+      if (content.match(/(fetch|axios\.|request\(|httpx\.|requests\.)/)) {
+          if (content.match(/(prompt|payload|messages|completion|input|generate)/i)) {
+              if (content.match(/(Authorization|Bearer)/i)) {
+                 score += 1.5;
+              } else {
+                 score += 0.5;
+              }
+          }
+      }
+    } catch(e) {}
+  }
+
+  return score;
+}
+
+/**
+ * Detects AI intent based on project metadata.
+ */
+function detectHeuristicIntent(repoFiles) {
+  const aiKeywords = [
+    'ai-', '-ai', 'gpt', 'llm', 'bot', 'chat', 'intelligence', 'classifier', 'prediction',
+    'transformer', 'hugging', 'torch', 'tensor', 'learning', 'embedding', 'vector', 'inference', 'vision', 'neural'
+  ];
+  
+  // 1. Check ALL package.json files (Monorepo Support)
+  const pkgFiles = repoFiles.filter(f => f.path.endsWith('package.json'));
+  for (const pkgFile of pkgFiles) {
+    try {
+      const pkg = JSON.parse(fs.readFileSync(pkgFile.fullPath, 'utf8'));
+      const name = (pkg.name || '').toLowerCase();
+      const desc = (pkg.description || '').toLowerCase();
+      if (aiKeywords.some(k => name.includes(k) || desc.includes(k))) return true;
+    } catch (e) {}
+  }
+
+  // 2. Check requirements.txt and pyproject.toml
+  const pythonMeta = repoFiles.filter(f => f.path.endsWith('requirements.txt') || f.path.endsWith('pyproject.toml'));
+  for (const pyFile of pythonMeta) {
+    try {
+      const content = fs.readFileSync(pyFile.fullPath, 'utf8').toLowerCase();
+      if (aiKeywords.some(k => content.includes(k))) return true;
+    } catch (e) {}
+  }
+  
+  // 3. Check Directory Name
+  const rootDirName = path.basename(process.cwd()).toLowerCase();
+  if (aiKeywords.some(k => rootDirName.includes(k))) return true;
+
+  return false;
 }
 
 /**
@@ -278,10 +674,21 @@ function generateManifestFromSignals(signals) {
   };
 }
 
+/**
+ * Extracts context around a match.
+ */
+function extractContext(lines, lineNum) {
+  const start = Math.max(0, lineNum - 3);
+  const end = Math.min(lines.length, lineNum + 3);
+  return lines.slice(start, end).join('\n');
+}
+
 module.exports = {
   crawlRepository,
   classifyFile,
   extractSignals,
   verifyAlignment,
-  generateManifestFromSignals
+  generateManifestFromSignals,
+  detectHeuristicIntent,
+  buildDependencyGraph
 };

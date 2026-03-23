@@ -1,0 +1,18 @@
+{
+  "command": "check",
+  "status": "PASS",
+  "score": 100,
+  "claim_score": 100,
+  "evidence_score": 100,
+  "confidence": "HIGH",
+  "threshold": 90,
+  "verdict": "COMPLIANT",
+  "exit_code": 0,
+  "remaining_findings": 1,
+  "top_findings": [
+    {
+      "description": "[Missing user notification]",
+      "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array."
+    }
+  ]
+}

@@ -1,9 +1,6 @@
 {
-  "schema": "sentinel.manifest.v1",
-  "app_name": "ux-test-3",
   "risk_category": "minimal",
-  "modules": [],
-  "declared_flags": [
-    "transparency_disclosure_provided"
-  ]
+  "app_name": "ux-test-3",
+  "declared_flags": [],
+  "version": "1.0.0"
 }

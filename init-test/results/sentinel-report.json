@@ -1,0 +1,33 @@
+{
+  "command": "check",
+  "status": "FAIL",
+  "score": 0,
+  "claim_score": 0,
+  "evidence_score": 0,
+  "confidence": "N/A",
+  "threshold": 90,
+  "verdict": "NON_COMPLIANT",
+  "exit_code": 1,
+  "remaining_findings": 4,
+  "top_findings": [
+    {
+      "rule_id": "EUAI-RISK-002",
+      "description": "[Missing risk category]",
+      "fix_snippet": "Add 'risk_category' to manifest.json."
+    },
+    {
+      "rule_id": "EUAI-MIN-001",
+      "description": "[Missing baseline structure]",
+      "fix_snippet": "Add required top-level flags and evidence fields."
+    },
+    {
+      "rule_id": "EUAI-TRANS-001",
+      "description": "[Missing transparency flag]",
+      "fix_snippet": "Add 'transparency_disclosure_provided' to 'declared_flags' array."
+    },
+    {
+      "description": "[Missing user notification]",
+      "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array."
+    }
+  ]
+}

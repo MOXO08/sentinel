@@ -1,0 +1,11 @@
+SENTINEL AUDIT VERIFICATION GUIDE
+=================================
+
+1. Validarea Integrității Fișierelor:
+   sha256sum -c checksums.sha256
+
+2. Validarea Semnăturii Autorității:
+   openssl dgst -sha256 -verify authority.pub -signature signature.bin checksums.sha256
+
+3. Validarea Probelor (Evidence):
+   Comparați fiecare hash "sha256" din audit.json cu fișierele corespunzătoare din /evidence.

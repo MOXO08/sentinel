@@ -1,0 +1,12 @@
+{
+  "app_name": "sentinel-cli",
+  "version": "1.0.0",
+  "risk_category": "Minimal",
+  "app_description": "Auto-generated manifest by Sentinel Autodiscovery.",
+  "declared_flags": [
+    "transparency_disclosure_provided",
+    "human_oversight_enabled"
+  ],
+  "autodiscovery_notes": [],
+  "fallback_ai_verification": true
+}
