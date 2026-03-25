@@ -2080,6 +2080,11 @@ async function performAudit(manifestPath, threshold, options = {}) {
   // Phase 1 & 2: Evidence Reasoning & Dossier Enrichment
   combinedFindings.forEach(f => intelligence.applyReasoning(f, manifest, signals));
 
+  // 3.1 CI/CD & Test Discovery (Phase 14.3)
+  const ciCdFiles = autodiscovery.discoverCiCdSignals(repoFiles);
+  const testFiles = autodiscovery.discoverTestFiles(repoFiles);
+  const correlationSignals = autodiscovery.correlateSignals(ciCdFiles, testFiles);
+
   const articleSummaries = intelligence.generateArticleSummaries(combinedFindings, signals, manifest);
 
   // Phase 2: Audit Dossier Hardening (Sorting)
@@ -2246,6 +2251,11 @@ async function performAudit(manifestPath, threshold, options = {}) {
         all_findings: combinedFindings, // Expose for CLI/Dashboard
         files: repoFiles.length
     },
+    
+    // --- CI/CD & Test Discovery (Phase 14.3) ---
+    ci_cd_files: ciCdFiles,
+    test_files: testFiles,
+    correlation_signals: correlationSignals,
 
     // --- Enterprise Defensibility Extensions (Additive) ---
     "AUDIT_SCOPE": {
@@ -2290,6 +2300,31 @@ async function performAudit(manifestPath, threshold, options = {}) {
       "step_5": "For HIGH-RISK systems, absence of implementation constitutes regulatory risk"
     }
   };
+
+  // Phase 7: Confidence Enrichment (Corrected Location)
+  report.audit_confidence = articleSummaries.audit_confidence;
+  delete articleSummaries.audit_confidence;
+
+  if (report.audit_confidence) {
+    const ciCdPresent = (report.ci_cd_files || []).length > 0;
+    const testFilesPresent = (report.test_files || []).length > 0;
+    const correlation = report.correlation_signals || {};
+    const correlated = correlation.test_execution_pipeline || correlation.test_validation_signals;
+
+    report.audit_confidence.evidence_profile = {
+      ci_cd_present: ciCdPresent,
+      test_files_present: testFilesPresent,
+      correlated_signals: correlated
+    };
+
+    let explanation = "Limited supporting signals detected. Confidence remains based on pattern detection only within analyzed scope.";
+    if (ciCdPresent && testFilesPresent && correlated) {
+      explanation = "Multiple repository-scoped signals detected (CI/CD + test evidence + correlation), increasing confidence within analyzed scope.";
+    } else if (testFilesPresent) {
+      explanation = "Test evidence detected without CI/CD correlation. Moderate confidence within analyzed scope.";
+    }
+    report.audit_confidence.confidence_explanation = explanation;
+  }
 
   // 4.1 Final Sanitization Pass (Neutral Audit Language)
   const sanitizeObject = (obj) => {

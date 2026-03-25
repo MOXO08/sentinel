@@ -696,6 +696,141 @@ function extractContext(lines, lineNum) {
   return lines.slice(start, end).join('\n');
 }
 
+/**
+ * Phase 14.3: CI/CD & Test Evidence Discovery Extensions
+ */
+
+function discoverCiCdSignals(repoFiles) {
+  const ciCdFiles = [];
+  const patterns = [
+    { regex: /\.github\/workflows\/.*\.ya?ml$/i, type: 'github_actions' },
+    { regex: /\.gitlab-ci\.yml$/i, type: 'gitlab_ci' },
+    { regex: /azure-pipelines\.yml$/i, type: 'azure_pipelines' },
+    { regex: /circle\.yml$/i, type: 'circle_ci' },
+    { regex: /\.circleci\/config\.yml$/i, type: 'circle_ci' }
+  ];
+
+  for (const file of repoFiles) {
+    const normalizedPath = normalizePath(file.path);
+    for (const pattern of patterns) {
+      if (pattern.regex.test(normalizedPath)) {
+        const steps = _extractCiCdSteps(file.fullPath);
+        ciCdFiles.push({
+          path: normalizedPath,
+          type: pattern.type,
+          steps
+        });
+        break;
+      }
+    }
+  }
+  return ciCdFiles;
+}
+
+function _extractCiCdSteps(fullPath) {
+  const steps = [];
+  try {
+    const content = fs.readFileSync(fullPath, 'utf8');
+    const lines = content.split('\n');
+    let currentStep = null;
+
+    for (let line of lines) {
+      const nameMatch = line.match(/^\s*-?\s*name:\s*(.*?)\s*$/i);
+      const runMatch = line.match(/^\s*-?\s*run:\s*(.*?)\s*$/i) || line.match(/^\s*-?\s*script:\s*(.*?)\s*$/i);
+
+      if (nameMatch) {
+        currentStep = { 
+          name: nameMatch[1].trim().replace(/^['"]|['"]$/g, ''), 
+          run: "" 
+        };
+        steps.push(currentStep);
+      }
+
+      if (runMatch) {
+        const runVal = runMatch[1].trim().replace(/^['"]|['"]$/g, '');
+        if (currentStep) {
+          currentStep.run = runVal;
+        } else {
+          currentStep = { name: "unnamed", run: runVal };
+          steps.push(currentStep);
+        }
+      }
+    }
+
+    // Phase 3: Classification pass (Deterministic)
+    steps.forEach(s => {
+      s.type = _classifyStep(s.name, s.run);
+    });
+  } catch (e) {}
+  return steps;
+}
+
+function _classifyStep(name = '', run = '') {
+  const content = (name + ' ' + run).toLowerCase();
+  if (content.includes('test') || content.includes('jest') || content.includes('pytest') || content.includes('npm test')) return 'test';
+  if (content.includes('build')) return 'build';
+  if (content.includes('lint')) return 'lint';
+  if (content.includes('security') || content.includes('scan')) return 'security';
+  if (content.includes('deploy')) return 'deploy';
+  return 'unknown';
+}
+
+function discoverTestFiles(repoFiles) {
+  const testFiles = [];
+  const testPatterns = [
+    /(^|[\\/])tests?([\\/])/i,
+    /(^|[\\/])__tests__([\\/])/i,
+    /\.test\./i,
+    /\.spec\./i
+  ];
+
+  for (const file of repoFiles) {
+    const normalizedPath = normalizePath(file.path);
+    if (testPatterns.some(pattern => pattern.test(normalizedPath))) {
+      testFiles.push({
+        path: normalizedPath,
+        signals: _extractTestSignals(file.fullPath)
+      });
+    }
+  }
+  return testFiles;
+}
+
+function _extractTestSignals(fullPath) {
+  const DEFAULT_SIGNALS = { has_assertions: false, has_test_blocks: false, mentions_logging: false };
+  try {
+    const content = fs.readFileSync(fullPath, 'utf8');
+    return {
+      has_assertions: /expect\(|assert|should/i.test(content),
+      has_test_blocks: /describe\(|it\(/i.test(content),
+      mentions_logging: /log|trace|logger/i.test(content)
+    };
+  } catch (e) {
+    return DEFAULT_SIGNALS;
+  }
+}
+
+function correlateSignals(ciCdFiles, testFiles) {
+  const correlation = {
+    test_execution_pipeline: false,
+    test_validation_signals: false
+  };
+
+  // Case 1: CI/CD step.type == "test" AND test_files.length > 0
+  const hasTestStep = ciCdFiles.some(f => f.steps.some(s => s.type === 'test'));
+  if (hasTestStep && testFiles.length > 0) {
+    correlation.test_execution_pipeline = true;
+  }
+
+  // Case 2: test_files exist AND any test_file.signals.has_assertions == true
+  const hasAssertions = testFiles.some(f => f.signals.has_assertions === true);
+  if (testFiles.length > 0 && hasAssertions) {
+    correlation.test_validation_signals = true;
+  }
+
+  return correlation;
+}
+
 module.exports = {
   crawlRepository,
   classifyFile,
@@ -703,5 +838,8 @@ module.exports = {
   verifyAlignment,
   generateManifestFromSignals,
   detectHeuristicIntent,
-  buildDependencyGraph
+  buildDependencyGraph,
+  discoverCiCdSignals,
+  discoverTestFiles,
+  correlateSignals
 };

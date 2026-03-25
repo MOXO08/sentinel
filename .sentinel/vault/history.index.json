@@ -1,6 +1,6 @@
 {
   "project_name": "sentinel-cli",
-  "last_audit_id": "168c94ab1c935842",
+  "last_audit_id": "830470beeaa26410",
   "history": [
     {
       "audit_id": "5d615f897c5713e8",
@@ -28,6 +28,87 @@
       "technical_status": "ROBUST",
       "governance_status": "ALIGNED",
       "file_path": "audit_168c94ab1c935842.json"
+    },
+    {
+      "audit_id": "7ce3a4431582b06f",
+      "timestamp": "2026-03-25T06:17:40.938Z",
+      "commit": "135cff9",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_7ce3a4431582b06f.json"
+    },
+    {
+      "audit_id": "b95228ab5be5ac27",
+      "timestamp": "2026-03-25T06:19:27.878Z",
+      "commit": "135cff9",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_b95228ab5be5ac27.json"
+    },
+    {
+      "audit_id": "a52f7dc1744483fb",
+      "timestamp": "2026-03-25T06:21:14.001Z",
+      "commit": "135cff9",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_a52f7dc1744483fb.json"
+    },
+    {
+      "audit_id": "51e364ec4579aadb",
+      "timestamp": "2026-03-25T06:27:04.224Z",
+      "commit": "135cff9",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_51e364ec4579aadb.json"
+    },
+    {
+      "audit_id": "0338d61267d3022f",
+      "timestamp": "2026-03-25T06:28:35.952Z",
+      "commit": "135cff9",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_0338d61267d3022f.json"
+    },
+    {
+      "audit_id": "f6067d0a36f53108",
+      "timestamp": "2026-03-25T06:30:01.973Z",
+      "commit": "135cff9",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_f6067d0a36f53108.json"
+    },
+    {
+      "audit_id": "44d1009207d572f1",
+      "timestamp": "2026-03-25T06:46:40.567Z",
+      "commit": "135cff9",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_44d1009207d572f1.json"
+    },
+    {
+      "audit_id": "83b197d72cd819ce",
+      "timestamp": "2026-03-25T06:47:26.557Z",
+      "commit": "135cff9",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_83b197d72cd819ce.json"
+    },
+    {
+      "audit_id": "830470beeaa26410",
+      "timestamp": "2026-03-25T06:51:30.093Z",
+      "commit": "135cff9",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_830470beeaa26410.json"
     }
   ]
 }
