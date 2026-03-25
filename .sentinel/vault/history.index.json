@@ -1,6 +1,6 @@
 {
   "project_name": "sentinel-cli",
-  "last_audit_id": "830470beeaa26410",
+  "last_audit_id": "410a73bbf560f489",
   "history": [
     {
       "audit_id": "5d615f897c5713e8",
@@ -109,6 +109,24 @@
       "technical_status": "ROBUST",
       "governance_status": "ALIGNED",
       "file_path": "audit_830470beeaa26410.json"
+    },
+    {
+      "audit_id": "c27661e265880f60",
+      "timestamp": "2026-03-25T08:41:58.250Z",
+      "commit": "1029753",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_c27661e265880f60.json"
+    },
+    {
+      "audit_id": "410a73bbf560f489",
+      "timestamp": "2026-03-25T08:41:58.624Z",
+      "commit": "1029753",
+      "verdict": "TECHNICAL MARKERS PRESENT",
+      "technical_status": "ROBUST",
+      "governance_status": "ALIGNED",
+      "file_path": "audit_410a73bbf560f489.json"
     }
   ]
 }
