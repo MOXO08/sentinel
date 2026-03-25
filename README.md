@@ -1,168 +1,88 @@
 # Sentinel Scan
 
-![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Sentinel%20Verified-blue)
+![EU AI Act](https://img.shields.io/badge/EU%20AI%20Act-Technical%20Evidence-blue)
 
-Deterministic AI compliance scanner for the EU AI Act.
-
-Run local audits on AI systems, manifests, and documentation.  
-Works offline. No external API calls. No telemetry by default.
+Sentinel is a static analysis CLI tool that extracts and verifies technical evidence for EU AI Act compliance. It scans local repository file-sets to identify code signatures, configuration patterns, and documentation markers for regulatory alignment.
 
 ---
 
-## 📕 Official User Manual
-For a comprehensive guide covering both **Executive Reports (Sovereign)** and **Technical CLI Usage**, please refer to our unified manual:
+## 📘 Overview
 
-👉 [**USER_MANUAL.md**](USER_MANUAL.md)
+Sentinel evaluates the alignment of a repository implementation with defined regulatory requirements through pattern-based detection. It correlates technical signals with documentation declarations to provide a verifiable technical evidence base.
 
----
+## 🚀 Core Capabilities
 
-## Install
+- **Signal Extraction**: Recursive scanning for technical implementation markers (libraries, API calls, structural patterns).
+- **Integrity Guard (SIG)**: Zero-trust verification that strips comments and strings to ensure compliance signals exist in executable logic.
+- **Correlation Logic**: Multi-signal verification that cross-references documentation claims with technical reality.
+- **Audit Evolution**: Tracking of compliance progression or regression between repository states.
+
+## 🛠️ Installation
 
 ```bash
 npm install -g @radu_api/sentinel-scan
 ```
 
-Or run instantly:
+## 📋 Quick Start
 
 ```bash
-npx @radu_api/sentinel-scan@latest check --manifest sentinel.manifest.json
+# 1. Initialize repository manifest
+sentinel-scan init
+
+# 2. Extract technical signals
+sentinel-scan discover
+
+# 3. Generate baseline technical documentation
+sentinel-scan fix --apply
+
+# 4. Perform technical audit
+sentinel-scan check --threshold 80
 ```
 
-> Sentinel enforces a **zero-ambiguity CLI contract**.  
-> Positional arguments are NOT supported.
+## 📥 Input Requirements
+- **Repository Scope**: Local filesystem directory with source code and CI/CD configs.
+- **Manifest**: `sentinel.manifest.json` declaring system identity and article coverage.
+- **Source Code**: Python and JavaScript/TypeScript files.
+
+## 📤 Output Artifacts
+- **Terminal Summary**: Audit verdict, score, and prioritized findings.
+- **Audit Ledger (JSON)**: Machine-readable report with forensic hashes and signal IDs.
+- **Audit Signature**: RSA-PSS (SHA-256) cryptographic digest ensuring report integrity.
+- **Annex IV Dossier (if generated)**: Structured technical documentation for regulatory submission.
+
+## ⚖️ Audit Verdict Model
+Sentinel calculates a final verdict based on a dual-track evaluation of technical maturity and documentation completeness:
+- **APPROVED**: Robust technical implementation and complete documentation.
+- **HOLD**: Technical implementation is robust but documentation requires completion.
+- **REJECTED**: Critical technical or documentation gaps detected in the repository implementation.
 
 ---
 
-## 🚀 Quick Start (Recommended Flow)
+## 🛡️ Regulatory Mapping (Technical Levels)
 
-```bash
-# 1. Initialize manifest
-npx @radu_api/sentinel-scan@latest init
-
-# 2. (Optional) Discover signals in your project
-npx @radu_api/sentinel-scan@latest discover
-
-# 3. Scaffold missing compliance structure
-npx @radu_api/sentinel-scan@latest fix --apply
-
-# 4. Run compliance check
-npx @radu_api/sentinel-scan@latest check --threshold 90 --manifest sentinel.manifest.json
-```
+| Article | Requirement | Target Signal |
+| :--- | :--- | :--- |
+| **Art. 9** | Risk Management | Risk assessment artifacts and bias mitigation libraries (e.g., Fairlearn). |
+| **Art. 13** | Transparency | User disclosures, AI indicators, and transparency cards. |
+| **Art. 14** | Human Oversight | Hard-coded kill-switches and manual override logic. |
+| **Art. 20** | Traceability | Industrial logging frameworks and trace-ID propagation patterns. |
 
 ---
 
-## CLI Usage
+## ⚠️ Limitations & Boundary Conditions
+- **Static Analysis Only**: Sentinel does not observe repository implementations during execution.
+- **No External Verification**: Cloud infrastructure and external APIs are outside the scan scope.
+- **Supporting Evidence**: Sentinel establishes a technical floor of evidence; it does not issue legal opinions, certifications, or regulatory approvals.
 
-### Default behavior
-
-Runs a scan on `sentinel.manifest.json` in the current directory:
-
-```bash
-npx @radu_api/sentinel-scan@latest
-```
-
-### Explicit behavior (recommended)
-
-```bash
-npx @radu_api/sentinel-scan@latest check --threshold 90 --manifest sentinel.manifest.json
-```
+## 💡 Valid Use Case
+Engineering and compliance teams use Sentinel to verify that technical controls are physically implemented in the codebase. It is executed in CI/CD pipelines for technical verification to ensure repository implementations maintain a verifiable evidence base for Annex IV documentation.
 
 ---
 
-## Manifest Example
-
-```json
-{
-  "app_name": "hr-cv-screening-ai",
-  "risk_category": "high",
-  "declared_flags": [
-    "transparency_disclosure_provided",
-    "user_notification_ai_interaction"
-  ],
-  "human_oversight": {
-    "description": "Human reviewer monitors decisions and can override outputs."
-  },
-  "oversight_evidence_path": "docs/compliance/human_oversight.md",
-  "logging_capabilities": {
-    "enabled": true,
-    "events_logged": ["input", "output", "decision"]
-  },
-  "logging_evidence_path": "docs/compliance/data_governance.md"
-}
-```
+## Documentation
+- [User Manual](USER_MANUAL.md)
+- [Known Limitations](KNOWN_LIMITATIONS.md)
+- [NPM Registry](https://www.npmjs.com/package/@radu_api/sentinel-scan)
 
 ---
-
-## Required Supporting Documents
-
-For high-risk systems:
-
-- `docs/compliance/risk_assessment.md` (Art. 9)
-- `docs/compliance/human_oversight.md` (Art. 14)
-- `docs/compliance/data_governance.md` (Art. 20)
-
----
-
-## Example Output
-
-```text
-Sentinel Check: PASS
-Score: 100/100
-Risk Category: high
-
-Verified Articles:
-Art. 9, Art. 13, Art. 14, Art. 20
-```
-
-> Verified Articles indicate substantiated requirements.  
-> They do NOT imply full legal compliance.
-
----
-
-## Risk Model
-
-- **Minimal** → Basic transparency (Art. 13)
-- **Limited** → Transparency + evidence required
-- **High-Risk** → Full coverage (Art. 9, 13, 14, 20)
-- **Unacceptable** → Immediate HARD FAIL
-
----
-
-## Policy System
-
-Sentinel uses deterministic policy resolution:
-
-1. Local: `sentinel.policy.json`
-2. Fallback: internal default policy
-
-Used ONLY when no local policy exists to ensure consistent CI behavior.
-
----
-
-## CI Integration
-
-```yaml
-- name: Sentinel Compliance Scan
-  run: npx @radu_api/sentinel-scan@latest check --manifest sentinel.manifest.json
-```
-
-Returns:
-
-- `0` → pass  
-- non-zero → failure  
-
----
-
-## Philosophy
-
-- Deterministic  
-- Explainable  
-- Offline-first  
-- Standard-aligned (EU AI Act 2024/1689)
-
----
-
-## Links
-
-- Verified Registry: https://moxo08.github.io/sentinel-verified/
-- Repository: https://github.com/MOXO08/sentinel
+*Last Updated: 2026-03-25. Aligned with Sentinel v2.1-SEC core logic.*

@@ -1,7 +1,7 @@
 {
   "name": "@radu_api/sentinel-scan",
-  "version": "1.2.17",
-  "description": "Deterministic AI compliance infrastructure for the EU AI Act. Offline WebAssembly CLI that audits AI systems, manifests, and technical documentation for regulatory alignment.",
+  "version": "1.3.0",
+  "description": "Static analysis CLI tool that extracts and verifies technical evidence for EU AI Act compliance. It scans local repository file-sets to identify code signatures, configuration patterns, and documentation markers for regulatory alignment.",
   "main": "bin/sentinel-scan.js",
   "bin": {
     "sentinel-scan": "bin/sentinel-scan.js",
@@ -53,10 +53,9 @@
   "files": [
     "bin/",
     "pkg-node/",
-    "examples/",
     "README.md",
     "LICENSE",
-    "terminal-demo.png"
+    "docs/"
   ],
   "dependencies": {
     "cli-progress": "^3.12.0"

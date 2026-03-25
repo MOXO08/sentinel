@@ -1,6 +1,0 @@
-{
-  "app_name": "AIActComplianceAPI",
-  "version": "0.0.9",
-  "risk_category": "Minimal",
-  "declared_flags": ["user_notification_ai_interaction", "transparency_disclosure_provided"]
-}

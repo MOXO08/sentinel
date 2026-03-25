@@ -1,101 +1,79 @@
-# Official User Manual: Sentinel & Sovereign Framework 🛡️
+# Sentinel User Manual 🛡️
 
-This guide is designed to take you from **Zero to 100% Compliance** in the shortest time possible. Follow the steps below based on your role.
-
----
-
-## 🏗️ 1. Preparation (One-Time)
-Before running Sentinel, ensure you have the execution "engine" installed:
-1.  **Download Node.js**: Visit [nodejs.org](https://nodejs.org/) and install the **LTS** version (recommended).
-2.  **Verify**: Open a terminal (Command Prompt or PowerShell) and type `node -v`. If you see a version number (e.g., `v20.x.x`), you are ready!
+This guide provides the functional steps for identifying technical compliance markers and generating verifiable evidence for Annex IV documentation.
 
 ---
 
-## 🤝 2. Guide for Clients & Managers (No-Code)
-If your task is to verify the score and generate reports for management, follow these steps:
+## 🏗️ 1. Preparation
 
-### Step A: Consulting the Global Dashboard
-1.  Navigate to the project folder through Windows Explorer.
-2.  Open the folder: `[Project-Folder]\sovereign-reports\`
-3.  Double-click on: `sovereign-portfolio-report.html`
-    - **What do you see?** An overview of all projects, with color-coded scores (Green = Good, Red = Danger).
-
-### Step B: Generating the PDF Boardroom Report
-1.  While you have the HTML report open in your browser (Chrome/Edge):
-2.  Press the keys: `Ctrl + P` (Print).
-3.  Under "Destination," choose: **Save as PDF**.
-4.  This document is now ready to be sent via email to investors or legal counsel.
+Before running Sentinel, ensure your environment meets the following requirements:
+1.  **Node.js**: Install Node.js (LTS version recommended).
+2.  **Verification**: Confirm installation by running `node -v` in your terminal.
 
 ---
 
-## 💻 3. Guide for Developers (First Audit)
-Run these commands in the terminal, in the root folder of your project:
+## 💻 2. Basic Technical Audit Flow
+
+The standard execution sequence for a repository implementation:
 
 ### Step 1: Initialization (`init`)
 ```bash
-npx @radu_api/sentinel-scan init
+sentinel-scan init
 ```
-- **Goal**: Creates the AI "ID card" (`sentinel.manifest.json`).
-- **Tip**: If the file already exists, the program will refuse to overwrite it for data protection.
+- **Action**: Creates the `sentinel.manifest.json` configuration file.
+- **Note**: This file declares the target AI implementation details and technical coverage areas.
 
 ### Step 2: Autodiscovery (`discover`)
 ```bash
-npx @radu_api/sentinel-scan discover
+sentinel-scan discover
 ```
-- **Goal**: Automatically scans the project to find hidden or forgotten AI models.
+- **Action**: Extracts technical signals from source code and CI/CD configurations.
+- **Note**: It identifies library imports and functional hooks that correspond to EU AI Act technical requirements.
 
-### Step 3: Global Portfolio Audit (`portfolio`)
+### Step 3: Technical Scan (`check`)
 ```bash
-npx @radu_api/sentinel-scan portfolio --threshold 90
+sentinel-scan check --threshold 80
 ```
-- **Goal**: Automatically discovers all compliance manifests in the current directory and subdirectories.
-- **Result**: Performs a fleet-wide audit and generates a consolidated **Sovereign Portfolio Dashboard** in HTML/MD.
-- **Resilience**: Individually failing repositories are skipped without stopping the global process.
+- **Action**: Performs a structured audit against the manifest and discovered signals.
+- **Output**: Returns a score and technical findings based on documentation completeness and technical maturity.
 
-### Step 4: The Actual Audit (`check`)
-
-### Step 4: Automatic Correction (`fix`)
+### Step 4: Documentation Patching (`fix`)
 ```bash
-npx @radu_api/sentinel-scan fix --apply
+sentinel-scan fix --apply
 ```
-- **Goal**: Automatically generates the technical documentation structure required to pass the audit.
+- **Action**: Generates placeholder technical documentation structures aligned with detected signals.
 
 ---
 
-## 🛠️ 4. Troubleshooting - Common Issues
+## 💡 3. Technical Integrity & SIG
 
-| Issue | Possible Cause | Solution |
-| :--- | :--- | :--- |
-| `npx: command not found` | Node.js is not installed or not in PATH. | Reinstall Node.js and ensure "Add to PATH" is checked. |
-| `Sentinel Check: FAIL` | The score is below the set `--threshold`. | Run `npx sentinel-scan fix --apply` to correct errors. |
-| `Permissions Error (PS)` | The `.ps1` script is blocked by Windows. | Run in terminal: `Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass`. |
-| `Manifest already exists` | Trying to run `init` over an existing file. | Manually delete `sentinel.manifest.json` if you want to start over. |
+Sentinel implements the **Sentinel Integrity Guard (SIG)** to ensure all technical claims are substantiated by executable code:
 
----
-
-## 🔄 5. Portfolio Automation
-If you have multiple projects and want to audit them all in one action:
-1.  Open PowerShell in the main folder.
-2.  Run: `./_antigravity-audit.ps1`
-3.  **Result**: The system will "fly" through all folders, perform the audit, and automatically populate the `sovereign-reports/` folder.
-
----
-
-## 💡 6. Technical Integrity & Hardening
-Sentinel uses **Sovereign Hardening Probes** to ensure that compliance claims are backed by physical code, not just words:
-- **Artificial Intelligence Disclosure (Art. 13)**: Requires detectable UI labels or strings (e.g., `powered-by-ai`) in the public application path.
-- **Human Oversight (Art. 14)**: Requires detectable control hooks (e.g., `manualOverride`, `killSwitch`).
-- **Data Governance (Art. 20)**: Requires detectable industrial logging (e.g., `winston`, `pino`).
+- **Article 13 (Transparency)**: Requires detectable transparency indicators in the repository scope.
+- **Article 14 (Human Oversight)**: Requires detectable control hooks (e.g., `manualOverride`, `killSwitch`).
+- **Article 20 (Traceability)**: Requires detectable industrial logging frameworks.
 
 > [!IMPORTANT]
-> **Documentation is NOT proof.** Sentinel explicitly ignores files in `docs/compliance/` when searching for technical probes. This prevents "self-validation" and ensures that if a feature is claimed, it truly exists in your implementation.
+> **Static Integrity Rule**: Sentinel strips commentary and non-executable strings before performing signal matching to prevent "document-only" compliance claims for features that do not exist in code.
 
 ---
 
-## 🔄 7. Meaning of Verdicts
-- **COMPLIANT (Green)**: ✅ Passed. The system meets legal requirements.
-- **PARTIAL (Yellow)**: ⚠️ Documentation is incomplete or the score is borderline.
-- **NON_COMPLIANT (Red)**: ❌ Legal danger. The AI does not meet minimum standards.
+## 🔄 4. Understanding Verdicts
+
+The dual-track model produces one of three verdicts for any repository implementation:
+
+- **APPROVED**: Technical controls are physically detected and documentation is complete.
+- **HOLD**: Technical controls are detected but mandatory documentation markers are missing.
+- **REJECTED**: Critical technical gaps or significant documentation deficiencies detected.
 
 ---
-*This manual is your property and is updated along with the Sovereign system.*
+
+## ⚠️ 5. Ethical & Legal Disclaimer
+
+**Sentinel is a Technical Evidence Engine, not a Legal Certification.**
+- It establishes a technical baseline of evidence within the repository scope.
+- It does not observe runtime behavior or Verify external system outputs.
+- A "V-Score" of 100/100 does not constitute legal approval under the EU AI Act.
+
+---
+*Last Updated: 2026-03-25. Reference: CURRENT_STATE.md.*

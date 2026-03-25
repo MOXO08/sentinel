@@ -1,1 +1,0 @@
-function killSwitch() { console.log(\ Emergency stop triggered\); }
