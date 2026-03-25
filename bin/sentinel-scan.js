@@ -85,6 +85,9 @@ function printHelp() {
   console.log(`  --json                 Output raw JSON for CI/CD pipelines`);
   console.log(`  --sarif                Output results in SARIF v2.1.0 format`);
   console.log(`  --evidence             Generate a full compliance evidence pack (sentinel-evidence/)`);
+  console.log(`  --production-hash <h>  Link audit to a production artifact (SHA-256)`);
+  console.log(`  --build-id <id>        Link audit to a declared production build ID`);
+  console.log(`  --strict               Enforce 1:1 alignment between manifest and discovered signals`);
   console.log(`  --autodiscover         Enable the Autodiscovery engine to verify manifest against code`);
   console.log(`  --generate-tech-file   Generate an Annex IV Technical Documentation dossier (Markdown)`);
   console.log(`  --endpoint <url>       Custom Edge API endpoint`);
@@ -1981,6 +1984,65 @@ async function performAudit(manifestPath, threshold, options = {}) {
   const dependencyGraph = autodiscovery.buildDependencyGraph(repoFiles);
   let signals = autodiscovery.extractSignals(repoFiles, discoveryRules, effectiveProbingRules, dependencyGraph, commitId);
 
+  // 1.05 Production Trace Context (Step 4 Hardening)
+  const buildId = options.buildId || null;
+  const traceStatus = buildId ? 'USER_DECLARED' : 'UNBOUND';
+
+  process.stdout.write(`\n${C.cyan}${C.bold}Production Trace Context:${C.reset}\n`);
+  process.stdout.write(`* build_id: ${buildId || 'NOT PROVIDED'}\n`);
+  process.stdout.write(`* trace_status: ${traceStatus}\n`);
+
+  if (!buildId) {
+    process.stdout.write(`\n${C.yellow}${C.bold}EVIDENCE SCOPE LIMITATION:${C.reset}\n`);
+    process.stdout.write(`No production build reference (--build-id) was provided.\n`);
+    process.stdout.write(`This audit verifies repository-level technical signals only.\n`);
+    process.stdout.write(`It does NOT establish traceability to a deployed production system.\n`);
+  }
+
+  // 1.06 Strict Mode Enforcement (Hardened with Evidence Trace)
+  if (options.strict) {
+    const normalize = v => String(v).toLowerCase().trim();
+    const declaredFlags = Object.keys(manifest.declared_flags || {})
+      .filter(k => manifest.declared_flags[k] === true)
+      .map(normalize);
+    
+    const detectedSignals = signals.map(s => ({
+      type: normalize(s.type || s.id),
+      file: s.source_path || "unknown",
+      line: s.line || "unknown",
+      match: s.snippet || "unknown"
+    })).filter(s => s.type);
+
+    const undeclared = detectedSignals.filter(s => !declaredFlags.includes(s.type));
+    const missing = declaredFlags.filter(f => !detectedSignals.some(s => s.type === f));
+
+    if (undeclared.length > 0 || missing.length > 0) {
+      process.stdout.write(`\n${C.red}${C.bold}❌ STRICT MODE VIOLATION${C.reset}\n`);
+      process.stdout.write(`${C.white}Strict mode enforces exact alignment between declared capabilities and detected technical signals without interpretation.${C.reset}\n`);
+      
+      if (undeclared.length > 0) {
+        process.stdout.write(`\n${C.yellow}Undeclared signals detected:${C.reset}\n`);
+        undeclared.forEach(s => {
+          process.stdout.write(`- ${C.white}${s.type}${C.reset}\n`);
+          process.stdout.write(`  ${C.gray}file:  ${s.file}${C.reset}\n`);
+          process.stdout.write(`  ${C.gray}line:  ${s.line}${C.reset}\n`);
+          if (s.match && s.match !== "unknown") {
+            process.stdout.write(`  ${C.gray}match: ${C.cyan}${s.match}${C.reset}\n`);
+          }
+        });
+      }
+      
+      if (missing.length > 0) {
+        process.stdout.write(`\n${C.yellow}Declared but not detected:${C.reset}\n`);
+        [...new Set(missing)].forEach(f => process.stdout.write(`- ${f}\n`));
+      }
+      
+      process.stdout.write(`\n${C.gray}Exit immediately.${C.reset}\n\n`);
+      process.exit(1);
+    }
+    process.stdout.write(`${C.green}${C.bold}✅ STRICT MODE PASSED${C.reset}\n`);
+  }
+
   // 1.1 Governance Context
   const riskCat = (manifest.risk_category || "").toLowerCase();
   const isMinimal = riskCat === 'minimal';
@@ -2206,6 +2268,11 @@ async function performAudit(manifestPath, threshold, options = {}) {
     phi: trust.phi,
     exposure: trust.exposure,
     threshold,
+    production_hash: options.productionHash || null,
+    production_trace_context: {
+      build_id: buildId || 'NOT PROVIDED',
+      trace_status: buildId ? 'USER_DECLARED' : 'UNBOUND'
+    },
     verdict: dualTrack.centralVerdict,
     system_assessment: systemAssessment,
     reasoning_summary: reasoningSummary,
@@ -2685,7 +2752,7 @@ async function runPortfolio(args) {
     console.log(`\n${C.green}${C.bold}✔ Portfolio audit cycle finished.${C.reset}\n`);
 }
 
-async function runCheck(args) {
+async function runCheck(args, productionHash = null, isStrict = false, buildId = null) {
   const isJson = args.includes('--json');
   
   // CI/CD Flags
@@ -2718,7 +2785,7 @@ async function runCheck(args) {
   // 3. Perform Audit via SSoT Engine
   let report;
   try {
-    report = await performAudit(manifestPath, threshold, { engine });
+    report = await performAudit(manifestPath, threshold, { engine, productionHash, strict: isStrict, buildId });
   } catch (err) {
     console.error(`${C.red}${C.bold}Audit Critical Failure: ${err.message}${C.reset}`);
     process.exit(1);
@@ -2829,9 +2896,9 @@ async function runCheck(args) {
     if (isGenerateTechFile) {
       const ReportGenerator = require('./lib/report-generator');
       const techFileContent = ReportGenerator.generateAnnexIVMarkdown(report);
-      fs.writeFileSync('sentinel-annex-iv.md', techFileContent);
+      fs.writeFileSync('ANNEX_IV_EVIDENCE_PACK.md', techFileContent);
       if (!isJson) {
-        console.log(`${C.green}✔ Professional Annex IV Technical Dossier generated: sentinel-annex-iv.md${C.reset}`);
+        console.log(`${C.green}✔ Professional Annex IV Technical Dossier generated: ANNEX_IV_EVIDENCE_PACK.md${C.reset}`);
       }
     }
   } catch (err) {
@@ -3143,6 +3210,26 @@ async function main() {
   const args = process.argv.slice(2);
   const command = (args[0] || '').toLowerCase();
 
+  // Global Production Hash & Strict Mode Extraction
+  let productionHash = null;
+  const hashIdx = args.indexOf('--production-hash');
+  if (hashIdx !== -1 && args[hashIdx + 1]) {
+    productionHash = args[hashIdx + 1];
+    if (!/^[a-fA-F0-9]{64}$/.test(productionHash)) {
+      console.error(`\n${C.red}${C.bold}❌ Error: Invalid production hash format.${C.reset}`);
+      console.error(`${C.red}Must be a valid SHA-256 (64 hex characters).${C.reset}\n`);
+      process.exit(1);
+    }
+  }
+
+  const isStrict = args.includes('--strict');
+
+  let buildId = null;
+  const buildIdx = args.indexOf('--build-id');
+  if (buildIdx !== -1 && args[buildIdx + 1]) {
+    buildId = args[buildIdx + 1];
+  }
+
   // 1. Global Flags (Priority)
   if (args.includes('--version') || args.includes('-v')) {
     printBanner();
@@ -3156,14 +3243,14 @@ async function main() {
   }
 
   // 2. Subcommand Routing (MUST EXIT AFTER)
-  console.error('[DEBUG] checking fix');
+
   if (command === 'fix') {
     await runFix(args.slice(1));
     process.exit(0);
   }
 
   if (command === 'check') {
-    await runCheck(args.slice(1));
+    await runCheck(args.slice(1), productionHash, isStrict, buildId);
     process.exit(0);
   }
 
