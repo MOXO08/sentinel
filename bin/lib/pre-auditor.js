@@ -24,7 +24,6 @@ class PreAuditor {
   static async upgrade(cliResults, rootDir = process.cwd(), options = {}) {
     const probingRulesPath = path.join(__dirname, 'probing-rules.json');
     
-    // 1. integrity Guard (SIG Integration)
     const sigReport = await runSig(cliResults, probingRulesPath, rootDir);
 
     const finalReport = {
@@ -34,6 +33,16 @@ class PreAuditor {
       integrity_issues: sigReport.integrity_issues,
       _sig_internal: sigReport._internal
     };
+
+    // --- FIX 2: SIGNAL DENSITY INDEX ---
+    if (finalReport.coverage) {
+      const totalSignals = (finalReport._internal && finalReport._internal.total_signals) || (finalReport.coverage.signals_detected) || 0;
+      const totalFiles = (finalReport.audit_scope && finalReport.audit_scope.within_scope && finalReport.audit_scope.within_scope.files_analyzed) || 
+                         (finalReport._internal && finalReport._internal.files) || 1;
+      
+      finalReport.coverage.signal_density_index = parseFloat((totalSignals / totalFiles).toFixed(2));
+      delete finalReport.coverage.coverage_ratio;
+    }
 
     // 2. Generate Audit Signature (P2)
     const auditSignature = CryptoUtils.generateAuditSignature(finalReport);

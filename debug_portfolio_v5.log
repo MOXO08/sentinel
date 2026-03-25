@@ -1,0 +1,203 @@
+
+[36m[1m≡ƒÜÇ Sentinel Portfolio Audit Starting...[0m
+[90mFound 42 audit units.[0m
+
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97minit-test[90m]... [0m
+[DEBUG] Repo: init-test | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for init-test due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97minit-test-2[90m]... [0m
+[DEBUG] Repo: init-test-2 | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for init-test-2 due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97mroot[90m]... [0m
+[DEBUG] Repo: sentinel-cli | Content: 44 | Code: 52 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-cli due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97mrustwasm-worker-template[90m]... [0m
+[DEBUG] Repo: rustwasm-worker-template | Content: 8 | Code: 7 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for rustwasm-worker-template due to Low Reliability
+[31mFAIL[0m (0/100)
+[90mAuditing [[97msentinel-init-test[90m]... [0m
+[DEBUG] Repo: init-test | Content: 0 | Code: 0 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (0/100)
+[90mAuditing [[97msentinel-init-test-2[90m]... [0m
+[DEBUG] Repo: init-test-2 | Content: 0 | Code: 0 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (0/100)
+[90mAuditing [[97msentinel[90m]... [0m
+[DEBUG] Repo: sentinel | Content: 0 | Code: 3 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (12/100)
+[90mAuditing [[97msentinel[90m]... [0m
+[DEBUG] Repo: sentinel | Content: 0 | Code: 3 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (10/100)
+[90mAuditing [[97msentinel-test-public[90m]... [0m
+[DEBUG] Repo: test-public | Content: 0 | Code: 0 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (10/100)
+[90mAuditing [[97msentinel-ux-test[90m]... [0m
+[DEBUG] Repo: ux-test | Content: 0 | Code: 0 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (0/100)
+[90mAuditing [[97msentinel-ux-test-3[90m]... [0m
+[DEBUG] Repo: ux-test-3 | Content: 0 | Code: 0 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (10/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-agent-runtime[90m]... [0m
+[DEBUG] Repo: sentinel-agent-runtime | Content: 8 | Code: 2 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-agent-runtime due to Low Reliability
+[31mFAIL[0m (3.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-ai-demo[90m]... [0m
+[DEBUG] Repo: sentinel-ai-demo | Content: 9 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-ai-demo due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-ai-demo-sentinel-ai-demo[90m]... [0m
+[DEBUG] Repo: sentinel-ai-demo | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-ai-demo due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-bias-detector[90m]... [0m
+[DEBUG] Repo: sentinel-bias-detector | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-bias-detector due to Low Reliability
+[31mFAIL[0m (2.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-ci-template[90m]... [0m
+[DEBUG] Repo: sentinel-ci-template | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-ci-template due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-completion-api[90m]... [0m
+[DEBUG] Repo: sentinel-completion-api | Content: 8 | Code: 2 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-completion-api due to Low Reliability
+[31mFAIL[0m (3.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-config-manager[90m]... [0m
+[DEBUG] Repo: sentinel-config-manager | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-config-manager due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-data-pipeline[90m]... [0m
+[DEBUG] Repo: sentinel-data-pipeline | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-data-pipeline due to Low Reliability
+[31mFAIL[0m (2.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-demo-hr-ai[90m]... [0m
+[DEBUG] Repo: sentinel-demo-hr-ai | Content: 9 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-demo-hr-ai due to Low Reliability
+[31mFAIL[0m (1.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-embedding-service[90m]... [0m
+[DEBUG] Repo: sentinel-embedding-service | Content: 8 | Code: 1 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-embedding-service due to Low Reliability
+[31mFAIL[0m (3.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-example-ai-app[90m]... [0m
+[DEBUG] Repo: sentinel-example-ai-app | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-example-ai-app due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-forecast-engine[90m]... [0m
+[DEBUG] Repo: sentinel-forecast-engine | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-forecast-engine due to Low Reliability
+[31mFAIL[0m (2.5/100)
+[90mAuditing [[97msentinel-landing[90m]... [0m
+[DEBUG] Repo: sentinel-landing | Content: 38 | Code: 25 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-landing due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-llm-orchestrator[90m]... [0m
+[DEBUG] Repo: sentinel-llm-orchestrator | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-llm-orchestrator due to Low Reliability
+[31mFAIL[0m (3.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-ml-research[90m]... [0m
+[DEBUG] Repo: sentinel-ml-research | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-ml-research due to Low Reliability
+[31mFAIL[0m (2.5/100)
+[90mAuditing [[97msentinel-nextjs-starter[90m]... [0m
+[DEBUG] Repo: sentinel-nextjs-starter | Content: 0 | Code: 0 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (2/100)
+[90mAuditing [[97msentinel-nextjs-starter[90m]... [0m
+[DEBUG] Repo: sentinel-nextjs-starter | Content: 0 | Code: 0 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (10/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-numpy-backend[90m]... [0m
+[DEBUG] Repo: sentinel-numpy-backend | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-numpy-backend due to Low Reliability
+[31mFAIL[0m (2.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-pandas-cleaning[90m]... [0m
+[DEBUG] Repo: sentinel-pandas-cleaning | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-pandas-cleaning due to Low Reliability
+[31mFAIL[0m (2.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-proxy-layer[90m]... [0m
+[DEBUG] Repo: sentinel-proxy-layer | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-proxy-layer due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-python-api-example[90m]... [0m
+[DEBUG] Repo: sentinel-python-api-example | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-python-api-example due to Low Reliability
+[31mFAIL[0m (10/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-python-api-example[90m]... [0m
+[DEBUG] Repo: sentinel-python-api-example | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-python-api-example due to Low Reliability
+[31mFAIL[0m (8.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-pytorch-utils[90m]... [0m
+[DEBUG] Repo: sentinel-pytorch-utils | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-pytorch-utils due to Low Reliability
+[31mFAIL[0m (2.5/100)
+[90mAuditing [[97msentinel-scan-action[90m]... [0m
+[DEBUG] Repo: sentinel-scan-action | Content: 0 | Code: 1 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-utils-lib[90m]... [0m
+[DEBUG] Repo: sentinel-utils-lib | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-utils-lib due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97msentinel-verified[90m]... [0m
+[DEBUG] Repo: sentinel-verified | Content: 9 | Code: 5 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-verified due to Low Reliability
+[31mFAIL[0m (13.5/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97mroot[90m]... [0m
+[DEBUG] Repo: sentinel-cli | Content: 44 | Code: 52 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for sentinel-cli due to Low Reliability
+[31mFAIL[0m (10/100)
+[DEBUG] Failed to parse dependency file package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97mstabilization-test[90m]... [0m
+[DEBUG] Repo: stabilization-test | Content: 0 | Code: 0 | Deep Support: false | Low Reliability: false
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97mtest-public[90m]... [0m
+[DEBUG] Repo: test-public | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for test-public due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97mux-test[90m]... [0m
+[DEBUG] Repo: ux-test | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for ux-test due to Low Reliability
+[31mFAIL[0m (0/100)
+[DEBUG] Failed to parse dependency file stabilization-test/package.json: Bad control character in string literal in JSON at position 55 (line 1 column 56)
+[90mAuditing [[97mux-test-3[90m]... [0m
+[DEBUG] Repo: ux-test-3 | Content: 8 | Code: 0 | Deep Support: false | Low Reliability: true
+[DEBUG] !!! DISCARDING ALL SIGNALS for ux-test-3 due to Low Reliability
+[31mFAIL[0m (0/100)
+
+[1mPortfolio Audit Complete:[0m
+  - [32mProcessed: 42[0m
+
+[36mSynthesizing Portfolio Dashboard...[0m
+Γ£à Reports updated: 
+   - MD: D:\AI Act Compliance API\sentinel-cli\sovereign-reports\sovereign-portfolio-report.md
+   - HTML: D:\AI Act Compliance API\sentinel-cli\sovereign-reports\sovereign-portfolio-report.html
+
+[32m[1mΓ£ö Portfolio audit cycle finished.[0m
+

@@ -1,1 +1,1 @@
-function manual_override() { /* Art. 14 oversight */ }
+function manual_override() { /* Article 14 oversight */ }

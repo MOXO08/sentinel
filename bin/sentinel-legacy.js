@@ -112,7 +112,7 @@ function resolveTargetManifest(args) {
   return manifestPath;
 }
 
-function applySubstanceAudit(findings, content, filePath, article = 'Art. 9/13') {
+function applySubstanceAudit(findings, content, filePath, article = 'Article 9/13') {
   const substance = intelligence.analyzeSubstance(content);
   if (substance.score < 1.0) {
     findings.push({
@@ -207,7 +207,7 @@ function validateEvidence(manifest, manifestDir) {
     return findings;
   }
   if (!manifest.risk_category) {
-    findings.push({ article: 'Art. 9', rule_id: 'EUAI-RISK-002', description: "[Missing risk category]", deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence', fix_snippet: "Add 'risk_category' to manifest.json." });
+    findings.push({ article: 'Article 9', rule_id: 'EUAI-RISK-002', description: "[Missing risk category]", deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence', fix_snippet: "Add 'risk_category' to manifest.json." });
   }
 
   const hasTransparencyFlag = declaredFlags.includes('transparency_disclosure_provided');
@@ -220,55 +220,55 @@ function validateEvidence(manifest, manifestDir) {
   }
   
   if (isLimited && hasTransparencyFlag && !hasTransparencyFile) {
-    findings.push({ article: 'Art. 13', rule_id: 'EUAI-TRANS-002', description: "[Missing transparency evidence]", deduction: 20, severity: 'high', hard_fail: false, source: 'evidence', fix_snippet: "Add 'evidence_path' for technical documentation." });
+    findings.push({ article: 'Article 13', rule_id: 'EUAI-TRANS-002', description: "[Missing transparency evidence]", deduction: 20, severity: 'high', hard_fail: false, source: 'evidence', fix_snippet: "Add 'evidence_path' for technical documentation." });
   }
 
   if (manifest.evidence_path) {
     const evidencePath = path.resolve(manifestDir, manifest.evidence_path);
     if (!fs.existsSync(evidencePath)) {
-      findings.push({ article: 'Art. 13', rule_id: 'EUAI-EVID-001', description: `Declared evidence_path does not exist: ${manifest.evidence_path}`, deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence', fix_snippet: "Create the missing evidence file at the path specified in your manifest." });
+      findings.push({ article: 'Article 13', rule_id: 'EUAI-EVID-001', description: `Declared evidence_path does not exist: ${manifest.evidence_path}`, deduction: 25, severity: 'critical', hard_fail: true, source: 'evidence', fix_snippet: "Create the missing evidence file at the path specified in your manifest." });
     } else {
       try {
         const stat = fs.statSync(evidencePath);
         if (stat.size < 10) {
-          findings.push({ article: 'Art. 13', rule_id: 'EUAI-EVID-002', description: `Evidence file is trivially empty (${stat.size} bytes): ${manifest.evidence_path}`, deduction: 15, severity: 'high', hard_fail: true, source: 'evidence', fix_snippet: "Add meaningful compliance documentation to the empty evidence file." });
+          findings.push({ article: 'Article 13', rule_id: 'EUAI-EVID-002', description: `Evidence file is trivially empty (${stat.size} bytes): ${manifest.evidence_path}`, deduction: 15, severity: 'high', hard_fail: true, source: 'evidence', fix_snippet: "Add meaningful compliance documentation to the empty evidence file." });
         } else if (manifest.evidence_path.endsWith('.json')) {
           try {
             const content = fs.readFileSync(evidencePath, 'utf8');
             const parsed = JSON.parse(content);
             if (!parsed || (typeof parsed === 'object' && Object.keys(parsed).length === 0)) {
-              findings.push({ article: 'Art. 13', rule_id: 'EUAI-EVID-003', description: `Evidence file is valid JSON but contains no meaningful content: ${manifest.evidence_path}`, deduction: 15, severity: 'high', hard_fail: true, source: 'evidence', fix_snippet: "Populate the JSON evidence file with required compliance data fields." });
+              findings.push({ article: 'Article 13', rule_id: 'EUAI-EVID-003', description: `Evidence file is valid JSON but contains no meaningful content: ${manifest.evidence_path}`, deduction: 15, severity: 'high', hard_fail: true, source: 'evidence', fix_snippet: "Populate the JSON evidence file with required compliance data fields." });
             }
           } catch(e) {}
         } else if (manifest.evidence_path.endsWith('.md')) {
             // const content = fs.readFileSync(evidencePath, 'utf8');
-            // applySubstanceAudit(findings, content, manifest.evidence_path, 'Art. 13');
+            // applySubstanceAudit(findings, content, manifest.evidence_path, 'Article 13');
         }
       } catch (e) {}
     }
   }
 
   if (!declaredFlags.includes('transparency_disclosure_provided')) {
-    findings.push({ article: 'Art. 13', rule_id: 'EUAI-TRANS-001', description: "[Missing transparency flag]", deduction: 15, severity: 'high', hard_fail: false, source: 'evidence', fix_snippet: "Add 'transparency_disclosure_provided' to 'declared_flags' array." });
+    findings.push({ article: 'Article 13', rule_id: 'EUAI-TRANS-001', description: "[Missing transparency flag]", deduction: 15, severity: 'high', hard_fail: false, source: 'evidence', fix_snippet: "Add 'transparency_disclosure_provided' to 'declared_flags' array." });
   }
 
   for (const mod of modules) {
     if (mod.risk_level === 'High' || mod.risk_level === 'Unacceptable') {
       if (!mod.evidence) {
-        findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-001', description: `High-risk module "${mod.id || 'unnamed'}" has no evidence field`, fix_snippet: "Add 'evidence' field to the high-risk module in manifest.json.", deduction: 10, severity: 'high', hard_fail: false, source: 'evidence' });
+        findings.push({ article: 'Article 9', rule_id: 'EUAI-MOD-001', description: `High-risk module "${mod.id || 'unnamed'}" has no evidence field`, fix_snippet: "Add 'evidence' field to the high-risk module in manifest.json.", deduction: 10, severity: 'high', hard_fail: false, source: 'evidence' });
       } else {
         const modEvidencePath = path.resolve(manifestDir, mod.evidence);
         if (!fs.existsSync(modEvidencePath)) {
-          findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-002', description: `High-risk module "${mod.id || 'unnamed'}" declares evidence but file missing: ${mod.evidence}`, fix_snippet: "Create the missing module evidence file specified in the manifest.", deduction: 10, severity: 'high', hard_fail: false, source: 'evidence' });
+          findings.push({ article: 'Article 9', rule_id: 'EUAI-MOD-002', description: `High-risk module "${mod.id || 'unnamed'}" declares evidence but file missing: ${mod.evidence}`, fix_snippet: "Create the missing module evidence file specified in the manifest.", deduction: 10, severity: 'high', hard_fail: false, source: 'evidence' });
         } else {
           try {
             const stat = fs.statSync(modEvidencePath);
             if (stat.size < 20) {
-              findings.push({ article: 'Art. 9', rule_id: 'EUAI-MOD-003', description: `High-risk module "${mod.id}" evidence file is trivially empty: ${mod.evidence}`, fix_snippet: "Add meaningful content to the empty module evidence file.", deduction: 15, severity: 'high', hard_fail: true, source: 'evidence' });
+              findings.push({ article: 'Article 9', rule_id: 'EUAI-MOD-003', description: `High-risk module "${mod.id}" evidence file is trivially empty: ${mod.evidence}`, fix_snippet: "Add meaningful content to the empty module evidence file.", deduction: 15, severity: 'high', hard_fail: true, source: 'evidence' });
             } else {
               // const content = fs.readFileSync(modEvidencePath, 'utf8');
               // if (!modEvidencePath.endsWith('.json')) {
-              //   applySubstanceAudit(findings, content, mod.evidence, 'Art. 9');
+              //   applySubstanceAudit(findings, content, mod.evidence, 'Article 9');
               // }
             }
           } catch(e) {}
@@ -282,14 +282,14 @@ function validateEvidence(manifest, manifestDir) {
       const p = path.resolve(manifestDir, manifest.oversight_evidence_path);
       if (fs.existsSync(p) && fs.statSync(p).size > 10) {
         // const content = fs.readFileSync(p, 'utf8');
-        // applySubstanceAudit(findings, content, manifest.oversight_evidence_path, 'Art. 14');
+        // applySubstanceAudit(findings, content, manifest.oversight_evidence_path, 'Article 14');
       }
     }
     if (manifest.logging_evidence_path) {
       const p = path.resolve(manifestDir, manifest.logging_evidence_path);
       if (fs.existsSync(p) && fs.statSync(p).size > 10) {
         // const content = fs.readFileSync(p, 'utf8');
-        // applySubstanceAudit(findings, content, manifest.logging_evidence_path, 'Art. 20');
+        // applySubstanceAudit(findings, content, manifest.logging_evidence_path, 'Article 20');
       }
     }
   }
@@ -306,20 +306,20 @@ function determineVerifiedArticles(findings, manifest) {
   const hasOversight = (manifest.human_oversight && Object.keys(manifest.human_oversight).length > 0) || !!manifest.oversight_evidence_path;
   const hasLogging = (manifest.logging_capabilities && Object.keys(manifest.logging_capabilities).length > 0) || !!manifest.logging_evidence_path;
   const hasRiskManagement = modules.length > 0 && modules.some(m => m.evidence);
-  if (hasTransparency && !failedArticles.has('Art. 13')) verified.push('Art. 13');
-  if (hasOversight && !failedArticles.has('Art. 14')) verified.push('Art. 14');
-  if (hasLogging && !failedArticles.has('Art. 20')) verified.push('Art. 20');
-  if (hasRiskManagement && !failedArticles.has('Art. 9')) verified.push('Art. 9');
+  if (hasTransparency && !failedArticles.has('Article 13')) verified.push('Article 13');
+  if (hasOversight && !failedArticles.has('Article 14')) verified.push('Article 14');
+  if (hasLogging && !failedArticles.has('Article 20')) verified.push('Article 20');
+  if (hasRiskManagement && !failedArticles.has('Article 9')) verified.push('Article 9');
   return verified;
 }
 
 function computeTrustMetrics(findings, manifest) {
   const riskCat = (manifest.risk_category || "minimal").toLowerCase();
-  let required = ['Art. 13'];
+  let required = ['Article 13'];
   if (riskCat === 'high') {
-    required = ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'];
+    required = ['Article 9', 'Article 13', 'Article 14', 'Article 20'];
   } else if (riskCat === 'limited') {
-    required = ['Art. 13'];
+    required = ['Article 13'];
   } else if (riskCat === 'unacceptable') {
     return { claim_score: 0, evidence_score: 0, confidence: 'LOW', finalScore: 0 };
   }
@@ -336,10 +336,10 @@ function computeTrustMetrics(findings, manifest) {
 
   required.forEach(art => {
     let isClaimed = false;
-    if (art === 'Art. 13') isClaimed = !!manifest.evidence_path || declaredFlags.includes('transparency_disclosure_provided');
-    if (art === 'Art. 14') isClaimed = !!manifest.oversight_evidence_path || (manifest.human_oversight && Object.keys(manifest.human_oversight).length > 0);
-    if (art === 'Art. 20') isClaimed = !!manifest.logging_evidence_path || (manifest.logging_capabilities && Object.keys(manifest.logging_capabilities).length > 0);
-    if (art === 'Art. 9') isClaimed = modules.some(m => m.evidence);
+    if (art === 'Article 13') isClaimed = !!manifest.evidence_path || declaredFlags.includes('transparency_disclosure_provided');
+    if (art === 'Article 14') isClaimed = !!manifest.oversight_evidence_path || (manifest.human_oversight && Object.keys(manifest.human_oversight).length > 0);
+    if (art === 'Article 20') isClaimed = !!manifest.logging_evidence_path || (manifest.logging_capabilities && Object.keys(manifest.logging_capabilities).length > 0);
+    if (art === 'Article 9') isClaimed = modules.some(m => m.evidence);
 
     if (isClaimed) {
       claimedCount++;
@@ -384,9 +384,9 @@ function computeVerdict(score, findings, manifest) {
   if (hasHardFail(findings)) return 'NON_COMPLIANT';
 
   const riskCat = (manifest.risk_category || "minimal").toLowerCase();
-  let required = ['Art. 13'];
+  let required = ['Article 13'];
   if (riskCat === 'high') {
-    required = ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'];
+    required = ['Article 9', 'Article 13', 'Article 14', 'Article 20'];
   }
 
   const verified = determineVerifiedArticles(findings, manifest);
@@ -1295,7 +1295,7 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
         }
 
         console.log(`\n${C.bold}Risk Category: ${C.white}${auditMetadata.risk_category || 'minimal'}${C.reset}`);
-        console.log(`${C.bold}Required Controls: ${C.gray}${auditMetadata.required_articles?.join(', ') || 'Art. 13'}${C.reset}`);
+        console.log(`${C.bold}Required Controls: ${C.gray}${auditMetadata.required_articles?.join(', ') || 'Article 13'}${C.reset}`);
         console.log(`${C.bold}Verified Articles: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
       }
 
@@ -1373,7 +1373,7 @@ function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.jso
       }
 
       console.log(`\n${C.bold}Risk Category: ${C.white}${auditMetadata.risk_category || 'minimal'}${C.reset}`);
-      console.log(`${C.bold}Required Controls: ${C.gray}${auditMetadata.required_articles?.join(', ') || 'Art. 13'}${C.reset}`);
+      console.log(`${C.bold}Required Controls: ${C.gray}${auditMetadata.required_articles?.join(', ') || 'Article 13'}${C.reset}`);
       console.log(`${C.bold}Verified Articles: ${C.gray}${auditMetadata.mapped_articles?.join(', ') || 'None'}${C.reset}`);
 
       if (policyPath) {
@@ -1462,7 +1462,7 @@ async function runCheck(args) {
     if (f.description && f.description.toLowerCase().includes('transparent about being an ai')) {
       f.description = "[Missing user notification]";
       f.fix_snippet = "Add 'user_notification_ai_interaction' to 'declared_flags' array.";
-      if (!f.article) f.article = "Art. 13";
+      if (!f.article) f.article = "Article 13";
     }
   });
 
@@ -1796,7 +1796,7 @@ async function main() {
     }
 
     const riskCat = (singleManifest.risk_category || "minimal").toLowerCase();
-    let required = riskCat === 'high' ? ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'] : ['Art. 13'];
+    let required = riskCat === 'high' ? ['Article 9', 'Article 13', 'Article 14', 'Article 20'] : ['Article 13'];
     const trustMetrics = computeTrustMetrics(evidenceFindings, singleManifest);
     const verifiedArticles = determineVerifiedArticles(evidenceFindings, singleManifest);
     const evidenceVerdict = computeVerdict(trustMetrics.finalScore, evidenceFindings, singleManifest);
@@ -2039,11 +2039,11 @@ async function runFix(args) {
 
       let content = "";
       if (doc.includes('human_oversight')) {
-        content = `# Human Oversight Protocol (Art. 14)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Oversight Mechanism\nImplementation details pending...\n\n## Roles and Responsibilities\n- Reviewer: [Role Name]\n- Intervention Threshold: [Threshold Details]\n`;
+        content = `# Human Oversight Protocol (Article 14)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Oversight Mechanism\nImplementation details pending...\n\n## Roles and Responsibilities\n- Reviewer: [Role Name]\n- Intervention Threshold: [Threshold Details]\n`;
       } else if (doc.includes('data_governance')) {
-        content = `# Data Governance and Logging (Art. 20)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Logging Capabilities\nImplementation details pending...\n\n## Retention Policy\nStored for [Duration] in [Location].\n`;
+        content = `# Data Governance and Logging (Article 20)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Logging Capabilities\nImplementation details pending...\n\n## Retention Policy\nStored for [Duration] in [Location].\n`;
       } else if (doc.includes('risk_assessment')) {
-        content = `# Risk Management System (Art. 9)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Risk Identification\nImplementation details pending...\n\n## Mitigation Strategy\nDetails about bias assessment and testing protocols.\n`;
+        content = `# Risk Management System (Article 9)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Risk Identification\nImplementation details pending...\n\n## Mitigation Strategy\nDetails about bias assessment and testing protocols.\n`;
       }
 
       fs.writeFileSync(docPath, content);
@@ -2054,7 +2054,7 @@ async function runFix(args) {
   if (plan.some(p => p.type === 'code' && p.file === 'logger.js')) {
     const loggerPath = path.join(findProjectRoot ? findProjectRoot(manifestDir) : manifestDir, 'logger.js');
     if (!fs.existsSync(loggerPath)) {
-      const loggerCode = `/**\n * Sentinel Sovereign Logging Implementation\n * Auto-generated scaffolding for Art. 20 Compliance.\n */\nconst winston = require('winston');\n\nconst logger = winston.createLogger({\n  level: 'info',\n  format: winston.format.combine(\n    winston.format.timestamp(),\n    winston.format.json()\n  ),\n  transports: [\n    new winston.transports.Console(),\n    new winston.transports.File({ filename: 'audit_trail.log' })\n  ]\n});\n\nmodule.exports = logger;\n`;
+      const loggerCode = `/**\n * Sentinel Sovereign Logging Implementation\n * Auto-generated scaffolding for Article 20 Compliance.\n */\nconst winston = require('winston');\n\nconst logger = winston.createLogger({\n  level: 'info',\n  format: winston.format.combine(\n    winston.format.timestamp(),\n    winston.format.json()\n  ),\n  transports: [\n    new winston.transports.Console(),\n    new winston.transports.File({ filename: 'audit_trail.log' })\n  ]\n});\n\nmodule.exports = logger;\n`;
       fs.writeFileSync(loggerPath, loggerCode);
       console.log(`${C.green}✔ Created ${loggerPath} (Winston Scaffolding)${C.reset}`);
       console.log(`${C.yellow}👉 Remember to run: npm install winston${C.reset}`);
@@ -2134,15 +2134,15 @@ function runInit() {
   const templates = [
     {
       file: 'human_oversight.md',
-      content: `# Human Oversight Protocol (Art. 14)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Oversight Mechanism\nImplementation details pending...\n\n## Roles and Responsibilities\n- Reviewer: [Role Name]\n- Intervention Threshold: [Threshold Details]\n`
+      content: `# Human Oversight Protocol (Article 14)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Oversight Mechanism\nImplementation details pending...\n\n## Roles and Responsibilities\n- Reviewer: [Role Name]\n- Intervention Threshold: [Threshold Details]\n`
     },
     {
       file: 'data_governance.md',
-      content: `# Data Governance and Logging (Art. 20)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Logging Capabilities\nImplementation details pending...\n\n## Retention Policy\nStored for [Duration] in [Location].\n`
+      content: `# Data Governance and Logging (Article 20)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Logging Capabilities\nImplementation details pending...\n\n## Retention Policy\nStored for [Duration] in [Location].\n`
     },
     {
       file: 'risk_assessment.md',
-      content: `# Risk Management System (Art. 9)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Risk Identification\nImplementation details pending...\n\n## Mitigation Strategy\nDetails about bias assessment and testing protocols.\n`
+      content: `# Risk Management System (Article 9)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Risk Identification\nImplementation details pending...\n\n## Mitigation Strategy\nDetails about bias assessment and testing protocols.\n`
     }
   ];
 

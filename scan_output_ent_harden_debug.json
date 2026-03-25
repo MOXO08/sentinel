@@ -1,0 +1,1925 @@
+{
+  "command": "check",
+  "manifest_path": "sentinel.manifest.json",
+  "audit_context": {
+    "timestamp": "2026-03-24T21:32:58.668Z",
+    "repository": "D:\\AI Act Compliance API\\enterprise-compliant-ai",
+    "commit": "uncommitted",
+    "execution_mode": "local_static_scan"
+  },
+  "coverage": {
+    "signals_detected": 48,
+    "signals_expected": 7,
+    "coverage_ratio": 6.8571
+  },
+  "status": "PASS",
+  "score": 10,
+  "claim_score": 10,
+  "evidence_score": 10,
+  "confidence": "LOW",
+  "phi": 0,
+  "exposure": 0.36,
+  "threshold": 0,
+  "verdict": "HOLD",
+  "system_assessment": {
+    "overall_posture": "Partial implementation with moderate risk.",
+    "key_risks": [],
+    "dominant_gaps": []
+  },
+  "reasoning_summary": {
+    "top_critical_risks": [],
+    "top_contradictions": [],
+    "overall_posture": "HIGH RISK"
+  },
+  "article_summaries": {
+    "articles": {
+      "Art. 13": {
+        "status": "CRITICAL",
+        "finding_count": 4,
+        "top_issues": [
+          "[Missing transparency evidence]",
+          "[Missing user notification]",
+          "[Implementation] Hardening NOT DETECTED: No technical indicators of AI Disclosure (Banner/System-label) found in code despite claims."
+        ],
+        "residual_risk": "High risk — missing critical control"
+      },
+      "Art. 20": {
+        "status": "CRITICAL",
+        "finding_count": 2,
+        "top_issues": [
+          "[Implementation] Hardening NOT DETECTED: No technical indicators of Logging/Traceability found in code despite claims.",
+          "Logging declared but no traceability detected"
+        ],
+        "residual_risk": "High risk — missing critical control"
+      },
+      "Art. 14": {
+        "status": "CRITICAL",
+        "finding_count": 2,
+        "top_issues": [
+          "[Implementation] Hardening NOT DETECTED: No technical indicators of Human Control (Kill-switch/Override) found in code despite claims.",
+          "Human oversight declared but no technical control detected"
+        ],
+        "residual_risk": "High risk — missing critical control"
+      },
+      "EXECUTION": {
+        "status": "SAFE",
+        "finding_count": 1,
+        "top_issues": [
+          "[Implementation] Hardening DETECTED: Detected technical indicator of AI Execution Logic in code."
+        ],
+        "residual_risk": "Low risk"
+      },
+      "CONNECTIVITY": {
+        "status": "CRITICAL",
+        "finding_count": 1,
+        "top_issues": [
+          "[Implementation] Hardening NOT DETECTED: No technical indicators of Technical Connectivity found in code despite claims."
+        ],
+        "residual_risk": "High risk — missing critical control"
+      }
+    },
+    "overall_summary": "System audit identifies 10 findings across 5 regulatory articles. Critical structural deficiencies identified in 4 articles. Strategic intervention required.",
+    "audit_readiness": "LOW",
+    "auditor_attestation": {
+      "status": "UNSUPPORTED",
+      "basis": [
+        "Critical findings identified in Art. 13, Art. 20.",
+        "9 high-severity technical gaps detected.",
+        "System lacks recursive technical verification for declared compliance flags."
+      ],
+      "auditor_note": "Material technical evidence gaps remain within analyzed scope. Structured remediation is recommended before auditor reliance."
+    },
+    "audit_scope": {
+      "type": "repository_analysis",
+      "method": "pattern-based detection",
+      "coverage": "static code analysis",
+      "limitations": [
+        "External services and infrastructure not analyzed",
+        "Binary or SDK-based implementations not visible",
+        "Functional correctness not guaranteed"
+      ]
+    },
+    "audit_confidence": {
+      "signal_coverage": "HIGH",
+      "verification_level": "PATTERN_BASED",
+      "determinism": "NON_DETERMINISTIC"
+    },
+    "next_step": {
+      "required": true,
+      "type": "manual_audit_required",
+      "reason": "Automated scan provides technical evidence but not full system verification"
+    },
+    "audit_limitations": {
+      "epistemic_status": "NON_EXHAUSTIVE_ANALYSIS",
+      "statement": "Absence of detected signals does not guarantee absence of implementation.",
+      "risk": "Controls may exist outside scanned scope or via abstraction layers"
+    },
+    "audit_boundary": {
+      "scope": "repository_only",
+      "exclusions": [
+        "external services",
+        "cloud infrastructure",
+        "private SDKs",
+        "unscanned repositories"
+      ]
+    }
+  },
+  "audit_scope": {
+    "within_scope": {
+      "repository": "enterprise-compliant-ai",
+      "files_analyzed": 9,
+      "analysis_depth": "Static Technical Audit (Annex IV)"
+    },
+    "outside_scope": [
+      "Real-time runtime monitoring",
+      "Human organizational processes",
+      "Live production environment validation",
+      "Physical security of hosting infrastructure"
+    ]
+  },
+  "final_audit_position": {
+    "audit_readiness": "Audit Ready",
+    "major_blockers": [],
+    "risk_level": "CRITICAL"
+  },
+  "_context_validation": null,
+  "_declaration_consistency": null,
+  "_executive_summary": null,
+  "central_verdict": "HOLD",
+  "technical_status": "ROBUST",
+  "governance_status": "GAP",
+  "risk_category": "Limited",
+  "semantic_quality": {
+    "evaluated": false
+  },
+  "exit_code": 1,
+  "findings_count": 10,
+  "score_breakdown": {
+    "Art. 13": {
+      "claim": 0.5,
+      "evidence": 0,
+      "weight": 1,
+      "contribution": 0.1
+    }
+  },
+  "top_findings": [
+    {
+      "rule_id": "EUAI-TRANS-002",
+      "description": "[Missing transparency evidence]",
+      "fix_snippet": "Add 'evidence_path' for technical documentation.",
+      "article": "Art. 13",
+      "source": "evidence",
+      "authority_mapping": null,
+      "source_reference": null,
+      "enforcement_level": null
+    },
+    {
+      "description": "[Missing user notification]",
+      "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array.",
+      "article": "Article 13",
+      "authority_mapping": null,
+      "source_reference": null,
+      "enforcement_level": null
+    },
+    {
+      "rule_id": "EUAI-LOGGING-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Logging/Traceability found in code despite claims.",
+      "fix_snippet": "const winston = require(\"winston\");",
+      "article": "Art. 20",
+      "source": "implementation",
+      "hardening_verdict": "FAIL",
+      "authority_mapping": {
+        "framework": "EU AI Act",
+        "article": "Article 20",
+        "annex": null,
+        "requirement_topic": "Traceability",
+        "notes": "Logging and automated records"
+      },
+      "source_reference": "Regulation (EU) 2024/1689, Article 20",
+      "enforcement_level": "mandatory"
+    },
+    {
+      "rule_id": "EUAI-HUMAN-OVERSIGHT-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Human Control (Kill-switch/Override) found in code despite claims.",
+      "fix_snippet": "function kill_switch() {",
+      "article": "Art. 14",
+      "source": "implementation",
+      "hardening_verdict": "FAIL",
+      "authority_mapping": {
+        "framework": "EU AI Act",
+        "article": "Article 14",
+        "annex": null,
+        "requirement_topic": "Human oversight",
+        "notes": "Technical controls for human-in-the-loop"
+      },
+      "source_reference": "Regulation (EU) 2024/1689, Article 14",
+      "enforcement_level": "mandatory"
+    },
+    {
+      "rule_id": "EUAI-AI-TRANSPARENCY-MISSING",
+      "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of AI Disclosure (Banner/System-label) found in code despite claims.",
+      "fix_snippet": "No specific code location identified. Apply recommended control at the primary AI execution entry point in this file.",
+      "article": "Art. 13",
+      "source": "implementation",
+      "hardening_verdict": "FAIL",
+      "authority_mapping": {
+        "framework": "EU AI Act",
+        "article": "Article 13",
+        "annex": null,
+        "requirement_topic": "Transparency and provision of information",
+        "notes": "User awareness of AI interaction"
+      },
+      "source_reference": "Regulation (EU) 2024/1689, Article 13",
+      "enforcement_level": "mandatory"
+    }
+  ],
+  "_internal": {
+    "total_signals": 48,
+    "signals": [
+      {
+        "id": "CODE_SENTINEL_OVERRIDE",
+        "kind": "code_signature",
+        "source_path": "src\\ai-service.js",
+        "confidence": 0.8,
+        "evidence_weight": 1,
+        "rule_id": "EU-AIA-ART14-OVERSIGHT-SIG",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 14",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 14",
+          "annex": null,
+          "requirement_topic": "Human oversight",
+          "notes": "Direct technical control"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "unknown"
+      },
+      {
+        "id": "CODE_SENTINEL_LOGGER",
+        "kind": "code_signature",
+        "source_path": "src\\ai-service.js",
+        "confidence": 0.8,
+        "evidence_weight": 0.8,
+        "rule_id": "EU-AIA-ART20-LOGGING-SIG",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Logging and traceability",
+          "notes": "Technical evidence of logging"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "unknown"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 2,
+        "snippet": "const winston = require(\"winston\");",
+        "rule_id": "EU-AIA-ART20-LOGGING-WINSTON",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Production-grade logging library"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "684388c2c0e22b9567de70088d5c4500db89c385b6be8555e235ed1c98963880"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 2,
+        "snippet": "const winston = require(\"winston\");",
+        "rule_id": "EU-AIA-ART20-LOGGING-WINSTON",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Production-grade logging library"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "684388c2c0e22b9567de70088d5c4500db89c385b6be8555e235ed1c98963880"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "EU-AIA-ART20-LOGGING-WINSTON",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Production-grade logging library"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 6,
+        "snippet": "transports: [new winston.transports.Console()]",
+        "rule_id": "EU-AIA-ART20-LOGGING-WINSTON",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Production-grade logging library"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "0903883f5eeaad215ee711ab373375e5a23d7ef8b3f851193339fdce4500c80b"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "EU-AIA-ART20-LOGGING-WINSTON",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Production-grade logging library"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "EU-AIA-ART20-LOGGING-WINSTON",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Production-grade logging library"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 10,
+        "snippet": "logger.error(\"SYSTEM_EMERGENCY_SHUTDOWN\");",
+        "rule_id": "EU-AIA-ART20-LOGGING-WINSTON",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Production-grade logging library"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "ab508ca1f9c3323be36972465bf7d57726adb0dbd56e67d5d3914e0a312d1231"
+      },
+      {
+        "id": "DEP_WINSTON",
+        "kind": "dependency",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 17,
+        "snippet": "logger.info(\"request_id: \" + Math.random());",
+        "rule_id": "EU-AIA-ART20-LOGGING-WINSTON",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Production-grade logging library"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "70d1ea95d3a1846d2102b31c0425a6f0118c1f04a01fea9e0a2646bac397560b"
+      },
+      {
+        "id": "CODE_LOGGER_INIT",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "EU-AIA-ART20-LOGGING-INIT",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Logger instantiation"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "CODE_LOGGER_INIT",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "EU-AIA-ART20-LOGGING-INIT",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Logger instantiation"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "CODE_LOGGER_INIT",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "EU-AIA-ART20-LOGGING-INIT",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Logger instantiation"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "CODE_LOGGER_INIT",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "EU-AIA-ART20-LOGGING-INIT",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Logger instantiation"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "CODE_LOGGER_INIT",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 10,
+        "snippet": "logger.error(\"SYSTEM_EMERGENCY_SHUTDOWN\");",
+        "rule_id": "EU-AIA-ART20-LOGGING-INIT",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Logger instantiation"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "ab508ca1f9c3323be36972465bf7d57726adb0dbd56e67d5d3914e0a312d1231"
+      },
+      {
+        "id": "CODE_LOGGER_INIT",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 17,
+        "snippet": "logger.info(\"request_id: \" + Math.random());",
+        "rule_id": "EU-AIA-ART20-LOGGING-INIT",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Logger instantiation"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "70d1ea95d3a1846d2102b31c0425a6f0118c1f04a01fea9e0a2646bac397560b"
+      },
+      {
+        "id": "CODE_LOG_ERROR",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 10,
+        "snippet": "logger.error(\"SYSTEM_EMERGENCY_SHUTDOWN\");",
+        "rule_id": "INTERNAL-ART20-TRACE-ERROR",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "Error reporting",
+          "notes": "Supporting traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "ab508ca1f9c3323be36972465bf7d57726adb0dbd56e67d5d3914e0a312d1231"
+      },
+      {
+        "id": "CODE_PY_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 10,
+        "snippet": "logger.error(\"SYSTEM_EMERGENCY_SHUTDOWN\");",
+        "rule_id": "INTERNAL-ART20-TRACE-PY-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "Python logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "ab508ca1f9c3323be36972465bf7d57726adb0dbd56e67d5d3914e0a312d1231"
+      },
+      {
+        "id": "CODE_PY_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 17,
+        "snippet": "logger.info(\"request_id: \" + Math.random());",
+        "rule_id": "INTERNAL-ART20-TRACE-PY-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "Python logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "70d1ea95d3a1846d2102b31c0425a6f0118c1f04a01fea9e0a2646bac397560b"
+      },
+      {
+        "id": "CODE_PY_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 10,
+        "snippet": "logger.error(\"SYSTEM_EMERGENCY_SHUTDOWN\");",
+        "rule_id": "INTERNAL-ART20-TRACE-PY-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "Python logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "ab508ca1f9c3323be36972465bf7d57726adb0dbd56e67d5d3914e0a312d1231"
+      },
+      {
+        "id": "CODE_PY_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 17,
+        "snippet": "logger.info(\"request_id: \" + Math.random());",
+        "rule_id": "INTERNAL-ART20-TRACE-PY-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "Python logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "70d1ea95d3a1846d2102b31c0425a6f0118c1f04a01fea9e0a2646bac397560b"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 2,
+        "snippet": "const winston = require(\"winston\");",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "684388c2c0e22b9567de70088d5c4500db89c385b6be8555e235ed1c98963880"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 2,
+        "snippet": "const winston = require(\"winston\");",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "684388c2c0e22b9567de70088d5c4500db89c385b6be8555e235ed1c98963880"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 6,
+        "snippet": "transports: [new winston.transports.Console()]",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "0903883f5eeaad215ee711ab373375e5a23d7ef8b3f851193339fdce4500c80b"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 20,
+        "snippet": "console.log(\"automated decision system disclaimer: this content is generated by AI.\");",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "755806313f0309857c9b66333ea51996d6ee694db0ca9a294e8bdae02f6658fb"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 2,
+        "snippet": "const winston = require(\"winston\");",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "684388c2c0e22b9567de70088d5c4500db89c385b6be8555e235ed1c98963880"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 2,
+        "snippet": "const winston = require(\"winston\");",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "684388c2c0e22b9567de70088d5c4500db89c385b6be8555e235ed1c98963880"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 6,
+        "snippet": "transports: [new winston.transports.Console()]",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "0903883f5eeaad215ee711ab373375e5a23d7ef8b3f851193339fdce4500c80b"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 4,
+        "snippet": "const logger = winston.createLogger({",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "9c4087ce1c0b38b9c353dd4dd0f7ca6033ce0fa6b62087be46576c89f3dbacb3"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 10,
+        "snippet": "logger.error(\"SYSTEM_EMERGENCY_SHUTDOWN\");",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "ab508ca1f9c3323be36972465bf7d57726adb0dbd56e67d5d3914e0a312d1231"
+      },
+      {
+        "id": "CODE_JS_LOGGING",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 17,
+        "snippet": "logger.info(\"request_id: \" + Math.random());",
+        "rule_id": "INTERNAL-ART20-TRACE-JS-LOG",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "JS logging",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "70d1ea95d3a1846d2102b31c0425a6f0118c1f04a01fea9e0a2646bac397560b"
+      },
+      {
+        "id": "CODE_TRACE_IDS",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 17,
+        "snippet": "logger.info(\"request_id: \" + Math.random());",
+        "rule_id": "INTERNAL-ART20-TRACE-IDS",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "recommended",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "Trace identifiers",
+          "notes": "Art 20 traceability"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "70d1ea95d3a1846d2102b31c0425a6f0118c1f04a01fea9e0a2646bac397560b"
+      },
+      {
+        "id": "CODE_LOG",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 20",
+        "confidence": 0.5,
+        "evidence_weight": 0.5,
+        "line": 20,
+        "snippet": "console.log(\"automated decision system disclaimer: this content is generated by AI.\");",
+        "rule_id": "INTERNAL-ART20-TRACE-WEAK",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "General logging",
+          "notes": "Weak indicator"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "755806313f0309857c9b66333ea51996d6ee694db0ca9a294e8bdae02f6658fb"
+      },
+      {
+        "id": "CODE_KILL_SWITCH",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 14",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 9,
+        "snippet": "function kill_switch() {",
+        "rule_id": "EU-AIA-ART14-OVERSIGHT-STOP",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 14",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 14",
+          "annex": null,
+          "requirement_topic": "Human oversight",
+          "notes": "Emergency stop mechanism"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "73d38204a6fab6df18b227a7522c03c672ea37e8aebfd6ba938220cdead91870"
+      },
+      {
+        "id": "CODE_KILL_SWITCH",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 14",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 18,
+        "snippet": "if (process.env.KILL_SIGNAL) kill_switch();",
+        "rule_id": "EU-AIA-ART14-OVERSIGHT-STOP",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 14",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 14",
+          "annex": null,
+          "requirement_topic": "Human oversight",
+          "notes": "Emergency stop mechanism"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "c1f28dab63011a6e7174cf476788b13ce42f1e4d2abfc92e9e88d25581905423"
+      },
+      {
+        "id": "CODE_KILL_SWITCH",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 14",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 9,
+        "snippet": "function kill_switch() {",
+        "rule_id": "EU-AIA-ART14-OVERSIGHT-STOP",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 14",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 14",
+          "annex": null,
+          "requirement_topic": "Human oversight",
+          "notes": "Emergency stop mechanism"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "73d38204a6fab6df18b227a7522c03c672ea37e8aebfd6ba938220cdead91870"
+      },
+      {
+        "id": "CODE_KILL_SWITCH",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "Art. 14",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 18,
+        "snippet": "if (process.env.KILL_SIGNAL) kill_switch();",
+        "rule_id": "EU-AIA-ART14-OVERSIGHT-STOP",
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 14",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 14",
+          "annex": null,
+          "requirement_topic": "Human oversight",
+          "notes": "Emergency stop mechanism"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "c1f28dab63011a6e7174cf476788b13ce42f1e4d2abfc92e9e88d25581905423"
+      },
+      {
+        "id": "CODE_AI_MODEL_INIT",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "EXECUTION",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 14,
+        "snippet": "const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });",
+        "rule_id": "INTERNAL-EXEC-AI_INIT",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "AI SDK initialization",
+          "notes": "Technical detection"
+        },
+        "governance_gap": "Art. 14",
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "d2cabd8d129494547bd8b193db2304f16ddbe4ac31e6dac05491723a4481814d"
+      },
+      {
+        "id": "CODE_AI_MODEL_INIT",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "EXECUTION",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 14,
+        "snippet": "const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });",
+        "rule_id": "INTERNAL-EXEC-AI_INIT",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "AI SDK initialization",
+          "notes": "Technical detection"
+        },
+        "governance_gap": "Art. 14",
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "d2cabd8d129494547bd8b193db2304f16ddbe4ac31e6dac05491723a4481814d"
+      },
+      {
+        "id": "CODE_AI_MODEL_INIT",
+        "kind": "code_signature_call",
+        "source_path": "src\\ai-service.js",
+        "article": "EXECUTION",
+        "confidence": 1,
+        "evidence_weight": 1,
+        "line": 22,
+        "snippet": "const completion = await client.chat.completions.create({",
+        "rule_id": "INTERNAL-EXEC-AI_INIT",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "AI SDK initialization",
+          "notes": "Technical detection"
+        },
+        "governance_gap": "Art. 14",
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "68615838e0a49306bd545f93497d98c5c8f0b92c8350826776d3a7627c5f1c9b"
+      },
+      {
+        "id": "CODE_AI_LOAD",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "EXECUTION",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 1,
+        "snippet": "const OpenAI = require(\"openai\");",
+        "rule_id": "INTERNAL-EXEC-AI_LOAD",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "AI library loading",
+          "notes": "Technical detection"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "fd766e3dbf662e58db8fe2b820a58587a315f97ab82f3ab7e7a9a710fca271c7"
+      },
+      {
+        "id": "CODE_AI_LOAD",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "EXECUTION",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 1,
+        "snippet": "const OpenAI = require(\"openai\");",
+        "rule_id": "INTERNAL-EXEC-AI_LOAD",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "AI library loading",
+          "notes": "Technical detection"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "fd766e3dbf662e58db8fe2b820a58587a315f97ab82f3ab7e7a9a710fca271c7"
+      },
+      {
+        "id": "CODE_AI_LOAD",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "EXECUTION",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 1,
+        "snippet": "const OpenAI = require(\"openai\");",
+        "rule_id": "INTERNAL-EXEC-AI_LOAD",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "AI library loading",
+          "notes": "Technical detection"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "fd766e3dbf662e58db8fe2b820a58587a315f97ab82f3ab7e7a9a710fca271c7"
+      },
+      {
+        "id": "CODE_AI_LOAD",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "EXECUTION",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 14,
+        "snippet": "const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });",
+        "rule_id": "INTERNAL-EXEC-AI_LOAD",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "AI library loading",
+          "notes": "Technical detection"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "d2cabd8d129494547bd8b193db2304f16ddbe4ac31e6dac05491723a4481814d"
+      },
+      {
+        "id": "CODE_AI_LOAD",
+        "kind": "code_signature_load",
+        "source_path": "src\\ai-service.js",
+        "article": "EXECUTION",
+        "confidence": 0.7,
+        "evidence_weight": 0.7,
+        "line": 14,
+        "snippet": "const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });",
+        "rule_id": "INTERNAL-EXEC-AI_LOAD",
+        "source_type": "internal",
+        "source_reference": "Internal Sentinel structural rule",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "AI library loading",
+          "notes": "Technical detection"
+        },
+        "source_sha256": "9c0d318ef558ded521c39853d2edc8efee1853bedbe192202f2fa389754dd9d6",
+        "evidence_sha256": "d2cabd8d129494547bd8b193db2304f16ddbe4ac31e6dac05491723a4481814d"
+      }
+    ],
+    "signal_breakdown": {
+      "ai_assets": 19,
+      "execution": 3,
+      "connectivity": 0,
+      "transparency": 0,
+      "oversight": 5,
+      "logging": 27
+    },
+    "all_findings": [
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-TRANS-002",
+        "description": "[Missing transparency evidence]",
+        "deduction": 20,
+        "severity": "high",
+        "hard_fail": false,
+        "source": "evidence",
+        "fix_snippet": "Add 'evidence_path' for technical documentation.",
+        "reasoning": {
+          "validity_boundary": "Declared but weak evidence",
+          "residual_risk": "High risk — missing critical control",
+          "reasoning": [
+            "Declared evidence provided in documentation/manifest.",
+            "Weak technical correlation detected.",
+            "Manual auditor review recommended for final validation."
+          ],
+          "confidence": 0.5
+        },
+        "evidence_type": "DECLARED_ONLY",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [],
+          "missing_patterns": [
+            "notice",
+            "transparency",
+            "disclosure"
+          ],
+          "note": "No technical patterns detected within analyzed scope",
+          "evidence_status": "DECLARED_ONLY"
+        },
+        "finding_id": "f6d8c12a4b0fde1d38af281ba4885342481be38d"
+      },
+      {
+        "article": "Article 13",
+        "description": "[Missing user notification]",
+        "severity": "HIGH",
+        "fix_snippet": "Add 'user_notification_ai_interaction' to 'declared_flags' array.",
+        "reasoning": {
+          "validity_boundary": "Declared but weak evidence",
+          "residual_risk": "High risk — missing critical control",
+          "reasoning": [
+            "Declared evidence provided in documentation/manifest.",
+            "Weak technical correlation detected.",
+            "Manual auditor review recommended for final validation."
+          ],
+          "confidence": 0.5
+        },
+        "evidence_type": "MISSING_TECHNICAL_EVIDENCE",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [],
+          "missing_patterns": [
+            "notice",
+            "transparency",
+            "disclosure"
+          ],
+          "note": "No technical patterns detected within analyzed scope",
+          "evidence_status": "MISSING_TECHNICAL_EVIDENCE"
+        },
+        "finding_id": "7abb6d94423691532127810300085c7a0076ea41"
+      },
+      {
+        "article": "Art. 20",
+        "rule_id": "EUAI-LOGGING-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Logging/Traceability found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "const winston = require(\"winston\");",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 9,
+          "patterns": [
+            "winston",
+            "pino",
+            "new Logger|createLogger|winston\\.createLogger",
+            "sentinelLog",
+            "console\\.log",
+            "logger\\.error|console\\.error",
+            "console\\.trace|logger\\.trace",
+            "logging\\.|logger\\.|getLogger|basicConfig",
+            "console\\.log|winston|pino",
+            "request_id|correlation_id|trace_id"
+          ]
+        },
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 20",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 20",
+          "annex": null,
+          "requirement_topic": "Traceability",
+          "notes": "Logging and automated records"
+        },
+        "reasoning": {
+          "validity_boundary": "Declared but weak evidence",
+          "residual_risk": "High risk — missing critical control",
+          "reasoning": [
+            "Declared evidence provided in documentation/manifest.",
+            "Weak technical correlation detected.",
+            "Manual auditor review recommended for final validation."
+          ],
+          "confidence": 0.9
+        },
+        "evidence_type": "DIRECT_DETECTION",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [
+            "CODE_SENTINEL_LOGGER",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOG_ERROR",
+            "CODE_PY_LOGGING",
+            "CODE_PY_LOGGING",
+            "CODE_PY_LOGGING",
+            "CODE_PY_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_TRACE_IDS",
+            "CODE_LOG"
+          ],
+          "missing_patterns": [
+            "log",
+            "trace_id",
+            "correlation_id"
+          ],
+          "note": "Technical evidence identified in implementation",
+          "evidence_status": "DIRECT_DETECTION"
+        },
+        "finding_id": "a5ea2ea9c96b7d45361cd6448e2411fe2a3c22b9"
+      },
+      {
+        "article": "Art. 14",
+        "rule_id": "EUAI-HUMAN-OVERSIGHT-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Human Control (Kill-switch/Override) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "function kill_switch() {",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 9,
+          "patterns": [
+            "manual_override|user_confirmation|force_override",
+            "emergency_stop|kill_switch|panic_button",
+            "sentinelOverride",
+            "validate_by_human|human_check"
+          ]
+        },
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 14",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 14",
+          "annex": null,
+          "requirement_topic": "Human oversight",
+          "notes": "Technical controls for human-in-the-loop"
+        },
+        "reasoning": {
+          "validity_boundary": "Declared but weak evidence",
+          "residual_risk": "High risk — missing critical control",
+          "reasoning": [
+            "Declared evidence provided in documentation/manifest.",
+            "Weak technical correlation detected.",
+            "Manual auditor review recommended for final validation."
+          ],
+          "confidence": 0.9
+        },
+        "evidence_type": "DIRECT_DETECTION",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [
+            "CODE_SENTINEL_OVERRIDE"
+          ],
+          "missing_patterns": [
+            "override",
+            "kill_switch",
+            "manual_intervention"
+          ],
+          "note": "Technical evidence identified in implementation",
+          "evidence_status": "DIRECT_DETECTION"
+        },
+        "finding_id": "ddb91d9ea0b1d28b88c70bb906dc23279e37ea65"
+      },
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-AI-TRANSPARENCY-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of AI Disclosure (Banner/System-label) found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "No specific code location identified. Apply recommended control at the primary AI execution entry point in this file.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 9,
+          "patterns": [
+            "ai_disclosure_provided|transparency_label|powered_by_ai",
+            "about_this_ai|system_card"
+          ]
+        },
+        "source_type": "regulatory",
+        "source_reference": "Regulation (EU) 2024/1689, Article 13",
+        "enforcement_level": "mandatory",
+        "authority_mapping": {
+          "framework": "EU AI Act",
+          "article": "Article 13",
+          "annex": null,
+          "requirement_topic": "Transparency and provision of information",
+          "notes": "User awareness of AI interaction"
+        },
+        "reasoning": {
+          "validity_boundary": "Declared but weak evidence",
+          "residual_risk": "High risk — missing critical control",
+          "reasoning": [
+            "Declared evidence provided in documentation/manifest.",
+            "Weak technical correlation detected.",
+            "Manual auditor review recommended for final validation."
+          ],
+          "confidence": 0.9
+        },
+        "evidence_type": "DECLARED_ONLY",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [],
+          "missing_patterns": [
+            "notice",
+            "transparency",
+            "disclosure"
+          ],
+          "note": "No technical patterns detected within analyzed scope",
+          "evidence_status": "DECLARED_ONLY"
+        },
+        "finding_id": "21c9063f8814c55158d696b52da031fcd55bf976"
+      },
+      {
+        "article": "EXECUTION",
+        "rule_id": "EUAI-HARDENING-000",
+        "description": "[Implementation] Hardening DETECTED: Detected technical indicator of AI Execution Logic in code.",
+        "deduction": 0,
+        "severity": "info",
+        "source": "implementation",
+        "fix_snippet": null,
+        "hardening_verdict": "PASS",
+        "evidence_location": {
+          "file": "src\\ai-service.js",
+          "line": 14,
+          "snippet": "const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });",
+          "evidence_hash": "SIG-7176E8F9C0A6FD19",
+          "rule_id": "INTERNAL-EXEC-AI_INIT",
+          "source_type": "internal",
+          "source_reference": "Internal Sentinel structural rule",
+          "enforcement_level": "informational",
+          "authority_mapping": {
+            "framework": null,
+            "article": null,
+            "annex": null,
+            "requirement_topic": "AI SDK initialization",
+            "notes": "Technical detection"
+          }
+        },
+        "search_metadata": {
+          "files_scanned": 9,
+          "patterns": [
+            "\\b(generateText|generateObject|streamText|streamObject|useChat|useCompletion|useObject|complete|predict|chat|invoke|run)\\b(?:<[^>]+>)?\\s*\\(",
+            "export\\s+function\\s+(generate|stream|predict|createAI)",
+            "new\\s+(OpenAI|Anthropic|GoogleGenerativeAI|Mistral)\\b(?:<[^>]+>)?\\s*\\(",
+            "aiModel|llmClient|ai_response|bot_output",
+            "require\\s*\\(\\s*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]\\)|import.*from.*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]"
+          ]
+        },
+        "source_type": "internal",
+        "source_reference": "Sentinel logic inference engine",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "Execution Logic",
+          "notes": "Technical boundary detection"
+        },
+        "connectivity": {
+          "identifier": "client",
+          "definition": "src\\ai-service.js",
+          "reference_count": 0,
+          "files": [],
+          "classification": "No references detected"
+        },
+        "reasoning": {
+          "validity_boundary": "Direct technical signal detected",
+          "residual_risk": "Low risk",
+          "reasoning": [
+            "Technical signal 'EUAI-HARDENING-000' detected during scan.",
+            "Direct evidence found in source code patterns.",
+            "High-confidence validation of implemented control."
+          ],
+          "confidence": 0.9
+        },
+        "evidence_type": "DIRECT_DETECTION",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [
+            "CODE_AI_MODEL_INIT",
+            "CODE_AI_MODEL_INIT",
+            "CODE_AI_MODEL_INIT",
+            "CODE_AI_LOAD",
+            "CODE_AI_LOAD",
+            "CODE_AI_LOAD",
+            "CODE_AI_LOAD",
+            "CODE_AI_LOAD"
+          ],
+          "missing_patterns": [
+            "technical_indicator_execution"
+          ],
+          "note": "Technical evidence identified in implementation",
+          "evidence_status": "DIRECT_DETECTION"
+        },
+        "finding_id": "3e2b54fec076d8c7bbb64ea786b9698acaa00b1d"
+      },
+      {
+        "article": "CONNECTIVITY",
+        "rule_id": "EUAI-CONNECTIVITY-MISSING",
+        "description": "[Implementation] Hardening NOT DETECTED: No technical indicators of Technical Connectivity found in code despite claims.",
+        "deduction": 20,
+        "severity": "high",
+        "source": "implementation",
+        "fix_snippet": "No specific code location identified. Apply recommended control at the primary AI execution entry point in this file.",
+        "hardening_verdict": "FAIL",
+        "search_metadata": {
+          "files_scanned": 9,
+          "patterns": [
+            "fetch\\s*\\(|axios\\.(get|post|request)|http\\.request\\(|https\\.request\\(|urllib\\.request",
+            "new\\s+WebSocket\\(|socket\\.io|net\\.createConnection",
+            "https?://[a-zA-Z0-9.-]+\\.[a-z]{2,}/v[0-9]/"
+          ]
+        },
+        "source_type": "internal",
+        "source_reference": "Sentinel connectivity probe",
+        "enforcement_level": "informational",
+        "authority_mapping": {
+          "framework": null,
+          "article": null,
+          "annex": null,
+          "requirement_topic": "Connectivity Markers",
+          "notes": "Edge/Cloud boundary detection"
+        },
+        "reasoning": {
+          "validity_boundary": "Declared but weak evidence",
+          "residual_risk": "High risk — missing critical control",
+          "reasoning": [
+            "Declared evidence provided in documentation/manifest.",
+            "Weak technical correlation detected.",
+            "Manual auditor review recommended for final validation."
+          ],
+          "confidence": 0.9
+        },
+        "evidence_type": "MISSING_TECHNICAL_EVIDENCE",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [],
+          "missing_patterns": [
+            "technical_indicator_connectivity"
+          ],
+          "note": "No technical patterns detected within analyzed scope",
+          "evidence_status": "MISSING_TECHNICAL_EVIDENCE"
+        },
+        "finding_id": "585af095eead7d7292c41021fc7f1087a2382987"
+      },
+      {
+        "article": "Art. 14",
+        "rule_id": "EUAI-CONTRADICTION-001",
+        "description": "Human oversight declared but no technical control detected",
+        "severity": "high",
+        "deduction": 25,
+        "source": "intelligence",
+        "hard_fail": false,
+        "reasoning": {
+          "validity_boundary": "Claim contradicted by missing technical evidence",
+          "residual_risk": "High risk — missing critical control",
+          "reasoning": [
+            "Flag property declared in manifest.",
+            "No corresponding technical signal found in scanned files.",
+            "System behavior cannot be verified against regulatory requirement."
+          ],
+          "confidence": 0.7
+        },
+        "evidence_type": "DIRECT_DETECTION",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [
+            "CODE_SENTINEL_OVERRIDE"
+          ],
+          "missing_patterns": [
+            "override",
+            "kill_switch",
+            "manual_intervention"
+          ],
+          "note": "Technical evidence identified in implementation",
+          "evidence_status": "DIRECT_DETECTION"
+        },
+        "finding_id": "6e7682e7a816554f4d35c2588ee4c7e2a78b51ff"
+      },
+      {
+        "article": "Art. 13",
+        "rule_id": "EUAI-CONTRADICTION-002",
+        "description": "Transparency declared but no disclosure mechanism detected",
+        "severity": "high",
+        "deduction": 20,
+        "source": "intelligence",
+        "hard_fail": false,
+        "reasoning": {
+          "validity_boundary": "Claim contradicted by missing technical evidence",
+          "residual_risk": "High risk — missing critical control",
+          "reasoning": [
+            "Flag property declared in manifest.",
+            "No corresponding technical signal found in scanned files.",
+            "System behavior cannot be verified against regulatory requirement."
+          ],
+          "confidence": 0.7
+        },
+        "evidence_type": "DECLARED_ONLY",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [],
+          "missing_patterns": [
+            "notice",
+            "transparency",
+            "disclosure"
+          ],
+          "note": "No technical patterns detected within analyzed scope",
+          "evidence_status": "DECLARED_ONLY"
+        },
+        "finding_id": "adaa9aad3102d48956c67e37cd15f35f14e6d8e8"
+      },
+      {
+        "article": "Art. 20",
+        "rule_id": "EUAI-CONTRADICTION-003",
+        "description": "Logging declared but no traceability detected",
+        "severity": "high",
+        "deduction": 20,
+        "source": "intelligence",
+        "hard_fail": false,
+        "reasoning": {
+          "validity_boundary": "Claim contradicted by missing technical evidence",
+          "residual_risk": "High risk — missing critical control",
+          "reasoning": [
+            "Flag property declared in manifest.",
+            "No corresponding technical signal found in scanned files.",
+            "System behavior cannot be verified against regulatory requirement."
+          ],
+          "confidence": 0.7
+        },
+        "evidence_type": "DIRECT_DETECTION",
+        "evidence": {
+          "checked_files": [
+            "src\\ai-service.js"
+          ],
+          "matched_patterns": [
+            "CODE_SENTINEL_LOGGER",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOGGER_INIT",
+            "CODE_LOG_ERROR",
+            "CODE_PY_LOGGING",
+            "CODE_PY_LOGGING",
+            "CODE_PY_LOGGING",
+            "CODE_PY_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_JS_LOGGING",
+            "CODE_TRACE_IDS",
+            "CODE_LOG"
+          ],
+          "missing_patterns": [
+            "log",
+            "trace_id",
+            "correlation_id"
+          ],
+          "note": "Technical evidence identified in implementation",
+          "evidence_status": "DIRECT_DETECTION"
+        },
+        "finding_id": "92655853ad48fd6c9d6aa8113c33fecc7d9b2a95"
+      }
+    ],
+    "files": 9
+  },
+  "AUDIT_SCOPE": {
+    "scan_root": "D:\\AI Act Compliance API\\enterprise-compliant-ai",
+    "analysis_type": "static code + manifest + local documentation",
+    "included": [
+      "source code within repository",
+      "local documentation files",
+      "sentinel.manifest.json"
+    ],
+    "excluded": [
+      "external services",
+      "third-party APIs",
+      "shared infrastructure outside repository",
+      "manual human processes",
+      "vendor dashboards"
+    ],
+    "statement": "This audit strictly evaluates the local codebase and declared artifacts. Any control implemented outside this boundary is not validated."
+  },
+  "AUDIT_COVERAGE": {
+    "files_scanned": 9,
+    "files_detected": null,
+    "coverage_ratio": null,
+    "scan_patterns": "derived from internal rule registry",
+    "excluded_paths": [
+      "node_modules/",
+      "dist/",
+      "build/"
+    ],
+    "coverage_statement": "Findings are based on analysis of scanned files only. Unscanned areas are outside current audit coverage."
+  },
+  "EVIDENCE_INTERPRETATION": {
+    "method": "pattern-based static analysis",
+    "negative_evidence_definition": "NOT_FOUND indicates absence of expected technical signals within scanned scope, not absolute absence across entire system",
+    "limitation": "Controls implemented outside detectable patterns or outside scan boundary may not be captured"
+  },
+  "AUDIT_REASONING_CHAIN": {
+    "step_1": "Manifest declares control (e.g., logging_enabled: true)",
+    "step_2": "System scans codebase for corresponding implementation signals",
+    "step_3": "No matching patterns detected in scanned scope",
+    "step_4": "Contradiction established between declared and observed state",
+    "step_5": "For HIGH-RISK systems, absence of implementation constitutes regulatory risk"
+  }
+}

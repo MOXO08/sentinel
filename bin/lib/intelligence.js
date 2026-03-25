@@ -1,7 +1,6 @@
-/**
- * Sentinel Intelligence Module (Sovereign 2.0)
- * Evaluates documentation substance and quality.
- */
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
 
 const BOILERPLATE_PHRASES = [
   "implementation details pending",
@@ -10,16 +9,12 @@ const BOILERPLATE_PHRASES = [
   "does not imply final legal compliance",
   "add details here",
   "details about bias assessment",
-  "implementation details pending",
   "lorem ipsum",
   "placeholder text"
 ];
 
 const MIN_SECTION_WORDS = 20;
 
-/**
- * Checks if content contains excessive boilerplate.
- */
 function hasBoilerplate(content) {
   const lower = content.toLowerCase();
   return BOILERPLATE_PHRASES.some(phrase => lower.includes(phrase)) || 
@@ -106,4 +101,399 @@ function checkConsistency(article, content) {
   };
 }
 
-module.exports = { analyzeSubstance, checkConsistency };
+function detectDocumentContradictions(context) {
+  // Robust extraction: supports both {manifest, signals} context and (manifest, signals) signature
+  const manifest = context?.manifest ?? context ?? {};
+  const signals = context?.signals ?? (arguments.length > 1 ? arguments[1] : []);
+  const flags = manifest.declared_flags || [];
+
+  const contradictions = [];
+
+  // 1. HUMAN OVERSIGHT
+  if (flags.includes("human_oversight_enabled")) {
+    const hasHO = Array.isArray(signals) && signals.some(s => {
+      const id = (s?.id || "").toUpperCase();
+      return id.includes("HUMAN") || id.includes("OVERSIGHT") || id.includes("OVERRIDE");
+    });
+    if (!hasHO) {
+      contradictions.push({
+        article: "Art. 14",
+        rule_id: "EUAI-CONTRADICTION-001",
+        description: "Human oversight declared but no technical control detected",
+        severity: "high",
+        deduction: 25,
+        source: "intelligence",
+        hard_fail: false
+      });
+    }
+  }
+
+  // 2. TRANSPARENCY
+  if (flags.includes("transparency_disclosure_provided")) {
+    const hasT = Array.isArray(signals) && signals.some(s => {
+      const id = (s?.id || "").toUpperCase();
+      return id.includes("NOTICE") || id.includes("TRANSPARENCY") || id.includes("DISCLOSURE");
+    });
+    if (!hasT) {
+      contradictions.push({
+        article: "Art. 13",
+        rule_id: "EUAI-CONTRADICTION-002",
+        description: "Transparency declared but no disclosure mechanism detected",
+        severity: "high",
+        deduction: 20,
+        source: "intelligence",
+        hard_fail: false
+      });
+    }
+  }
+
+  // 3. LOGGING
+  if (flags.includes("logging_capabilities_declared")) {
+    const hasL = Array.isArray(signals) && signals.some(s => {
+      const id = (s?.id || "").toUpperCase();
+      return id.includes("LOG") || id.includes("TRACE");
+    });
+    if (!hasL) {
+      contradictions.push({
+        article: "Art. 20",
+        rule_id: "EUAI-CONTRADICTION-003",
+        description: "Logging declared but no traceability detected",
+        severity: "high",
+        deduction: 20,
+        source: "intelligence",
+        hard_fail: false
+      });
+    }
+  }
+
+  return contradictions;
+}
+
+function applyReasoning(finding, manifest, signals) {
+  // Handle both (finding, manifest, signals) and ({finding, manifest, signals}) signatures
+  const f =
+    (finding && typeof finding === "object" && finding.rule_id)
+      ? finding
+      : (finding?.finding && typeof finding.finding === "object")
+      ? finding.finding
+      : (typeof finding === "object" ? finding : {});
+
+  const m = manifest ?? f.manifest ?? {};
+  
+  const source = f.source || "";
+  const ruleId = f.rule_id || "";
+  const severity = (f.severity || "").toLowerCase();
+
+  const reasoning = [];
+  let validityBoundary = "Declared but weak evidence";
+  let residualRisk = "Low risk";
+  let confidence = 0.5;
+
+  // 1. VALIDITY BOUNDARY
+  if (source === "intelligence") {
+    validityBoundary = "Claim contradicted by missing technical evidence";
+  } else if (ruleId.startsWith("SIG") || ruleId.startsWith("EUAI-HARDENING")) {
+    validityBoundary = "Direct technical signal detected";
+  }
+
+  // 2. RESIDUAL RISK
+  if (severity === "high" || severity === "critical") {
+    residualRisk = "High risk — missing critical control";
+  } else if (severity === "medium") {
+    residualRisk = "Moderate risk";
+  }
+
+  // 3. REASONING ARRAY (Dynamic based on finding)
+  if (source === "intelligence") {
+    reasoning.push("Flag property declared in manifest.");
+    reasoning.push("No corresponding technical signal found in scanned files.");
+    reasoning.push("System behavior cannot be verified against regulatory requirement.");
+  } else if (validityBoundary === "Direct technical signal detected") {
+    reasoning.push(`Technical signal '${ruleId}' detected during scan.`);
+    reasoning.push("Direct evidence found in source code patterns.");
+    reasoning.push("High-confidence validation of implemented control.");
+  } else {
+    reasoning.push("Declared evidence provided in documentation/manifest.");
+    reasoning.push("Weak technical correlation detected.");
+    reasoning.push("Manual auditor review recommended for final validation.");
+  }
+
+  // 4. CONFIDENCE
+  if (source === "implementation") {
+    confidence = 0.9;
+  } else if (source === "intelligence") {
+    confidence = 0.7;
+  }
+
+  // Attach reasoning as a new object (Enriching the finding)
+  f.reasoning = {
+    validity_boundary: validityBoundary,
+    residual_risk: residualRisk,
+    reasoning: reasoning,
+    confidence: confidence
+  };
+
+  // --- EVIDENCE LAYER IMPLEMENTATION ---
+  const art = (f.article || "").toUpperCase();
+  const sigs = Array.isArray(signals) ? signals : [];
+  
+  const evidence = {
+    checked_files: [],
+    matched_patterns: [],
+    missing_patterns: [],
+    note: "No technical patterns detected within analyzed scope"
+  };
+
+  // 1. checked_files (Extract unique paths from signals)
+  const paths = new Set();
+  sigs.forEach(s => { if (s.source_path) paths.add(s.source_path); });
+  evidence.checked_files = Array.from(paths).slice(0, 5);
+  if (evidence.checked_files.length === 0) evidence.checked_files = ["Project Files (scanned)"];
+
+  // 2. patterns & matched logic
+  if (art.includes("ART. 14") || art.includes("ARTICLE 14")) {
+    evidence.missing_patterns = ["override", "kill_switch", "manual_intervention"];
+    evidence.matched_patterns = sigs.filter(s => (s.id || "").includes("HUMAN") || (s.id || "").includes("OVERRIDE")).map(s => s.id);
+  } else if (art.includes("ART. 20") || art.includes("ARTICLE 20")) {
+    evidence.missing_patterns = ["log", "trace_id", "correlation_id"];
+    evidence.matched_patterns = sigs.filter(s => (s.id || "").includes("LOG") || (s.id || "").includes("TRACE")).map(s => s.id);
+  } else if (art.includes("ART. 13") || art.includes("ARTICLE 13")) {
+    evidence.missing_patterns = ["notice", "transparency", "disclosure"];
+    evidence.matched_patterns = sigs.filter(s => (s.id || "").includes("NOTICE") || (s.id || "").includes("TRANS")).map(s => s.id);
+  } else if (art.includes("ART. 9") || art.includes("ARTICLE 9")) {
+    evidence.missing_patterns = ["risk_assessment", "mitigation", "impact_analysis"];
+    evidence.matched_patterns = sigs.filter(s => (s.id || "").includes("RISK")).map(s => s.id);
+  } else {
+    evidence.missing_patterns = ["technical_indicator_" + art.toLowerCase()];
+    evidence.matched_patterns = sigs.filter(s => (s.article || "").toUpperCase() === art).map(s => s.id);
+  }
+
+  // --- FIX 1 & 5: CONSISTENCY & DETERMINISTIC EVIDENCE TYPE ---
+  if (evidence.matched_patterns.length > 0) {
+    evidence.evidence_status = "DIRECT_DETECTION";
+    evidence.note = "Technical evidence identified in implementation";
+    f.evidence_type = "DIRECT_DETECTION";
+  } else {
+    // Check manifest for declaration
+    const flags = m.declared_flags || [];
+    let isDeclared = false;
+    if (art.includes("ART. 14")) isDeclared = flags.includes("human_oversight_enabled");
+    else if (art.includes("ART. 20")) isDeclared = flags.includes("logging_capabilities_declared");
+    else if (art.includes("ART. 13")) isDeclared = flags.includes("transparency_disclosure_provided");
+    
+    if (isDeclared || source === "intelligence") {
+      evidence.evidence_status = "DECLARED_ONLY";
+      f.evidence_type = "DECLARED_ONLY";
+    } else {
+      evidence.evidence_status = "MISSING_TECHNICAL_EVIDENCE";
+      f.evidence_type = "MISSING_TECHNICAL_EVIDENCE";
+    }
+    evidence.note = "No technical patterns detected within analyzed scope";
+  }
+
+  f.evidence = evidence;
+
+  // --- FIX 3: SCAN-SAFE FINDING ID ---
+  const scanTs = (m.audit_context && m.audit_context.timestamp) || new Date().toISOString();
+  const idSeed = `${ruleId}|${f.article || ""}|${f.source_reference || "N/A"}|${f.source_path || "N/A"}|${scanTs}`;
+  f.finding_id = crypto.createHash('sha1').update(idSeed).digest('hex');
+
+  return f.reasoning;
+}
+
+function generateArticleSummaries(findings, signals, manifest) {
+  // Handle both (findings, signals, manifest) and ({findings, signals, manifest}) signatures
+  const fSource = Array.isArray(findings) ? findings : (findings?.findings ?? []);
+
+  const articles = {};
+  let criticalCount = 0;
+
+  // 1. Group findings by article
+  fSource.forEach(f => {
+    let artKey = f.article || "Unmapped";
+    // Normalize article keys (e.g., "Art. 13" and "Article 13")
+    if ((artKey || "").toLowerCase().includes("art. 13") || (artKey || "").toLowerCase().includes("article 13")) artKey = "Art. 13";
+    else if ((artKey || "").toLowerCase().includes("art. 14") || (artKey || "").toLowerCase().includes("article 14")) artKey = "Art. 14";
+    else if ((artKey || "").toLowerCase().includes("art. 20") || (artKey || "").toLowerCase().includes("article 20")) artKey = "Art. 20";
+    else if ((artKey || "").toLowerCase().includes("art. 9") || (artKey || "").toLowerCase().includes("article 9")) artKey = "Art. 9";
+
+    if (!articles[artKey]) {
+      articles[artKey] = {
+        findings: [],
+        status: "SAFE",
+        finding_count: 0,
+        top_issues: [],
+        residual_risk: "Low risk"
+      };
+    }
+    articles[artKey].findings.push(f);
+  });
+
+  // 2. Process each article
+  Object.keys(articles).forEach(key => {
+    const art = articles[key];
+    art.finding_count = art.findings.length;
+    
+    // Top Issues (first 3 descriptions)
+    art.top_issues = art.findings.slice(0, 3).map(f => f.description);
+
+    // Status and Residual Risk
+    let strongestRisk = "Low risk";
+    const riskMap = { "Low risk": 1, "Moderate risk": 2, "High risk — missing critical control": 3 };
+
+    art.findings.forEach(f => {
+      const sev = (f.severity || "").toLowerCase();
+      if (sev === "high" || sev === "critical") art.status = "CRITICAL";
+      else if (sev === "medium" && art.status !== "CRITICAL") art.status = "REGRESSED";
+
+      const currentRisk = f.reasoning?.residual_risk || "Low risk";
+      if ((riskMap[currentRisk] || 0) > (riskMap[strongestRisk] || 0)) {
+        strongestRisk = currentRisk;
+      }
+    });
+
+    art.residual_risk = strongestRisk;
+    if (art.status === "CRITICAL") criticalCount++;
+
+    // Remove internal findings array from output
+    delete art.findings;
+  });
+
+  // 3. Audit Readiness
+  let readiness = "HIGH";
+  if (criticalCount >= 2) readiness = "LOW";
+  else if (criticalCount === 1) readiness = "MEDIUM";
+
+  // 4. Overall Summary
+  const artCount = Object.keys(articles).length;
+  const totalFindings = fSource.length;
+  let overallSummary = `System audit identifies ${totalFindings} findings across ${artCount} regulatory articles. `;
+  if (readiness === "HIGH") overallSummary += "Overall posture is defensive and aligned with technical standards.";
+  else if (readiness === "MEDIUM") overallSummary += "Moderate risk detected in a single article area. Remediation focuses on immediate hardening.";
+  else overallSummary += `Critical structural deficiencies identified in ${criticalCount} articles. Strategic intervention required.`;
+
+  const attestation = auditAttestation({ articles, overall_summary: overallSummary, audit_readiness: readiness }, fSource);
+
+  // --- FINAL DEFENSIBILITY HARDENING (SAFE MODE) ---
+  const sigCount = Array.isArray(signals) ? signals.length : 0;
+  const signalCoverage = sigCount === 0 ? "LOW" : (sigCount < 5 ? "MEDIUM" : "HIGH");
+
+  // Safe Language Adjustment (Summary & Attestation Note only)
+  const safeSummary = overallSummary.replace(/contradiction detected/gi, "claim not supported by detected technical evidence");
+  if (attestation.auditor_note) {
+    attestation.auditor_note = attestation.auditor_note.replace(/contradiction detected/gi, "claim not supported by detected technical evidence");
+  }
+
+  // --- GLOBAL HARDENING & WORDING OVERRIDING ---
+  const hardenLanguage = (text) => {
+    if (!text) return text;
+    return text
+      .replace(/contradiction detected/gi, "claim not supported by detected technical evidence")
+      .replace(/no evidence found/gi, "no technical signals detected within the analyzed scope");
+  };
+
+  return {
+    articles,
+    overall_summary: hardenLanguage(overallSummary),
+    audit_readiness: readiness,
+    auditor_attestation: {
+      ...attestation,
+      auditor_note: hardenLanguage(attestation.auditor_note)
+    },
+    audit_scope: {
+      type: "repository_analysis",
+      method: "pattern-based detection",
+      coverage: "static code analysis",
+      limitations: [
+        "External services and infrastructure not analyzed",
+        "Binary or SDK-based implementations not visible",
+        "Functional correctness not guaranteed"
+      ]
+    },
+    audit_confidence: {
+      signal_coverage: signalCoverage,
+      verification_level: "PATTERN_BASED",
+      determinism: "DETERMINISTIC (static analysis)",
+      determinism_note: "Semantic evaluation layers (if enabled) may introduce non-deterministic behavior. Disable via SENTINEL_LLM_PROVIDER=none for fully deterministic output."
+    },
+    next_step: {
+      required: true,
+      type: "manual_audit_required",
+      reason: "Automated scan provides technical evidence but not full system verification"
+    },
+    audit_limitations: {
+      epistemic_status: "NON_EXHAUSTIVE_ANALYSIS",
+      statement: "Absence of detected signals does not guarantee absence of implementation.",
+      risk: "Controls may exist outside scanned scope or via abstraction layers",
+      audit_caveats: [
+        "Compensating controls outside repository are not evaluated",
+        "Runtime system behavior is not verified",
+        "Production vs scanned code equivalence is not guaranteed"
+      ]
+    },
+    audit_boundary: {
+      "scope": "repository_only",
+      "exclusions": [
+        "external services",
+        "cloud infrastructure",
+        "private SDKs",
+        "unscanned repositories"
+      ]
+    }
+  };
+}
+
+function auditAttestation(summaries, findings) {
+  const readiness = summaries?.audit_readiness ?? "LOW";
+  const statusMap = { "HIGH": "SUPPORTED", "MEDIUM": "PENDING", "LOW": "UNSUPPORTED" };
+  
+  const basis = [];
+  const criticalArticles = Object.keys(summaries?.articles ?? {}).filter(k => summaries.articles[k].status === "CRITICAL");
+  
+  if (criticalArticles.length > 0) {
+    basis.push(`Critical findings identified in ${criticalArticles.slice(0, 2).join(", ")}.`);
+  }
+  
+  const highSevFindings = (findings ?? []).filter(f => (f.severity || "").toLowerCase() === "high" || (f.severity || "").toLowerCase() === "critical");
+  if (highSevFindings.length > 0) {
+    basis.push(`${highSevFindings.length} high-severity technical gaps detected.`);
+  }
+
+  if (basis.length < 3) {
+    basis.push("System lacks recursive technical verification for declared compliance flags.");
+  }
+
+  let auditorNote = "";
+  if (readiness === "HIGH") {
+    auditorNote = "Technical signals support the declared controls within analyzed scope and support further auditor review.";
+  } else if (readiness === "MEDIUM") {
+    auditorNote = "Partial technical support was identified. Targeted remediation and manual validation are recommended before auditor reliance.";
+  } else {
+    auditorNote = "Material technical evidence gaps remain within analyzed scope. Structured remediation is recommended before auditor reliance.";
+  }
+
+  return {
+    status: statusMap[readiness] || "UNSUPPORTED",
+    basis: basis.slice(0, 3),
+    auditor_note: auditorNote
+  };
+}
+
+function correlateFindings() {
+  return;
+}
+
+function sanitize(obj) {
+  return obj;
+}
+
+module.exports = {
+  analyzeSubstance,
+  checkConsistency,
+  detectDocumentContradictions,
+  applyReasoning,
+  generateArticleSummaries,
+  auditAttestation,
+  correlateFindings,
+  sanitize
+};

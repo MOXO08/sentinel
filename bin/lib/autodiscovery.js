@@ -108,7 +108,7 @@ function buildDependencyGraph(repoFiles) {
 
 const EXCLUDED_DIRS = [
   'node_modules', 'dist', 'build', 'coverage', '.git', 'bin', 'pkg-node',
-  'vendor', 'target', 'obj', 'bin-builds', '.next', '.astro'
+  'vendor', 'target', 'obj', 'bin-builds', '.next', '.astro', '.sentinel'
 ];
 
 const EXCLUDED_FILES = [
@@ -241,13 +241,19 @@ function extractSignals(repoFiles, rules, probingRules = null, dependencyGraph =
            }
         }
         for (const [dep, ver] of Object.entries(deps)) {
-          if (rules.dependencies[dep]) {
+          const rule = rules.dependencies[dep];
+          if (rule) {
             signals.push({
               id: `DEP_${dep.toUpperCase()}`,
               kind: 'dependency',
               source_path: file.path,
               confidence: 1.0,
-              evidence_weight: rules.dependencies[dep].weight || 0.5
+              evidence_weight: rule.weight || 0.5,
+              rule_id: rule.rule_id || `EUAI-DEP-${dep.toUpperCase()}`,
+              source_type: rule.source_type || 'technical',
+              source_reference: rule.source_reference,
+              enforcement_level: rule.enforcement_level || 'informational',
+              authority_mapping: rule.authority_mapping
             });
           }
         }
@@ -287,10 +293,13 @@ function extractSignals(repoFiles, rules, probingRules = null, dependencyGraph =
                 id: `CODE_${rule.id}`,
                 kind: rule.kind || 'code_signature',
                 source_path: file.path,
-                structural_type: structType,
-                confidence: structType === 'literal' ? 0.3 : 0.8,
+                confidence: 0.8,
                 evidence_weight: rule.weight || 0.5,
-                imports: fileImports
+                rule_id: rule.rule_id || `EUAI-CODE-${rule.id}`,
+                source_type: rule.source_type || 'technical',
+                source_reference: rule.source_reference,
+                enforcement_level: rule.enforcement_level || 'informational',
+                authority_mapping: rule.authority_mapping
               });
             }
           }
@@ -326,17 +335,17 @@ function extractSignals(repoFiles, rules, probingRules = null, dependencyGraph =
                   signals.push({
                     id: ps.id,
                     kind: ps.kind || 'hardening_probe',
-                    probe_type: type,
                     source_path: file.path,
-                    structural_type: structType,
                     article: probe.article,
-                    confidence: structType === 'literal' ? 0.2 : (ps.weight || defaultWeight),
+                    confidence: ps.weight || defaultWeight,
                     evidence_weight: ps.weight || defaultWeight,
-                    matched_text: match[0],
                     line: lineNum,
                     snippet: (lines[lineNum - 1] || '').trim(),
-                    evidence_context: extractContext(lines, lineNum),
-                    imports: fileImports
+                    rule_id: ps.rule_id || probe.rule_id || `EUAI-PROBE-${ps.id}`,
+                    source_type: ps.source_type || probe.source_type || 'technical',
+                    source_reference: ps.source_reference || probe.source_reference,
+                    enforcement_level: ps.enforcement_level || probe.enforcement_level || 'mandatory',
+                    authority_mapping: ps.authority_mapping || probe.authority_mapping
                   });
                   if (type === 'strong' && isDebug) {
                     console.log(`[FORENSIC] Signal Match: ${ps.id} in ${file.path}:${lineNum}`);
@@ -399,7 +408,11 @@ function extractSignals(repoFiles, rules, probingRules = null, dependencyGraph =
          line: 1,
          snippet: `[BEHAVIORAL HEURISTIC] High suspicion of obfuscated or non-standard AI integration. Score: ${suspicionScore}`,
          source_sha256: "unknown",
-         evidence_sha256: "unknown"
+         evidence_sha256: "unknown",
+         rule_id: "EUAI-BEHAVIOR-001",
+         source_type: "inference",
+         enforcement_level: "critical",
+         authority_mapping: { "framework": "EU AI Act", "article": "Article 6", "notes": "Behavioral suspicion of high-risk obfuscation" }
        });
     }
   }
@@ -565,7 +578,7 @@ function analyzeBehavioralSuspicion(repoFiles) {
  */
 function detectHeuristicIntent(repoFiles) {
   const aiKeywords = [
-    'ai-', '-ai', 'gpt', 'llm', 'bot', 'chat', 'intelligence', 'classifier', 'prediction',
+    'ai-app', 'ai-service', 'ai-model', 'gpt', 'llm', 'bot', 'chat', 'intelligence', 'classifier', 'prediction',
     'transformer', 'hugging', 'torch', 'tensor', 'learning', 'embedding', 'vector', 'inference', 'vision', 'neural'
   ];
   
@@ -611,7 +624,7 @@ function verifyAlignment(manifest, signals) {
       type: 'MISSING_FLAG',
       detected: 'Biometric Capability',
       severity: 'HIGH',
-      recommendation: 'Add "biometric_identification_enabled" to your declared_flags and ensure compliance with Art. 10.'
+      recommendation: 'Add "biometric_identification_enabled" to your declared_flags and ensure compliance with Article 10.'
     });
   }
 

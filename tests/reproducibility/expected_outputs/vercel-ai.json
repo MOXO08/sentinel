@@ -28,7 +28,7 @@
     ],
     "result": "NOT DECLARED",
     "technicalStatement": "Declaration consistency check not performed because context was not declared",
-    "note": "Declaration consistency is based on manifest declarations and repository-scoped technical evidence only. It is not a legal classification."
+    "note": "Declaration consistency is based on manifest declarations and repository-scoped technical evidence only. It is not a regulatory classification."
   },
   "_executive_summary": {
     "aiUsage": "Production AI usage",
@@ -73819,7 +73819,7 @@
         "fix_snippet": "console.log('Cleaning up', appPath);",
         "hardening_verdict": "FAIL",
         "search_metadata": {
-          "files_scanned": 1760,
+          "files_scanned": 1718,
           "patterns": [
             "winston",
             "pino",
@@ -73841,7 +73841,7 @@
         "fix_snippet": "Implement Python manual override hook using a decorator or function. Create a sentinel_override() wrapper function.",
         "hardening_verdict": "FAIL",
         "search_metadata": {
-          "files_scanned": 1760,
+          "files_scanned": 1718,
           "patterns": [
             "manual_override|user_confirmation|force_override",
             "emergency_stop|kill_switch|panic_button",
@@ -73860,7 +73860,7 @@
         "fix_snippet": "No specific code location identified. Apply recommended Python compliance control at the primary AI execution entry point.",
         "hardening_verdict": "FAIL",
         "search_metadata": {
-          "files_scanned": 1760,
+          "files_scanned": 1718,
           "patterns": [
             "ai_disclosure_provided|transparency_label|powered_by_ai",
             "about_this_ai|system_card"
@@ -73884,7 +73884,7 @@
           "evidence_hash": "SIG-1153CB4635E1E289"
         },
         "search_metadata": {
-          "files_scanned": 1760,
+          "files_scanned": 1718,
           "patterns": [
             "\\b(generateText|generateObject|streamText|streamObject|useChat|useCompletion|useObject|complete|predict|chat|invoke|run)\\b(?:<[^>]+>)?\\s*\\(",
             "export\\s+function\\s+(generate|stream|predict|createAI)",
@@ -73896,13 +73896,8 @@
         "connectivity": {
           "identifier": "Chat",
           "definition": "content\\cookbook\\00-guides\\01-rag-chatbot.mdx",
-          "reference_count": 360,
+          "reference_count": 355,
           "files": [
-            ".sentinel\\vault\\audit_2a67b7943b02d5d9.json",
-            ".sentinel\\vault\\audit_6310a5102c2365a9.json",
-            ".sentinel\\vault\\audit_9b9eba0362e629fb.json",
-            ".sentinel\\vault\\audit_c5be4da48bf3286b.json",
-            ".sentinel\\vault\\audit_cbe71b415a11aaf0.json",
             "content\\cookbook\\00-guides\\02-multi-modal-chatbot.mdx",
             "content\\cookbook\\00-guides\\03-slackbot.mdx",
             "content\\cookbook\\00-guides\\17-gemini.mdx",
@@ -74082,7 +74077,7 @@
           "evidence_hash": "SIG-BCB6B463B9D63BA9"
         },
         "search_metadata": {
-          "files_scanned": 1760,
+          "files_scanned": 1718,
           "patterns": [
             "fetch\\s*\\(|axios\\.(get|post|request)|http\\.request\\(|https\\.request\\(|urllib\\.request",
             "new\\s+WebSocket\\(|socket\\.io|net\\.createConnection",
@@ -74092,21 +74087,10 @@
         "connectivity": {
           "identifier": "response",
           "definition": ".github\\scripts\\notify-released\\index.mjs",
-          "reference_count": 11008,
+          "reference_count": 10708,
           "files": [
             ".changeset\\cool-toes-cough.md",
             ".oxlintrc.json",
-            ".sentinel\\vault\\audit_008ad6a85aedda4b.json",
-            ".sentinel\\vault\\audit_2a67b7943b02d5d9.json",
-            ".sentinel\\vault\\audit_3ecf138098f01d65.json",
-            ".sentinel\\vault\\audit_5f33bcdcf6d256f9.json",
-            ".sentinel\\vault\\audit_6310a5102c2365a9.json",
-            ".sentinel\\vault\\audit_66b906d6f56c69b4.json",
-            ".sentinel\\vault\\audit_9b9eba0362e629fb.json",
-            ".sentinel\\vault\\audit_b62d222c25b3b3f2.json",
-            ".sentinel\\vault\\audit_bdb372a1596f0c63.json",
-            ".sentinel\\vault\\audit_c5be4da48bf3286b.json",
-            ".sentinel\\vault\\audit_cbe71b415a11aaf0.json",
             "architecture\\stream-text-loop-control.md",
             "content\\cookbook\\00-guides\\01-rag-chatbot.mdx",
             "content\\cookbook\\00-guides\\02-multi-modal-chatbot.mdx",
@@ -74504,6 +74488,6 @@
         }
       }
     ],
-    "files": 1760
+    "files": 1718
   }
 }

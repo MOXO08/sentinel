@@ -164,11 +164,11 @@ function assignDocToArticle(content, docsMap) {
   const lowerContent = content.toLowerCase();
   let article = null;
 
-  if (lowerContent.includes("transparency") || lowerContent.includes("disclosure")) article = "Art. 13";
-  else if (lowerContent.includes("oversight") || lowerContent.includes("human control") || lowerContent.includes("approval")) article = "Art. 14";
-  else if (lowerContent.includes("logging") || lowerContent.includes("audit") || lowerContent.includes("traceability")) article = "Art. 20";
-  else if (lowerContent.includes("risk") || lowerContent.includes("hazard") || lowerContent.includes("safety")) article = "Art. 9";
-  else if (lowerContent.includes("data") || lowerContent.includes("training") || lowerContent.includes("dataset")) article = "Art. 10";
+  if (lowerContent.includes("transparency") || lowerContent.includes("disclosure")) article = "Article 13";
+  else if (lowerContent.includes("oversight") || lowerContent.includes("human control") || lowerContent.includes("approval")) article = "Article 14";
+  else if (lowerContent.includes("logging") || lowerContent.includes("audit") || lowerContent.includes("traceability")) article = "Article 20";
+  else if (lowerContent.includes("risk") || lowerContent.includes("hazard") || lowerContent.includes("safety")) article = "Article 9";
+  else if (lowerContent.includes("data") || lowerContent.includes("training") || lowerContent.includes("dataset")) article = "Article 10";
 
   if (article && !docsMap[article]) {
     docsMap[article] = content;

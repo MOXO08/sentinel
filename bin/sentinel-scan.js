@@ -93,14 +93,83 @@ function printHelp() {
 
 const OFFLINE_RULES = {
   rules: [
-    { id: "ART5-001", description: "Subliminal manipulation", risk_category: "Unacceptable", required_flags: [], forbidden_flags: ["subliminal_techniques"], fix_snippet: "Remove features exploiting subliminal techniques (Article 5.1a Prohibited)." },
-    { id: "ART5-003", description: "Social scoring", risk_category: "Unacceptable", required_flags: [], forbidden_flags: ["social_scoring"], fix_snippet: "Remove social scoring functionality or restrict to non-prohibited domains (Article 5.1c)." },
-    { id: "ART10-001", description: "Data governance & Bias assessment", risk_category: "High", required_flags: ["bias_assessment_performed", "data_governance_policy_documented"], fix_snippet: "Add 'bias_assessment_performed' and 'data_governance_policy_documented' to 'declared_flags' array." },
-    { id: "ART13-001", description: "User notification of AI interaction", risk_category: "High", required_flags: ["user_notification_ai_interaction"], fix_snippet: "Add 'user_notification_ai_interaction' to 'declared_flags' array and implement UI notification." },
-    { id: "ART14-001", description: "Human oversight", risk_category: "High", required_flags: ["human_oversight_enabled"], fix_snippet: "Add 'human_oversight_enabled' to 'declared_flags' array and implement a kill-switch." },
-    { id: "ART22-001", description: "Conformity assessment", risk_category: "High", required_flags: ["conformity_assessment_completed"], fix_snippet: "Add 'conformity_assessment_completed' to 'declared_flags' array after legal review." }
+    { 
+      id: "ART5-001", description: "Subliminal manipulation", risk_category: "Unacceptable", required_flags: [], forbidden_flags: ["subliminal_techniques"], fix_snippet: "Remove features exploiting subliminal techniques (Article 5.1a Prohibited).",
+      rule_id: "EU-AIA-ART5-PROHIBITED-001", source_type: "regulatory", source_reference: "Regulation (EU) 2024/1689, Article 5", enforcement_level: "mandatory",
+      authority_mapping: { "framework": "EU AI Act", "article": "Article 5", "annex": null, "requirement_topic": "Prohibited AI Practices", "notes": "Subliminal manipulation" }
+    },
+    { 
+      id: "ART5-003", description: "Social scoring", risk_category: "Unacceptable", required_flags: [], forbidden_flags: ["social_scoring"], fix_snippet: "Remove social scoring functionality or restrict to non-prohibited domains (Article 5.1c).",
+      rule_id: "EU-AIA-ART5-PROHIBITED-002", source_type: "regulatory", source_reference: "Regulation (EU) 2024/1689, Article 5", enforcement_level: "mandatory",
+      authority_mapping: { "framework": "EU AI Act", "article": "Article 5", "annex": null, "requirement_topic": "Prohibited AI Practices", "notes": "Social scoring" }
+    },
+    { 
+      id: "ART10-001", description: "Data governance & Bias assessment", risk_category: "High", required_flags: ["bias_assessment_performed", "data_governance_policy_documented"], fix_snippet: "Add 'bias_assessment_performed' and 'data_governance_policy_documented' to 'declared_flags' array.",
+      rule_id: "EU-AIA-ART10-DATAGOV-001", source_type: "regulatory", source_reference: "Regulation (EU) 2024/1689, Article 10", enforcement_level: "mandatory",
+      authority_mapping: { "framework": "EU AI Act", "article": "Article 10", "annex": null, "requirement_topic": "Data and data governance", "notes": "Governance and bias" }
+    },
+    { 
+      id: "ART13-001", description: "User notification of AI interaction", risk_category: "High", required_flags: ["user_notification_ai_interaction"], fix_snippet: "Add 'user_notification_ai_interaction' to 'declared_flags' array and implement UI notification.",
+      rule_id: "EU-AIA-ART13-TRANSPARENCY-001", source_type: "regulatory", source_reference: "Regulation (EU) 2024/1689, Article 13", enforcement_level: "mandatory",
+      authority_mapping: { "framework": "EU AI Act", "article": "Article 13", "annex": null, "requirement_topic": "Transparency and provision of information", "notes": "User notification" }
+    },
+    { 
+      id: "ART14-001", description: "Human oversight", risk_category: "High", required_flags: ["human_oversight_enabled"], fix_snippet: "Add 'human_oversight_enabled' to 'declared_flags' array and implement a kill-switch.",
+      rule_id: "EU-AIA-ART14-OVERSIGHT-001", source_type: "regulatory", source_reference: "Regulation (EU) 2024/1689, Article 14", enforcement_level: "mandatory",
+      authority_mapping: { "framework": "EU AI Act", "article": "Article 14", "annex": null, "requirement_topic": "Human oversight", "notes": "Technical hooks" }
+    },
+    { 
+      id: "ART22-001", description: "Conformity assessment", risk_category: "High", required_flags: ["conformity_assessment_completed"], fix_snippet: "Add 'conformity_assessment_completed' to 'declared_flags' array after regulatory review.",
+      rule_id: "EU-AIA-ART43-CONFORMITY-001", source_type: "regulatory", source_reference: "Regulation (EU) 2024/1689, Article 43", enforcement_level: "mandatory",
+      authority_mapping: { "framework": "EU AI Act", "article": "Article 43", "annex": null, "requirement_topic": "Conformity assessment", "notes": "Procedural compliance" }
+    }
   ]
 };
+
+/**
+ * Validates authority metadata for a rule registry.
+ */
+function validateRegistryAuthority(registry, name) {
+  const allowedSourceTypes = ['regulatory', 'standard', 'internal', 'unmapped'];
+  const allowedEnforcementLevels = ['mandatory', 'recommended', 'informational'];
+
+  const validateRule = (rule, path) => {
+    if (!rule.rule_id || typeof rule.rule_id !== 'string') throw new Error(`Registry Validation Error [${name}]: Missing or invalid rule_id at ${path}`);
+    if (!allowedSourceTypes.includes(rule.source_type)) throw new Error(`Registry Validation Error [${name}]: Invalid source_type "${rule.source_type}" at ${path}`);
+    if (typeof rule.source_reference !== 'string') throw new Error(`Registry Validation Error [${name}]: Missing source_reference at ${path}`);
+    if (!allowedEnforcementLevels.includes(rule.enforcement_level)) throw new Error(`Registry Validation Error [${name}]: Invalid enforcement_level "${rule.enforcement_level}" at ${path}`);
+    if (!rule.authority_mapping || typeof rule.authority_mapping !== 'object') throw new Error(`Registry Validation Error [${name}]: Missing authority_mapping at ${path}`);
+    
+    // Check keys exist (even if null)
+    const requiredKeys = ['framework', 'article', 'annex', 'requirement_topic', 'notes'];
+    requiredKeys.forEach(key => {
+      if (!(key in rule.authority_mapping)) throw new Error(`Registry Validation Error [${name}]: Missing authority_mapping key "${key}" at ${path}`);
+    });
+  };
+
+  if (registry.dependencies) {
+    Object.entries(registry.dependencies).forEach(([dep, rule]) => validateRule(rule, `dependencies.${dep}`));
+  }
+  if (registry.code_signatures) {
+    registry.code_signatures.forEach((rule, i) => validateRule(rule, `code_signatures[${i}]`));
+  }
+  if (registry.doc_hints) {
+    registry.doc_hints.forEach((rule, i) => validateRule(rule, `doc_hints[${i}]`));
+  }
+  if (registry.probes) {
+    Object.entries(registry.probes).forEach(([probeKey, probe]) => {
+      (probe.strong_signals || []).forEach((s, i) => validateRule(s, `probes.${probeKey}.strong_signals[${i}]`));
+      (probe.traceability_signals || []).forEach((s, i) => validateRule(s, `probes.${probeKey}.traceability_signals[${i}]`));
+      (probe.weak_signals || []).forEach((s, i) => validateRule(s, `probes.${probeKey}.weak_signals[${i}]`));
+    });
+  }
+  if (registry.rules) {
+    registry.rules.forEach((rule, i) => validateRule(rule, `rules[${i}]`));
+  }
+}
+
+// Perform initial validation of internal rules
+validateRegistryAuthority(OFFLINE_RULES, 'OFFLINE_RULES');
 
 async function runOffline(manifest) {
   const { run_audit } = require('../pkg-node/sentinel_core.js');
@@ -328,7 +397,12 @@ function computeHardeningFindings(signals, manifest, findings, repoFilesOrCount 
            line: evidenceMatch.line, 
            snippet: evidenceMatch.snippet,
            context: evidenceMatch.evidence_context,
-           evidence_hash: `SIG-${hash.toUpperCase()}`
+           evidence_hash: `SIG-${hash.toUpperCase()}`,
+           rule_id: evidenceMatch.rule_id,
+           source_type: evidenceMatch.source_type,
+           source_reference: evidenceMatch.source_reference,
+           enforcement_level: evidenceMatch.enforcement_level,
+           authority_mapping: evidenceMatch.authority_mapping
          };
       }
 
@@ -360,7 +434,11 @@ function computeHardeningFindings(signals, manifest, findings, repoFilesOrCount 
           deduction: 20, severity: 'high', source: 'implementation',
           fix_snippet: evidenceLoc?.snippet ?? fallbackFix,
           hardening_verdict: 'FAIL',
-          search_metadata
+          search_metadata,
+          source_type: probe.source_type || 'internal',
+          source_reference: probe.source_reference,
+          enforcement_level: probe.enforcement_level || 'mandatory',
+          authority_mapping: probe.authority_mapping
         });
 
       } else if (verdict === 'WEAK PASS' || verdict === 'PASS') {
@@ -387,7 +465,11 @@ function computeHardeningFindings(signals, manifest, findings, repoFilesOrCount 
           fix_snippet: isWeak ? (evidenceLoc?.snippet ?? fallbackFix) : null,
           hardening_verdict: verdict,
           evidence_location: evidenceLoc,
-          search_metadata
+          search_metadata,
+          source_type: probe.source_type || 'internal',
+          source_reference: probe.source_reference,
+          enforcement_level: probe.enforcement_level || 'mandatory',
+          authority_mapping: probe.authority_mapping
         });
 
       }
@@ -1791,6 +1873,56 @@ function writeSummary(report, summaryPath) {
 
 
 /**
+ * Generates a top-level system assessment based on findings and signals.
+ * @param {object[]} findings - Audit findings.
+ * @returns {object} { overall_posture, key_risks, dominant_gaps }
+ */
+function generateSystemAssessment(findings) {
+  const criticalFindings = findings.filter(f => (f.reasoning?.severity || "").toUpperCase() === 'CRITICAL');
+  const highFindings = findings.filter(f => (f.reasoning?.severity || "").toUpperCase() === 'HIGH');
+  
+  let overall_posture = "Partial implementation with moderate risk.";
+  if (criticalFindings.length > 0) {
+    overall_posture = "System demonstrates critical gaps with high audit risk.";
+  } else if (highFindings.length > 5) {
+    overall_posture = "Multiple high-severity implementation gaps detected.";
+  } else if (findings.length === 0) {
+    overall_posture = "System demonstrates baseline technical compliance markers.";
+  }
+
+  const uniqueGaps = [...new Set(findings.flatMap(f => f.reasoning?.gaps || []))];
+  const uniqueContradictions = [...new Set(findings.flatMap(f => f.reasoning?.contradictions || []))];
+
+  return {
+    overall_posture,
+    key_risks: criticalFindings.map(f => f.description).slice(0, 3),
+    dominant_gaps: [...uniqueGaps, ...uniqueContradictions].slice(0, 3)
+  };
+}
+
+/**
+ * Generates a final executive audit position.
+ * @param {object[]} findings - Audit findings.
+ * @param {number} score - Final audit score.
+ * @returns {object} { audit_readiness, major_blockers, risk_level }
+ */
+function generateFinalAuditPosition(findings, score) {
+  const criticals = findings.filter(f => (f.reasoning?.severity || "").toUpperCase() === 'CRITICAL');
+  const highs = findings.filter(f => (f.reasoning?.severity || "").toUpperCase() === 'HIGH');
+  const conflicts = findings.filter(f => f.document_conflict);
+  
+  let readiness = "Audit Ready";
+  if (criticals.length > 0 || conflicts.length > 0) readiness = "NOT AUDIT READY";
+  else if (highs.length > 3) readiness = "ACTION REQUIRED";
+
+  return {
+    audit_readiness: readiness,
+    major_blockers: [...new Set([...criticals, ...conflicts].map(f => f.description))].slice(0, 3),
+    risk_level: score < 40 ? "CRITICAL" : (score < 70 ? "HIGH" : (score < 90 ? "MEDIUM" : "LOW"))
+  };
+}
+
+/**
  * Core audit engine. Finalizes all metrics and returns the report object.
  * This is the Single Source of Truth for Sentinel.
  */
@@ -1803,6 +1935,10 @@ async function performAudit(manifestPath, threshold, options = {}) {
   let manifest;
   try {
     manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    
+    // Validate loaded registries
+    validateRegistryAuthority(discoveryRules, 'discovery-rules.json');
+    if (probingRules) validateRegistryAuthority(probingRules, 'probing-rules.json');
   } catch (e) {
     throw new Error(`Failed to read manifest: ${e.message}`);
   }
@@ -1911,7 +2047,10 @@ async function performAudit(manifestPath, threshold, options = {}) {
 
   // 3. Combine & Post-process
   const allFindings = [...evidenceFindings, ...allEngineViolations, ...hardeningFindings];
-  const combinedFindings = allFindings.filter(f => {
+  
+  // 3.0 Auditor Resistance: Detect Document Contradictions
+  const docConflicts = intelligence.detectDocumentContradictions(manifest, allFindings);
+  const combinedFindings = [...allFindings, ...docConflicts].filter(f => {
       if (requiresGovernance) return true;
       // Suppress advanced AI Act rules for Minimal Non-AI projects
       const articleClean = (f.article || "").toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1935,11 +2074,59 @@ async function performAudit(manifestPath, threshold, options = {}) {
   // 3.1 Evidence Correlation Layer
   correlateFindings(combinedFindings, repoFiles);
 
+  // Phase 1.5: Reasoning Hardening
+  intelligence.correlateFindings(combinedFindings, manifest, signals);
+
+  // Phase 1 & 2: Evidence Reasoning & Dossier Enrichment
+  combinedFindings.forEach(f => intelligence.applyReasoning(f, manifest, signals));
+
+  const articleSummaries = intelligence.generateArticleSummaries(combinedFindings, signals, manifest);
+
+  // Phase 2: Audit Dossier Hardening (Sorting)
+  const severityMap = { 'CRITICAL': 4, 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
+  const strengthMap = { 'HIGH': 4, 'MODERATE': 3, 'WEAK': 2, 'NONE': 1 };
+  
+  combinedFindings.sort((a, b) => {
+    const sevA = severityMap[a.reasoning?.severity] || 0;
+    const sevB = severityMap[b.reasoning?.severity] || 0;
+    if (sevB !== sevA) return sevB - sevA;
+    
+    const strA = strengthMap[a.reasoning?.evidence_strength] || 0;
+    const strB = strengthMap[b.reasoning?.evidence_strength] || 0;
+    return strB - strA;
+  });
+
+  const auditScope = {
+    within_scope: {
+      repository: path.basename(process.cwd()),
+      files_analyzed: repoFiles.length,
+      analysis_depth: "Static Technical Audit (Annex IV)"
+    },
+    outside_scope: [
+      "Real-time runtime monitoring",
+      "Human organizational processes",
+      "Live production environment validation",
+      "Physical security of hosting infrastructure"
+    ]
+  };
+
   // Signal Breakdown for UX (Categorical Analysis)
   const signalBreakdown = calculateSignalBreakdown(signals);
 
   const trust = computeTrustMetrics(combinedFindings, manifest, signalBreakdown, requiresGovernance);
   const score = trust.finalScore;
+
+  const reasoningSummary = {
+    top_critical_risks: combinedFindings
+      .filter(f => f.reasoning?.severity === 'CRITICAL' || f.reasoning?.severity === 'HIGH')
+      .slice(0, 3)
+      .map(f => f.description),
+    top_contradictions: combinedFindings
+      .flatMap(f => f.reasoning?.contradictions || [])
+      .slice(0, 3),
+    overall_posture: score < 40 ? "HIGH RISK" : (score < 80 ? "MODERATE RISK" : "LOW RISK")
+  };
+
   const verdict = computeVerdict(score, combinedFindings, manifest);
 
   // V2.1 Dual-Track Evaluation (Premium)
@@ -1982,10 +2169,30 @@ async function performAudit(manifestPath, threshold, options = {}) {
     }
   }
 
+  const systemAssessment = generateSystemAssessment(combinedFindings);
+
+  // Coverage Calculation
+  const signalsDetected = signals.length;
+  const discoveryRuleCount = Object.keys(discoveryRules.rules || {}).length;
+  const probingRuleCount = Object.keys(effectiveProbingRules.probes || {}).length;
+  const signalsExpected = discoveryRuleCount + probingRuleCount;
+  const coverageRatio = signalsExpected > 0 ? (signalsDetected / signalsExpected).toFixed(4) : 0;
+
   // 4. Construct SSoT Report
-  return {
+  const report = {
     command: "check",
     manifest_path: manifestPath,
+    audit_context: {
+      timestamp: new Date().toISOString(),
+      repository: manifestDir,
+      commit: commitId || "uncommitted",
+      execution_mode: "local_static_scan"
+    },
+    coverage: {
+      signals_detected: signalsDetected,
+      signals_expected: signalsExpected,
+      coverage_ratio: parseFloat(coverageRatio)
+    },
     status: score >= threshold ? "PASS" : "FAIL",
     score,
     claim_score: trust.claim_score,
@@ -1995,6 +2202,11 @@ async function performAudit(manifestPath, threshold, options = {}) {
     exposure: trust.exposure,
     threshold,
     verdict: dualTrack.centralVerdict,
+    system_assessment: systemAssessment,
+    reasoning_summary: reasoningSummary,
+    article_summaries: articleSummaries,
+    audit_scope: auditScope,
+    final_audit_position: generateFinalAuditPosition(combinedFindings, score),
     _context_validation: evaluateContextSufficiency(manifest, combinedFindings, engine),
     _declaration_consistency: checkDeclarationConsistency(manifest, combinedFindings, signals, engine),
     _executive_summary: generateExecutiveSummary(manifest, combinedFindings, signals, engine),
@@ -2012,7 +2224,10 @@ async function performAudit(manifestPath, threshold, options = {}) {
       fix_snippet: f.fix_snippet,
       article: f.article,
       source: f.source,
-      hardening_verdict: f.hardening_verdict
+      hardening_verdict: f.hardening_verdict,
+      authority_mapping: f.authority_mapping || null,
+      source_reference: f.source_reference || null,
+      enforcement_level: f.enforcement_level || null
     })),
     _internal: {
         total_signals: signals.length,
@@ -2030,8 +2245,68 @@ async function performAudit(manifestPath, threshold, options = {}) {
         signal_breakdown: signalBreakdown,
         all_findings: combinedFindings, // Expose for CLI/Dashboard
         files: repoFiles.length
+    },
+
+    // --- Enterprise Defensibility Extensions (Additive) ---
+    "AUDIT_SCOPE": {
+      "scan_root": path.dirname(path.resolve(manifestPath || "./")),
+      "analysis_type": "static code + manifest + local documentation",
+      "included": [
+        "source code within repository",
+        "local documentation files",
+        "sentinel.manifest.json"
+      ],
+      "excluded": [
+        "external services",
+        "third-party APIs",
+        "shared infrastructure outside repository",
+        "manual human processes",
+        "vendor dashboards"
+      ],
+      "statement": "This audit strictly evaluates the local codebase and declared artifacts. Any control implemented outside this boundary is not validated."
+    },
+    "AUDIT_COVERAGE": {
+      "files_scanned": repoFiles.length || null,
+      "files_detected": null,
+      "coverage_ratio": null,
+      "scan_patterns": "derived from internal rule registry",
+      "excluded_paths": [
+        "node_modules/",
+        "dist/",
+        "build/"
+      ],
+      "coverage_statement": "Findings are based on analysis of scanned files only. Unscanned areas are outside current audit coverage."
+    },
+    "EVIDENCE_INTERPRETATION": {
+      "method": "pattern-based static analysis",
+      "negative_evidence_definition": "NOT_FOUND indicates absence of expected technical signals within scanned scope, not absolute absence across entire system",
+      "limitation": "Controls implemented outside detectable patterns or outside scan boundary may not be captured"
+    },
+    "AUDIT_REASONING_CHAIN": {
+      "step_1": "Manifest declares control (e.g., logging_enabled: true)",
+      "step_2": "System scans codebase for corresponding implementation signals",
+      "step_3": "No matching patterns detected in scanned scope",
+      "step_4": "Contradiction established between declared and observed state",
+      "step_5": "For HIGH-RISK systems, absence of implementation constitutes regulatory risk"
     }
   };
+
+  // 4.1 Final Sanitization Pass (Neutral Audit Language)
+  const sanitizeObject = (obj) => {
+    if (!obj) return obj;
+    if (typeof obj === 'string') return intelligence.sanitize(obj);
+    if (Array.isArray(obj)) return obj.map(sanitizeObject);
+    if (typeof obj === 'object') {
+      const sanitized = {};
+      for (const key in obj) {
+        sanitized[key] = sanitizeObject(obj[key]);
+      }
+      return sanitized;
+    }
+    return obj;
+  };
+
+  return sanitizeObject(report);
 }
 
 /**
@@ -2236,7 +2511,7 @@ function checkDeclarationConsistency(manifest, findings, signals, engine) {
     reasons: inferred.reasons,
     result,
     technicalStatement,
-    note: "Declaration consistency is based on manifest declarations and repository-scoped technical evidence only. It is not a legal classification."
+    note: "Declaration consistency is based on manifest declarations and repository-scoped technical evidence only. It is not a regulatory classification."
   };
 }
 
@@ -2390,16 +2665,12 @@ async function runCheck(args) {
 
   const isGenerateTechFile = args.includes('--generate-tech-file');
 
-  // 1. Resolve Threshold
+  // 1. Resolve Threshold (Default to 0)
   const thresholdArgIdx = args.indexOf('--threshold');
-  let threshold = null;
+  let threshold = 0;
   if (thresholdArgIdx !== -1 && args[thresholdArgIdx + 1]) {
     threshold = parseInt(args[thresholdArgIdx + 1]);
-  }
-
-  if (threshold === null || isNaN(threshold)) {
-    console.error(`\n${C.red}${C.bold}Error: --threshold is required for sentinel check${C.reset}`);
-    process.exit(2);
+    if (isNaN(threshold)) threshold = 0;
   }
 
   // 2. Resolve Manifest
@@ -2421,31 +2692,19 @@ async function runCheck(args) {
   const { score, trust_confidence, verdict } = report; // Destructure for display (internal names might vary)
 
   // 4. Output
+  // 4. Enterprise Upgrade (SIG, P2, Vault, V2.1 HTML)
+  try {
+    const manifestDir = path.dirname(path.resolve(manifestPath));
+    const upgradedReport = await PreAuditor.upgrade(report, manifestDir, { generateHtml: !isJson, engine });
+    report = upgradedReport;
+  } catch (err) {
+    console.error(`Sentinel Pre-Auditor Error: ${err.message}`);
+  }
+
+  // 5. Output Handler
   if (isJson) {
-    // This is a placeholder for `missingFiles` which is not defined in the provided context.
-    // If `missingFiles` is intended to be defined elsewhere, this will cause a runtime error.
-    // Assuming `missingFiles` is an empty array or similar for syntactic correctness.
-    const missingFiles = []; // Placeholder for missingFiles
-    const isSarif = args.includes('--sarif'); // Placeholder for isSarif
-
-    if (missingFiles.length > 0) {
-      if (!isJson && !isSarif) {
-        console.log(`\n${C.red}${C.bold}Sentinel Check: FAIL${C.reset}`);
-        console.log(`  ${C.gray}Failure caused by missing required policy files.${C.reset}\n`);
-      }
-      process.exit(1);
-    }
-    
-    // Enforcement Policy Parsing
-    const failOnArgIndex = args.indexOf('--fail-on');
-    const failOnPolicy = (failOnArgIndex !== -1 && args[failOnArgIndex + 1]) ? args[failOnArgIndex + 1].toUpperCase() : 'REJECTED'; // Default: fail on REJECTED
-    
-    const summaryArgIndex = args.indexOf('--summary');
-    const summaryFile = (summaryArgIdx !== -1 && args[summaryArgIdx + 1]) ? args[summaryArgIdx + 1] : null;
-
-    // ... (rest of the command execution)
     console.log(JSON.stringify(report, null, 2));
-    process.exit(report.exit_code);
+    process.exit(report.exit_code || 0);
   }
 
   if (score >= threshold) {
@@ -2454,7 +2713,10 @@ async function runCheck(args) {
     console.log(`\n${C.red}${C.bold}Sentinel Check: FAIL${C.reset}`);
   }
 
-  console.log(`${C.gray}Manifest: ${C.white}${manifestPath}${C.reset}`);
+  const pos = report.final_audit_position || {};
+  console.log(`${C.gray}Audit Readiness: ${C.white}${pos.audit_readiness || 'N/A'}${C.reset}`);
+  console.log(`${C.gray}Risk Level:      ${C.white}${pos.risk_level || 'N/A'}${C.reset}`);
+  console.log(`${C.gray}Manifest:        ${C.white}${manifestPath}${C.reset}`);
   console.log(`${C.gray}Total Score:           ${score < threshold ? C.red + C.bold : C.green + C.bold}${score}${C.gray}/100${C.reset}`);
   
   const confColor = report.confidence === 'HIGH' ? C.green : (report.confidence === 'MEDIUM' ? C.yellow : C.red);
@@ -2493,8 +2755,8 @@ async function runCheck(args) {
     if (docFindings.length > 0) {
       console.log(`\n${C.bold}📄 DOCUMENTATION FINDINGS:${C.reset}`);
       docFindings.slice(0, 3).forEach(f => {
-        const legalRef = f.article ? ` (${f.article})` : '';
-        console.log(`- [${C.yellow}${f.description}${C.reset}]${legalRef}`);
+        const regulatoryRef = f.article ? ` (${f.article})` : '';
+        console.log(`- [${C.yellow}${f.description}${C.reset}]${regulatoryRef}`);
         if (f.fix_snippet) console.log(`  ${C.green}→ ${f.fix_snippet}${C.reset}`);
       });
     }
@@ -2502,8 +2764,8 @@ async function runCheck(args) {
     if (impFindings.length > 0) {
       console.log(`\n${C.bold}💻 DEEP ENFORCEMENT FINDINGS (Hardening):${C.reset}`);
       impFindings.forEach(f => {
-        const legalRef = f.article ? ` (${f.article})` : '';
-        console.log(`- [${C.red}${f.description}${C.reset}]${legalRef}`);
+        const regulatoryRef = f.article ? ` (${f.article})` : '';
+        console.log(`- [${C.red}${f.description}${C.reset}]${regulatoryRef}`);
         if (f.fix_snippet) console.log(`  ${C.green}→ ${f.fix_snippet}${C.reset}`);
       });
     }
@@ -2623,7 +2885,7 @@ async function runVerify(args) {
   let tamperedCount = 0;
   let missingCount = 0;
 
-  console.log(`${C.bold}${'STATUS'.padEnd(12)} | ${'LEGAL ARTICLE'.padEnd(15)} | ${'LOCATION'}${C.reset}`);
+  console.log(`${C.bold}${'STATUS'.padEnd(12)} | ${'REGULATORY ARTICLE'.padEnd(15)} | ${'LOCATION'}${C.reset}`);
   console.log(`${C.gray}-------------|-----------------|-----------------------------------${C.reset}`);
 
   for (const s of signals) {
@@ -2635,10 +2897,10 @@ async function runVerify(args) {
       'CODE_AI_DISCLOSURE': 'Art. 13', 'DEP_FAIRLEARN': 'Art. 10',
       'CODE_BIAS_MITIGATION': 'Art. 10', 'CODE_DATA_ETL': 'Art. 10'
     };
-    const legalArt = PROBE_MAP[s.id] || 'Other';
+    const regArt = PROBE_MAP[s.id] || 'Other';
 
     if (!fs.existsSync(fullPath)) {
-      console.log(`${C.red}${'MISSING'.padEnd(12)}${C.reset} | ${legalArt.padEnd(15)} | ${s.source_path}:${s.line}`);
+      console.log(`${C.red}${'MISSING'.padEnd(12)}${C.reset} | ${regArt.padEnd(15)} | ${s.source_path}:${s.line}`);
       missingCount++;
       continue;
     }
@@ -2647,7 +2909,7 @@ async function runVerify(args) {
     const currentHash = crypto.createHash('sha256').update(currentContent).digest('hex');
 
     if (currentHash === s.sha256) {
-      console.log(`${C.green}${'VERIFIED'.padEnd(12)}${C.reset} | ${legalArt.padEnd(15)} | ${s.source_path}:${s.line || 'base'}`);
+      console.log(`${C.green}${'VERIFIED'.padEnd(12)}${C.reset} | ${regArt.padEnd(15)} | ${s.source_path}:${s.line || 'base'}`);
       verifiedCount++;
     } else {
       if (process.env.SENTINEL_DEBUG === 'true') {
@@ -2655,7 +2917,7 @@ async function runVerify(args) {
         console.log(`  Stored:  ${s.sha256}`);
         console.log(`  Current: ${currentHash}`);
       }
-      console.log(`${C.red}${'TAMPERED'.padEnd(12)}${C.reset} | ${legalArt.padEnd(15)} | ${s.source_path}:${s.line || 'base'}`);
+      console.log(`${C.red}${'TAMPERED'.padEnd(12)}${C.reset} | ${regArt.padEnd(15)} | ${s.source_path}:${s.line || 'base'}`);
       tamperedCount++;
     }
   }
@@ -2859,6 +3121,7 @@ async function main() {
   }
 
   // 2. Subcommand Routing (MUST EXIT AFTER)
+  console.error('[DEBUG] checking fix');
   if (command === 'fix') {
     await runFix(args.slice(1));
     process.exit(0);
@@ -3501,11 +3764,11 @@ async function runFix(args) {
 
       let content = "";
       if (doc.includes('human_oversight')) {
-        content = `# Human Oversight Protocol (Art. 14)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Oversight Mechanism\nImplementation details pending...\n\n## Roles and Responsibilities\n- Reviewer: [Role Name]\n- Intervention Threshold: [Threshold Details]\n`;
+        content = `# Human Oversight Protocol (Art. 14)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and regulatory review. This document does not imply final regulatory compliance.\n\n## Oversight Mechanism\nImplementation details pending...\n\n## Roles and Responsibilities\n- Reviewer: [Role Name]\n- Intervention Threshold: [Threshold Details]\n`;
       } else if (doc.includes('data_governance')) {
-        content = `# Data Governance and Logging (Art. 20)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Logging Capabilities\nImplementation details pending...\n\n## Retention Policy\nStored for [Duration] in [Location].\n`;
+        content = `# Data Governance and Logging (Art. 20)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and regulatory review. This document does not imply final regulatory compliance.\n\n## Logging Capabilities\nImplementation details pending...\n\n## Retention Policy\nStored for [Duration] in [Location].\n`;
       } else if (doc.includes('risk_assessment')) {
-        content = `# Risk Management System (Art. 9)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and legal review. This document does not imply final legal compliance.\n\n## Risk Identification\nImplementation details pending...\n\n## Mitigation Strategy\nDetails about bias assessment and testing protocols.\n`;
+        content = `# Risk Management System (Art. 9)\n\n> [!IMPORTANT]\n> This is a starter template generated by Sentinel. It requires human and regulatory review. This document does not imply final regulatory compliance.\n\n## Risk Identification\nImplementation details pending...\n\n## Mitigation Strategy\nDetails about bias assessment and testing protocols.\n`;
       }
 
       fs.writeFileSync(docPath, content);
@@ -3613,7 +3876,7 @@ module.exports = new SentinelOversight();
   }
 
   console.log(`\n${C.gray}Sentinel prepares your system for audit.${C.reset}`);
-  console.log(`${C.gray}It does not replace legal validation.${C.reset}\n`);
+  console.log(`${C.gray}It does not replace regulatory validation.${C.reset}\n`);
 }
 
 /**

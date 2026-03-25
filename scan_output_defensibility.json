@@ -1,0 +1,25 @@
+
+[32m[1mSentinel Check: PASS[0m
+[90mAudit Readiness: [97mAudit Ready[0m
+[90mRisk Level:      [97mHIGH[0m
+[90mManifest:        [97md:/AI Act Compliance API/validation-repos/vercel-ai/sentinel.manifest.json[0m
+[90mTotal Score:           [32m[1m60.4[90m/100[0m
+[90mTrust Confidence (╧å):  [32m[1mHIGH[0m[90m (Saturation: 100%)[0m
+[90mRisk Exposure Index:   [97m0.4[0m
+
+[36mCompliance Breakdown:[0m
+  - [97mArt. 9  [0m: [90mScore: [97m 80[90m | Weight: [97m0.25[0m
+  - [97mArt. 10 [0m: [90mScore: [97m 80[90m | Weight: [97m0.25[0m
+  - [97mArt. 13 [0m: [90mScore: [97m 61[90m | Weight: [97m0.15[0m
+  - [97mArt. 14 [0m: [90mScore: [97m 10[90m | Weight: [97m0.2[0m
+  - [97mArt. 20 [0m: [90mScore: [97m 61[90m | Weight: [97m0.15[0m
+
+[90mAudit Rigor:           [97m4401 signals extracted[0m
+[90m   Γå│ [ AI Assets: [97m6[90m | Trans: [97m2[90m | Oversight: [97m0[90m | Log: [97m827[90m ][0m
+
+[33m[1mΓÜá High-risk system detected[0m
+[36mRecommended minimum threshold: 90[0m
+
+[36m[1m≡ƒÅ¢  Audit Trail Foundation: Archiving Snapshot...[0m
+[32mΓ£ö Audit archived to .sentinel/vault/[0m
+[32mΓ£ö Professional V2.1 Audit Statement generated: sentinel-audit.html[0m

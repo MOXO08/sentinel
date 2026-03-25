@@ -3,82 +3,219 @@
   "probes": {
     "logging": {
       "article": "Art. 20",
+      "rule_id": "EU-AIA-ART20-LOGGING", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 20", "enforcement_level": "mandatory",
+      "authority_mapping": { "framework": "EU AI Act", "article": "Article 20", "annex": null, "requirement_topic": "Traceability", "notes": "Logging and automated records" },
       "strong_signals": [
-        { "id": "DEP_WINSTON", "pattern": "winston", "kind": "dependency" },
-        { "id": "DEP_PINO", "pattern": "pino", "kind": "dependency" },
-        { "id": "CODE_LOGGER_INIT", "pattern": "new Logger|createLogger|winston\\.createLogger", "kind": "code_signature_load" },
-        { "id": "SENTINEL_LOGGER", "pattern": "sentinelLog", "kind": "code_signature_call" }
+        { 
+          "id": "DEP_WINSTON", "pattern": "winston", "kind": "dependency",
+          "rule_id": "EU-AIA-ART20-LOGGING-WINSTON", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 20", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 20", "annex": null, "requirement_topic": "Traceability", "notes": "Production-grade logging library" }
+        },
+        { 
+          "id": "DEP_PINO", "pattern": "pino", "kind": "dependency",
+          "rule_id": "EU-AIA-ART20-LOGGING-PINO", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 20", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 20", "annex": null, "requirement_topic": "Traceability", "notes": "Production-grade logging library" }
+        },
+        { 
+          "id": "CODE_LOGGER_INIT", "pattern": "new Logger|createLogger|winston\\.createLogger", "kind": "code_signature_load",
+          "rule_id": "EU-AIA-ART20-LOGGING-INIT", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 20", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 20", "annex": null, "requirement_topic": "Traceability", "notes": "Logger instantiation" }
+        },
+        { 
+          "id": "SENTINEL_LOGGER", "pattern": "sentinelLog", "kind": "code_signature_call",
+          "rule_id": "EU-AIA-ART20-LOGGING-SENTINEL", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 20", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 20", "annex": null, "requirement_topic": "Traceability", "notes": "Sentinel-specific audit logging" }
+        }
       ],
       "traceability_signals": [
-        { "id": "CODE_LOG_ERROR", "pattern": "logger\\.error|console\\.error", "kind": "code_signature_call" },
-        { "id": "CODE_TRACE", "pattern": "console\\.trace|logger\\.trace", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_LOG_ERROR", "pattern": "logger\\.error|console\\.error", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART20-TRACE-ERROR", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "recommended",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Error reporting", "notes": "Supporting traceability" }
+        },
+        { 
+          "id": "CODE_TRACE", "pattern": "console\\.trace|logger\\.trace", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART20-TRACE-EXEC", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "recommended",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Execution tracing", "notes": "Supporting traceability" }
+        },
+        { 
+          "id": "CODE_PY_LOGGING", "pattern": "logging\\.|logger\\.|getLogger|basicConfig", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART20-TRACE-PY-LOG", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "recommended",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Python logging", "notes": "Art 20 traceability" }
+        },
+        { 
+          "id": "CODE_JS_LOGGING", "pattern": "console\\.log|winston|pino", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART20-TRACE-JS-LOG", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "recommended",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "JS logging", "notes": "Art 20 traceability" }
+        },
+        { 
+          "id": "CODE_TRACE_IDS", "pattern": "request_id|correlation_id|trace_id", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART20-TRACE-IDS", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "recommended",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Trace identifiers", "notes": "Art 20 traceability" }
+        }
       ],
       "weak_signals": [
-        { "id": "CODE_LOG", "pattern": "console\\.log", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_LOG", "pattern": "console\\.log", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART20-TRACE-WEAK", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "General logging", "notes": "Weak indicator" }
+        }
       ]
     },
     "data_quality": {
       "article": "Art. 10",
+      "rule_id": "EU-AIA-ART10-DATA", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 10", "enforcement_level": "mandatory",
+      "authority_mapping": { "framework": "EU AI Act", "article": "Article 10", "annex": null, "requirement_topic": "Data and data governance", "notes": "Training, validation and testing data sets" },
       "strong_signals": [
-        { "id": "CODE_BIAS_CHECK", "pattern": "fairness_metrics|bias_detection|aif360|fairlearn", "kind": "code_signature_call" },
-        { "id": "CODE_DRIFT_MONITOR", "pattern": "drift_detection|concept_drift|dvc", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_BIAS_CHECK", "pattern": "fairness_metrics|bias_detection|aif360|fairlearn", "kind": "code_signature_call",
+          "rule_id": "EU-AIA-ART10-DATAGOV-BIAS", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 10", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 10", "annex": null, "requirement_topic": "Data and data governance", "notes": "Bias assessment indicator" }
+        },
+        { 
+          "id": "CODE_DRIFT_MONITOR", "pattern": "drift_detection|concept_drift|dvc", "kind": "code_signature_call",
+          "rule_id": "EU-AIA-ART10-DATAGOV-DRIFT", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 10", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 10", "annex": null, "requirement_topic": "Data and data governance", "notes": "Model drift monitoring" }
+        }
       ],
       "weak_signals": [
-        { "id": "CODE_DATA_CLEAN", "pattern": "dropna|fillna|impute|StandardScaler|MinMaxScaler", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_DATA_CLEAN", "pattern": "dropna|fillna|impute|StandardScaler|MinMaxScaler", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART10-DATAGOV-PREP", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Data preprocessing", "notes": "General data pattern" }
+        }
       ]
     },
     "robustness": {
       "article": "Art. 15",
+      "rule_id": "EU-AIA-ART15-ROBUSTNESS", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 15", "enforcement_level": "mandatory",
+      "authority_mapping": { "framework": "EU AI Act", "article": "Article 15", "annex": null, "requirement_topic": "Accuracy, robustness and cybersecurity", "notes": "Technical resilience measures" },
       "strong_signals": [
-        { "id": "CODE_ADVERSARIAL_TEST", "pattern": "adversarial_perturbation|robustness_check|failure_injection", "kind": "code_signature_call" },
-        { "id": "CODE_STRESS_TEST", "pattern": "stress_test|load_test", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_ADVERSARIAL_TEST", "pattern": "adversarial_perturbation|robustness_check|failure_injection", "kind": "code_signature_call",
+          "rule_id": "EU-AIA-ART15-ROBUST-TEST", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 15", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 15", "annex": null, "requirement_topic": "Accuracy, robustness and cybersecurity", "notes": "Security testing" }
+        },
+        { 
+          "id": "CODE_STRESS_TEST", "pattern": "stress_test|load_test", "kind": "code_signature_call",
+          "rule_id": "EU-AIA-ART15-ROBUST-STRESS", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 15", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 15", "annex": null, "requirement_topic": "Accuracy, robustness and cybersecurity", "notes": "Robustness testing" }
+        }
       ],
       "weak_signals": [
-        { "id": "CODE_SANITIZATION", "pattern": "sanitize|escapeHTML|validateInput", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_SANITIZATION", "pattern": "sanitize|escapeHTML|validateInput", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART15-ROBUST-SAN", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Input sanitization", "notes": "Basic security pattern" }
+        }
       ]
     },
     "human_oversight": {
       "article": "Art. 14",
+      "rule_id": "EU-AIA-ART14-OVERSIGHT", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 14", "enforcement_level": "mandatory",
+      "authority_mapping": { "framework": "EU AI Act", "article": "Article 14", "annex": null, "requirement_topic": "Human oversight", "notes": "Technical controls for human-in-the-loop" },
       "strong_signals": [
-        { "id": "CODE_OVERRIDE", "pattern": "manual_override|user_confirmation|force_override", "kind": "code_signature_call" },
-        { "id": "CODE_KILL_SWITCH", "pattern": "emergency_stop|kill_switch|panic_button", "kind": "code_signature_call" },
-        { "id": "SENTINEL_OVERRIDE", "pattern": "sentinelOverride", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_OVERRIDE", "pattern": "manual_override|user_confirmation|force_override", "kind": "code_signature_call",
+          "rule_id": "EU-AIA-ART14-OVERSIGHT-OVERRIDE", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 14", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 14", "annex": null, "requirement_topic": "Human oversight", "notes": "Technical override hook" }
+        },
+        { 
+          "id": "CODE_KILL_SWITCH", "pattern": "emergency_stop|kill_switch|panic_button", "kind": "code_signature_call",
+          "rule_id": "EU-AIA-ART14-OVERSIGHT-STOP", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 14", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 14", "annex": null, "requirement_topic": "Human oversight", "notes": "Emergency stop mechanism" }
+        },
+        { 
+          "id": "SENTINEL_OVERRIDE", "pattern": "sentinelOverride", "kind": "code_signature_call",
+          "rule_id": "EU-AIA-ART14-OVERSIGHT-SENTINEL", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 14", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 14", "annex": null, "requirement_topic": "Human oversight", "notes": "Sentinel-specific override hook" }
+        }
       ],
       "weak_signals": [
-        { "id": "CODE_HUMAN_CHECK", "pattern": "validate_by_human|human_check", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_HUMAN_CHECK", "pattern": "validate_by_human|human_check", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART14-OVERSIGHT-HUMAN", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Human review mentions", "notes": "Documentation indicator" }
+        }
       ]
     },
     "ai_transparency": {
       "article": "Art. 13",
+      "rule_id": "EU-AIA-ART13-TRANS", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 13", "enforcement_level": "mandatory",
+      "authority_mapping": { "framework": "EU AI Act", "article": "Article 13", "annex": null, "requirement_topic": "Transparency and provision of information", "notes": "User awareness of AI interaction" },
       "strong_signals": [
-        { "id": "CODE_DISCLOSURE", "pattern": "ai_disclosure_provided|transparency_label|powered_by_ai", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_DISCLOSURE", "pattern": "ai_disclosure_provided|transparency_label|powered_by_ai", "kind": "code_signature_call",
+          "rule_id": "EU-AIA-ART13-TRANS-DISCLOSURE", "source_type": "regulatory", "source_reference": "Regulation (EU) 2024/1689, Article 13", "enforcement_level": "mandatory",
+          "authority_mapping": { "framework": "EU AI Act", "article": "Article 13", "annex": null, "requirement_topic": "Transparency and provision of information", "notes": "UI disclosure indicator" }
+        }
       ],
       "weak_signals": [
-        { "id": "CODE_SYSTEM_INFO", "pattern": "about_this_ai|system_card", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_SYSTEM_INFO", "pattern": "about_this_ai|system_card", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-ART13-TRANS-INFO", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "General system info", "notes": "Supporting transparency" }
+        }
       ]
     },
     "ai_execution": {
       "article": "EXECUTION",
+      "rule_id": "INTERNAL-EXEC-DETECTION", "source_type": "internal", "source_reference": "Sentinel logic inference engine", "enforcement_level": "informational",
+      "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Execution Logic", "notes": "Technical boundary detection" },
       "strong_signals": [
-        { "id": "CODE_AI_CALL", "pattern": "\\b(generateText|generateObject|streamText|streamObject|useChat|useCompletion|useObject|complete|predict|chat|invoke|run)\\b(?:<[^>]+>)?\\s*\\(", "kind": "code_signature_call" },
-        { "id": "CODE_AI_EXPORT", "pattern": "export\\s+function\\s+(generate|stream|predict|createAI)", "kind": "code_signature_call" },
-        { "id": "CODE_AI_MODEL_INIT", "pattern": "new\\s+(OpenAI|Anthropic|GoogleGenerativeAI|Mistral)\\b(?:<[^>]+>)?\\s*\\(", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_AI_CALL", "pattern": "\\b(generateText|generateObject|streamText|streamObject|useChat|useCompletion|useObject|complete|predict|chat|invoke|run)\\b(?:<[^>]+>)?\\s*\\(", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-EXEC-AI_CALL", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "AI model execution", "notes": "Technical detection" }
+        },
+        { 
+          "id": "CODE_AI_EXPORT", "pattern": "export\\s+function\\s+(generate|stream|predict|createAI)", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-EXEC-AI_EXPORT", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "AI service export", "notes": "Technical detection" }
+        },
+        { 
+          "id": "CODE_AI_MODEL_INIT", "pattern": "new\\s+(OpenAI|Anthropic|GoogleGenerativeAI|Mistral)\\b(?:<[^>]+>)?\\s*\\(", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-EXEC-AI_INIT", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "AI SDK initialization", "notes": "Technical detection" }
+        }
       ],
       "traceability_signals": [
-        { "id": "CODE_AI_LOAD", "pattern": "require\\s*\\(\\s*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]\\)|import.*from.*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]", "kind": "code_signature_load" }
+        { 
+          "id": "CODE_AI_LOAD", "pattern": "require\\s*\\(\\s*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]\\)|import.*from.*['\"](@ai-sdk/|openai|anthropic|langchain|@google/generative-ai)['\"]", "kind": "code_signature_load",
+          "rule_id": "INTERNAL-EXEC-AI_LOAD", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "AI library loading", "notes": "Technical detection" }
+        }
       ],
       "weak_signals": [
-        { "id": "CODE_AI_VAR", "pattern": "aiModel|llmClient|ai_response|bot_output", "kind": "code_signature_load" }
+        { 
+          "id": "CODE_AI_VAR", "pattern": "aiModel|llmClient|ai_response|bot_output", "kind": "code_signature_load",
+          "rule_id": "INTERNAL-EXEC-AI_VAR", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "AI variable naming", "notes": "Heuristic detection" }
+        }
       ]
     },
     "connectivity": {
       "article": "CONNECTIVITY",
+      "rule_id": "INTERNAL-CONN-DETECTION", "source_type": "internal", "source_reference": "Sentinel connectivity probe", "enforcement_level": "informational",
+      "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Connectivity Markers", "notes": "Edge/Cloud boundary detection" },
       "strong_signals": [
-        { "id": "CODE_HTTP_CALL", "pattern": "fetch\\s*\\(|axios\\.(get|post|request)|http\\.request\\(|https\\.request\\(|urllib\\.request", "kind": "code_signature_call" },
-        { "id": "CODE_SOCKET_INIT", "pattern": "new\\s+WebSocket\\(|socket\\.io|net\\.createConnection", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_HTTP_CALL", "pattern": "fetch\\s*\\(|axios\\.(get|post|request)|http\\.request\\(|https\\.request\\(|urllib\\.request", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-CONN-HTTP", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Network connectivity", "notes": "Technical detection" }
+        },
+        { 
+          "id": "CODE_SOCKET_INIT", "pattern": "new\\s+WebSocket\\(|socket\\.io|net\\.createConnection", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-CONN-SOCKET", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "Socket connectivity", "notes": "Technical detection" }
+        }
       ],
       "weak_signals": [
-        { "id": "CODE_URI_PATTERN", "pattern": "https?://[a-zA-Z0-9.-]+\\.[a-z]{2,}/v[0-9]/", "kind": "code_signature_call" }
+        { 
+          "id": "CODE_URI_PATTERN", "pattern": "https?://[a-zA-Z0-9.-]+\\.[a-z]{2,}/v[0-9]/", "kind": "code_signature_call",
+          "rule_id": "INTERNAL-CONN-URI", "source_type": "internal", "source_reference": "Internal Sentinel structural rule", "enforcement_level": "informational",
+          "authority_mapping": { "framework": null, "article": null, "annex": null, "requirement_topic": "API endpoint pattern", "notes": "Heuristic detection" }
+        }
       ]
     }
   }

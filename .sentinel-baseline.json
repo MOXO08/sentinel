@@ -1,9 +1,0 @@
-{
-  "version": 1,
-  "violations": [
-    {
-      "rule_id": "required_document",
-      "path": "docs/compliance/risk_assessment.md"
-    }
-  ]
-}

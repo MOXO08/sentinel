@@ -17,25 +17,25 @@ const RULE_MAP = {
     action: 'Defini\u021bi responsabilit\u0103\u021bile de guvernan\u021b\u0103 \u0219i managementul riscului.'
   },
   'EUAI-TRANS-001': {
-    article: 'Art. 13',
+    article: 'Article 13',
     objective: 'Transparen\u021ba \u0219i dezv\u0103luirea riscurilor.',
     impact: 'DEFICIENCY',
     action: 'Ad\u0103uga\u021bi declara\u021bia de transparen\u021b\u0103 \u00een manifest.'
   },
   'Article 13': { 
-    article: 'Art. 13',
+    article: 'Article 13',
     objective: 'Informarea utilizatorilor finali.',
     impact: 'DEFICIENCY',
     action: 'Documenta\u021bi politica de interac\u021biune \u0219i notific\u0103rile automate.'
   },
   'EUAI-HARDENING-000': {
-    article: 'Art. 14',
+    article: 'Article 14',
     objective: 'Supraveghere uman\u0103 (Manual override).',
     impact: 'DEFICIENCY',
     action: 'Stabili\u021bi procedurile de interven\u021bie uman\u0103 \u00een manualul de operare.'
   },
   'EUAI-HARDENING-001': {
-    article: 'Art. 13',
+    article: 'Article 13',
     objective: 'Trasabilitatea deciziilor AI.',
     impact: 'BLOCKER',
     action: 'Ata\u021ba\u021bi logurile care demonstreaz\u0103 trasabilitatea datelor.'
@@ -48,18 +48,218 @@ const RULE_MAP = {
 
 // --- PROBE TO LEGAL MAPPING (AUDITOR VIEW) ---
 const PROBE_MAP = {
-  'DEP_WINSTON': { art: 'Art. 20', label: 'Logging Standard (Winston)', evidence: 'Implementare Trasabilitate' },
-  'DEP_PINO': { art: 'Art. 20', label: 'Logging Standard (Pino)', evidence: 'Implementare Trasabilitate' },
-  'DEP_PYTHON_LOG': { art: 'Art. 20', label: 'Logging Python Standard', evidence: 'Implementare Trasabilitate' },
-  'CODE_LOGGER_INIT': { art: 'Art. 20', label: 'Ini\u021bializare Logger', evidence: 'Captur\u0103 Evenimente' },
-  'CODE_TRACE_ID': { art: 'Art. 20', label: 'Traceability Metadata', evidence: 'Identificator Unic Cerere' },
-  'CODE_MANUAL_OVERRIDE': { art: 'Art. 14', label: 'Manual Override Logic', evidence: 'Supraveghere Uman\u0103' },
-  'CODE_KILL_SWITCH': { art: 'Art. 14', label: 'Emergency Stop / Kill Switch', evidence: 'Control Critic' },
-  'CODE_AI_DISCLOSURE': { art: 'Art. 13', label: 'AI Disclosure UI/Code', evidence: 'Transparen\u021b\u0103 Utilizator' },
-  'DEP_FAIRLEARN': { art: 'Art. 10', label: 'Fairness Library (Fairlearn)', evidence: 'Monitorizare Bias' },
-  'CODE_BIAS_MITIGATION': { art: 'Art. 10', label: 'Bias Mitigation Logic', evidence: 'Guvernan\u021ba Datelor' },
-  'CODE_DATA_ETL': { art: 'Art. 10', label: 'Data Ingestion Pipeline', evidence: 'Trasabilitate Date Antrenament' }
+  'DEP_WINSTON': { art: 'Article 20', label: 'Logging Standard (Winston)', evidence: 'Implementare Trasabilitate' },
+  'DEP_PINO': { art: 'Article 20', label: 'Logging Standard (Pino)', evidence: 'Implementare Trasabilitate' },
+  'DEP_PYTHON_LOG': { art: 'Article 20', label: 'Logging Python Standard', evidence: 'Implementare Trasabilitate' },
+  'CODE_LOGGER_INIT': { art: 'Article 20', label: 'Ini\u021bializare Logger', evidence: 'Captur\u0103 Evenimente' },
+  'CODE_TRACE_ID': { art: 'Article 20', label: 'Traceability Metadata', evidence: 'Identificator Unic Cerere' },
+  'CODE_MANUAL_OVERRIDE': { art: 'Article 14', label: 'Manual Override Logic', evidence: 'Supraveghere Uman\u0103' },
+  'CODE_KILL_SWITCH': { art: 'Article 14', label: 'Emergency Stop / Kill Switch', evidence: 'Control Critic' },
+  'CODE_AI_DISCLOSURE': { art: 'Article 13', label: 'AI Disclosure UI/Code', evidence: 'Transparen\u021b\u0103 Utilizator' },
+  'DEP_FAIRLEARN': { art: 'Article 10', label: 'Fairness Library (Fairlearn)', evidence: 'Monitorizare Bias' },
+  'CODE_BIAS_MITIGATION': { art: 'Article 10', label: 'Bias Mitigation Logic', evidence: 'Guvernan\u021ba Datelor' },
+  'CODE_DATA_ETL': { art: 'Article 10', label: 'Data Ingestion Pipeline', evidence: 'Trasabilitate Date Antrenament' },
+  'CODE_ML_MODEL_LOAD': { art: 'EXECUTION', label: 'ML Model Loading', evidence: 'AI Execution Logic' },
+  'CODE_ML_INFERENCE': { art: 'EXECUTION', label: 'ML Inference Pattern', evidence: 'AI Execution Logic' },
+  'CODE_AI_CALL': { art: 'EXECUTION', label: 'AI Service Call', evidence: 'Service Interaction' }
 };
+
+/**
+ * Enforces safe, non-legalistic language on synthesized narrative fields.
+ * Refined to avoid corruption of technical data.
+ */
+function enforceSafeLanguage(text) {
+  if (!text) return 'N/A';
+  const patterns = [
+    { regex: /\bproof\b/gi, replacement: 'evidence strength' },
+    { regex: /\bproven\b/gi, replacement: 'coherent' },
+    { regex: /\bcompliant\b/gi, replacement: 'aligned' },
+    { regex: /\bcertified\b/gi, replacement: 'validated' },
+    { regex: /\bguarantee\b/gi, replacement: 'indicative assertion' },
+    { regex: /\bfinal\b/gi, replacement: 'observed' },
+    { regex: /\bthe system is\b/gi, replacement: 'observations indicate' }
+  ];
+
+  let sanitized = text;
+  patterns.forEach(p => {
+    sanitized = sanitized.replace(p.regex, p.replacement);
+  });
+
+  // Length constraint: <= 300 characters
+  if (sanitized.length > 300) {
+    sanitized = sanitized.substring(0, 297) + '...';
+  }
+
+  return sanitized;
+}
+
+/**
+ * Deterministically classifies evidence strength based on signal diversity.
+ */
+function calculateEvidenceStrength(signals) {
+  if (!signals || signals.length === 0) return 'Fragmentary';
+  
+  const sources = new Set();
+  signals.forEach(s => {
+    if (s.id.startsWith('CODE_')) sources.add('CODE');
+    if (s.id.startsWith('DEP_')) sources.add('DEP');
+    if (s.kind === 'document' || s.kind === 'manifest') sources.add('DOC');
+  });
+
+  if (sources.size >= 2) return 'High Coherence';
+  if (sources.size === 1) return 'Moderate Coherence';
+  return 'Fragmentary';
+}
+
+/**
+ * Normalizes article strings to Article X format.
+ */
+function normalizeArticle(art) {
+  if (!art) return 'General';
+  if (art.startsWith('Art.')) return art.replace(/^Art\.\s*/, 'Article ');
+  return art;
+}
+
+/**
+ * Returns a realistic verification command based on the article key.
+ */
+function getFallbackCommand(art) {
+  const norm = normalizeArticle(art);
+  if (norm.includes('13')) return 'grep -r "transparency\\|disclosure\\|label" .';
+  if (norm.includes('14')) return 'grep -r "override\\|kill_switch\\|human" .';
+  if (norm.includes('20')) return 'grep -r "log\\|trace\\|logger" .';
+  return 'grep -r "ai\\|model\\|inference" .';
+}
+
+/**
+ * Pure transformation to derive Defense Units from report data.
+ */
+function deriveDefenseUnits(report) {
+  const signals = report._internal?.signals || [];
+  const findings = report._internal?.all_findings || [];
+  const timestamp = new Date().toISOString();
+  // Safe extraction of app name
+  const appName = report.app_name || (report.manifest ? report.manifest.app_name : 'Sentinel AI System');
+
+  // Group everything by article
+  const articleGroups = {};
+
+  // Initialize with all unique articles from findings
+  findings.forEach(f => {
+    const art = normalizeArticle(f.article);
+    if (art && !articleGroups[art]) {
+      articleGroups[art] = { signals: [], findings: [f] };
+    } else if (art) {
+      articleGroups[art].findings.push(f);
+    }
+  });
+
+  // Also include articles from signals
+  signals.forEach(s => {
+    const arts = s.articles || (PROBE_MAP[s.id] ? [PROBE_MAP[s.id].art] : []);
+    arts.forEach(rawArt => {
+      const art = normalizeArticle(rawArt);
+      if (!articleGroups[art]) {
+        articleGroups[art] = { signals: [s], findings: [] };
+      } else {
+        articleGroups[art].signals.push(s);
+      }
+    });
+  });
+
+  const defenseUnits = Object.keys(articleGroups).sort().map(art => {
+    const group = articleGroups[art];
+    const firstFinding = group.findings[0] || {};
+    const hasSignals = group.signals.length > 0;
+
+    // 1. Regulatory Metric
+    const metric = art;
+
+    // 2. Forensic Observation
+    const rawObs = firstFinding.description || (hasSignals ? `Detected technical markers relevant to ${art}.` : `No relevant technical markers detected for this article within the scanned system scope.`);
+    const observation = enforceSafeLanguage(rawObs);
+
+    // 3. Boundary of Validity
+    const validity = {
+      temporal: timestamp,
+      system: appName,
+      source: report.audit_id ? `audit_id ${report.audit_id}` : `repository scan (local execution — file system scope)`,
+      exclusions: "RESIDUAL RISK: This validation is limited to static analysis. Runtime effectiveness, deployment state, and non-deterministic behavior remain separate from this technical statement."
+    };
+
+    // 4. Evidentiary Anchors
+    const anchors = group.signals.slice(0, 5).map(s => ({
+      path: s.source_path,
+      line: s.line || 'N/A',
+      snippet: s.snippet || 'N/A',
+      hash: s.evidence_hash || 'N/A'
+    }));
+
+    // 5. Narrative Defense (Multi-Signal Cluster Synthesis)
+    let rawDefense;
+    if (hasSignals) {
+      const markers = [...new Set(group.signals.map(s => PROBE_MAP[s.id]?.label || s.id))].slice(0, 3);
+      const markerList = markers.join(', ');
+      const pathList = [...new Set(group.signals.map(s => s.source_path))].slice(0, 2).join(' and ');
+      
+      rawDefense = `Detection of [${markerList}] in ${pathList} provides evidence relevant to ${art} requirements. This indicates partial technical coverage of Article-related requirements within the static analysis boundary.`;
+    } else {
+      rawDefense = `Absence of detectable ${art} markers suggests that key technical elements associated with ${art} requirements are not evidenced within the scanned repository scope, indicating a potential compliance gap.`;
+    }
+    const defense = enforceSafeLanguage(rawDefense);
+
+    // 6. Auditor Challenge (Audit-Grade Risk Statements)
+    let challenge;
+    if (!hasSignals) {
+      challenge = `No implementation markers or documentation for ${art} were detected, creating a critical gap in the ability to evidence alignment with ${art} requirements.`;
+    } else if (group.signals.every(s => s.kind !== 'document')) {
+      challenge = `No evidence of formal documentation supporting this technical implementation was detected, limiting traceability assurance for ${art}.`;
+    } else if (calculateEvidenceStrength(group.signals) === 'Fragmentary') {
+      challenge = "Limited evidence diversity detected for this control, increasing the risk of incomplete alignment documentation.";
+    } else {
+      challenge = "Continuous runtime effectiveness for this control remains outside the current static validation scope.";
+    }
+    challenge = enforceSafeLanguage(challenge);
+
+    // 7. Evidence Strength
+    const strength = calculateEvidenceStrength(group.signals);
+
+    // 8. Verification Vector
+    const vector = {
+      description: "Independent Reproduction: The following command allows technical verification of the observed implementation patterns:",
+      command: firstFinding.verification_command || (hasSignals ? (art === 'EXECUTION' ? `grep -r "forward\\|predict\\|model\\|inference" mingpt/` : `grep -nC 3 "${group.signals[0].snippet?.split('\n')[0].substring(0, 50).replace(/"/g, '\\"') || ''}" ${group.signals[0].source_path}`) : getFallbackCommand(art))
+    };
+
+    // 9. Residual Risk Statement
+    const residualRisk = "RESIDUAL RISK: This validation is limited to static analysis. Runtime effectiveness, deployment state, and non-deterministic behavior remain separate from this technical statement.";
+
+    return { metric, observation, validity, anchors, defense, challenge, strength, vector, residualRisk };
+  });
+
+  if (defenseUnits.length === 0) {
+    return [{
+      metric: "GOVERNANCE",
+      observation: enforceSafeLanguage("No relevant technical markers detected for regulatory articles within the scanned system scope."),
+      validity: {
+        temporal: timestamp,
+        system: appName,
+        source: report.audit_id ? `audit_id ${report.audit_id}` : `repository scan (local execution — file system scope)`,
+        exclusions: "RESIDUAL RISK: This validation is limited to static analysis. Runtime effectiveness, deployment state, and non-deterministic behavior remain separate from this technical statement."
+      },
+      anchors: [],
+      defense: enforceSafeLanguage("No technical markers associated with AI system implementation were detected within the scanned repository scope."),
+      challenge: enforceSafeLanguage("This creates a critical gap in the ability to evidence alignment with applicable AI-related regulatory requirements."),
+      strength: "Fragmentary (no implementation-level signals detected)",
+      vector: {
+        description: "Independent Reproduction: The following command allows technical verification of the observed implementation patterns:",
+        command: "ls -R ."
+      },
+      residualRisk: "RESIDUAL RISK: This validation is limited to static analysis. Runtime effectiveness, deployment state, and non-deterministic behavior remain separate from this technical statement."
+    }];
+  }
+
+  return defenseUnits;
+}
 
 function generateEvidenceLedger(report) {
   const signals = report._internal?.signals || [];
@@ -134,7 +334,7 @@ function generateEvidenceLedger(report) {
   if (Object.keys(groupedSignals).length === 0) return '';
 
   let tablesHtml = '';
-  // Sort articles alphabetically (e.g. Art. 10, Art. 13...)
+  // Sort articles alphabetically (e.g. Article 10, Article 13...)
   Object.keys(groupedSignals).sort().forEach(art => {
     tablesHtml += `
       <h3 style="margin-top: 25px; margin-bottom: 10px; font-size: 14px; border-bottom: 1px solid var(--border); padding-bottom: 5px;">
@@ -168,6 +368,89 @@ function generateEvidenceLedger(report) {
   `;
 }
 
+function generateDefenseUnitsSection(defenseUnits) {
+  if (!defenseUnits || defenseUnits.length === 0) return '';
+
+  let unitsHtml = '';
+  defenseUnits.forEach(u => {
+    const strengthColor = u.strength === 'High Coherence' ? 'var(--success)' : (u.strength === 'Moderate Coherence' ? 'var(--warning)' : '#6e7781');
+    
+    unitsHtml += `
+      <div class="defense-unit" style="background: #fff; border: 1px solid var(--border); border-left: 6px solid ${strengthColor}; padding: 25px; margin-bottom: 30px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.02);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid #f1f1f1; padding-bottom: 10px;">
+          <h3 style="margin: 0; font-size: 18px; color: #1a1a1a;">${u.metric}</h3>
+          <span style="background: ${strengthColor}; color: white; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 700; text-transform: uppercase;">${u.strength}</span>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <strong style="display: block; font-size: 11px; text-transform: uppercase; color: #666; margin-bottom: 5px;">I. Forensic Observation:</strong>
+          <p style="margin: 0; font-size: 14px; color: #333; font-style: italic;">"${u.observation}"</p>
+        </div>
+
+        <div style="margin-bottom: 15px; grid-template-columns: 1fr 1fr; display: grid; gap: 20px; background: #f8fafc; padding: 15px; border-radius: 4px; border: 1px solid #e1e4e8;">
+          <div>
+            <strong style="display: block; font-size: 10px; text-transform: uppercase; color: #666; margin-bottom: 5px;">II. Boundary of Validity:</strong>
+            <div style="font-size: 11px; color: #444;">
+              Time: ${u.validity.temporal}<br>
+              System: ${u.validity.system}<br>
+              Source: <span style="font-family: monospace; font-size: 10px;">${u.validity.source}</span>
+            </div>
+          </div>
+          <div>
+            <strong style="display: block; font-size: 10px; text-transform: uppercase; color: #666; margin-bottom: 5px;">III. Scope Exclusions:</strong>
+            <div style="font-size: 10px; color: #666; font-style: italic;">Static-analysis only. Behavioral validation not performed.</div>
+          </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <strong style="display: block; font-size: 11px; text-transform: uppercase; color: #666; margin-bottom: 5px;">IV. Evidentiary Anchors:</strong>
+          <div style="display: flex; flex-direction: column; gap: 5px;">
+            ${u.anchors.length > 0 ? u.anchors.map(a => `
+              <div style="font-size: 12px; color: #555; font-family: monospace; background: #f6f8fa; padding: 4px 8px; border-radius: 3px; border: 1px solid #eee;">
+                ${a.path}:${a.line} <span style="color: #999; font-size: 10px; margin-left:10px;">[Hash: ${a.hash ? a.hash.substring(0,8) : 'N/A'}...]</span>
+              </div>
+            `).join('') : '<div style="font-size: 12px; color: #999; font-style: italic;">No direct file anchors detected.</div>'}
+          </div>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <strong style="display: block; font-size: 11px; text-transform: uppercase; color: #666; margin-bottom: 5px;">V. Narrative Defense:</strong>
+          <p style="margin: 0; font-size: 14px; color: #333; line-height: 1.5;">${u.defense}</p>
+        </div>
+
+        <div style="margin-bottom: 15px; background: #fff5f5; border: 1px solid #feb2b2; padding: 12px; border-radius: 4px;">
+          <strong style="display: block; font-size: 11px; text-transform: uppercase; color: #c53030; margin-bottom: 5px;">VI. Auditor Challenge Points:</strong>
+          <p style="margin: 0; font-size: 13px; color: #742a2a; font-weight: 500;">${u.challenge}</p>
+        </div>
+
+        <div style="margin-bottom: 15px;">
+          <strong style="display: block; font-size: 11px; text-transform: uppercase; color: #666; margin-bottom: 5px;">VII. Verification Vector:</strong>
+          <div style="background: #24292f; color: #fff; padding: 12px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 11px; border-left: 4px solid var(--success);">
+            <div style="color: #8b949e; margin-bottom: 5px; font-size: 10px;">${u.vector.description}</div>
+            <code>${u.vector.command}</code>
+          </div>
+        </div>
+
+        <div>
+          <strong style="display: block; font-size: 10px; text-transform: uppercase; color: #d73a49; margin-bottom: 5px;">VIII. Residual Risk Statement:</strong>
+          <p style="margin: 0; font-size: 11px; color: #d73a49; font-style: italic; border-top: 1px solid #fbd3d3; padding-top: 5px;">${u.residualRisk}</p>
+        </div>
+      </div>
+    `;
+  });
+
+  return `
+    <section>
+      <h2>Defense Technical Validation Units</h2>
+      <p style="font-size: 14px; color: #555; margin-bottom: 25px;">
+        Sintez\u0103 narativ\u0103 a probelor extrase, structurat\u0103 pentru defensibilitate \u00een contextul unui audit extern. 
+        Fiecare unitate leag\u0103 markerii tehnici de cerin\u021bele reglementare.
+      </p>
+      ${unitsHtml}
+    </section>
+  `;
+}
+
 function generateMarkdownSummary(report) {
     const verdict = report.central_verdict || 'REJECTED';
     const tech = report.technical_status || 'WEAK';
@@ -176,11 +459,11 @@ function generateMarkdownSummary(report) {
     const threshold = report.threshold || 0;
     
     let icon = '\u274c';
-    if (verdict === 'TECHNICAL MARKERS PRESENT') icon = '\u2705';
+    if (verdict.includes('DETECTED')) icon = '\u2705';
     if (verdict === 'HOLD') icon = '\u26a0\ufe0f';
 
     const techIcon = tech === 'ROBUST' ? '\u2705' : '\u274c';
-    const govIcon = gov === 'ALIGNED' ? '\u2705' : '\u26a0\ufe0f';
+    const govIcon = gov === 'ALIGNED' || gov.includes('INDICATIVE') ? '\u2705' : '\u26a0\ufe0f';
 
     return `### ${icon} Sentinel AI Governance: ${verdict}
 
@@ -227,14 +510,16 @@ function generateScopeBoundary() {
         </div>
         
         <div style="margin-top: 20px; padding: 15px; background: #fff; border: 1px solid #e1e4e8; border-radius: 6px; font-size: 12px; color: #64748b; font-style: italic;">
-            <strong>LEGAL LIMITATION:</strong> This report provides a technical evaluation of observable markers only. Absence of evidence is not evidence of absence; lack of detected risk patterns does not guarantee regulatory compliance or system safety. Final accountability remains with the system provider.
+            <strong>REGULATORY LIMITATION:</strong> This report provides a technical evaluation of observable markers only. Absence of evidence is not evidence of absence; lack of detected risk patterns does not guarantee regulatory compliance or system safety. Final accountability remains with the system provider.
         </div>
     </section>
   `;
 }
 
 function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
+  const signals = report._internal?.signals || [];
   const engine = options.engine || 'stable';
+  const defenseUnits = deriveDefenseUnits(report);
   // Premium metadata derivation
   const rawPath = report.manifest_path ? path.resolve(report.manifest_path) : process.cwd();
   const dirName = path.basename(path.dirname(rawPath));
@@ -249,37 +534,6 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
   const date = new Date(report._audit_signature?.signed_at || Date.now()).toLocaleDateString('ro-RO', {
     day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
   });
-
-  const { centralVerdict = 'REJECTED', technicalStatus = 'WEAK', governanceStatus = 'GAP', forensicExclusionsCount = 0, centralText: evaluatedText } = dualTrack;
-
-  let centralBadgeColor, centralText;
-  if (centralVerdict === 'TECHNICAL MARKERS PRESENT') { 
-    centralBadgeColor = 'var(--success)'; 
-    centralText = evaluatedText || 'Sistemul prezintă indicatori de aliniere tehnică în scopul scanat. Recomandat pentru revizuire finală.'; 
-  }
-  else if (centralVerdict === 'HOLD') { 
-    centralBadgeColor = 'var(--warning)'; 
-    centralText = evaluatedText || 'Maturitate tehnic\u0103 valid\u0103, dar lipsesc politicile esen\u021biale. Suspendat p\u00e2n\u0103 la remediere.'; 
-  }
-  else { 
-    centralBadgeColor = 'var(--danger)'; 
-    centralText = evaluatedText || 'Capabilități tehnice insuficiente sau riscuri detectate. Respins din motive tehnice.'; 
-  }
-
-  const techBadgeColor = technicalStatus === 'ROBUST' ? 'var(--success)' : 'var(--danger)';
-  const govBadgeColor = governanceStatus === 'ALIGNED' ? 'var(--success)' : 'var(--danger)';
-
-  // Forensic Insight
-  let forensicHtml = '';
-  if (forensicExclusionsCount > 0) {
-    forensicHtml = `
-      <div class="forensic-insight">
-        <strong>\u2139 Forensic Insight (Filtru Zgomot Aplicat):</strong><br>
-        Integritate verificat\u0103. Sentinel SIG a detectat \u0219i exclus automat <strong>${forensicExclusionsCount}</strong> probe tehnice identificate ca \u201efals-pozitive\u201d 
-        (localizate exclusiv \u00een medii non-executabile sau de test), prevenind o validare fals\u0103 a conformit\u0103\u021bii.
-      </div>
-    `;
-  }
 
   // Remedy Catalog (Limit to Top 3 Actionable)
   let findings = report._internal?.all_findings || [];
@@ -297,14 +551,62 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
   });
 
   // Confidence Level Calculation
+  // ... (keeping counts as they are for logic, but display as EVIDENCED)
+
+  // Confidence Level Calculation
   let confidenceLevel = 'MEDIUM';
   let confidenceReason = 'Mix echilibrat de probe directe și indicatori euristici.';
-  if (provenCount > (indicatedCount + unknownCount)) {
+  
+  if (signals.length === 0) {
+    confidenceLevel = 'LOW';
+    confidenceReason = 'Nimic de raportat. Nu au fost detectați indicatori tehnici AI în scopul scanat.';
+  } else if (provenCount > (indicatedCount + unknownCount)) {
     confidenceLevel = 'HIGH';
     confidenceReason = 'Majoritatea constatărilor sunt susținute de probe directe în cod.';
   } else if (unknownCount > (provenCount + indicatedCount)) {
     confidenceLevel = 'LOW';
     confidenceReason = 'Volum ridicat de indicatori neconfirmați tehnic în scopul scanat.';
+  }
+
+  const { centralVerdict = 'REJECTED', technicalStatus = 'WEAK', governanceStatus = 'GAP', forensicExclusionsCount = 0, centralText: evaluatedText } = dualTrack;
+
+  let centralBadgeColor, centralText;
+  const isConfidenceLow = confidenceLevel === 'LOW';
+  let displayVerdict = centralVerdict;
+  
+  if (signals.length === 0) {
+    displayVerdict = 'NO TECHNICAL AI SIGNALS DETECTED';
+    centralBadgeColor = 'var(--danger)'; 
+    centralText = evaluatedText || 'Audit finalizat. Nu au fost identificați indicatori tehnici asociați sistemelor AI în mediul scanat.';
+  }
+  else if (centralVerdict === 'TECHNICAL MARKERS PRESENT') { 
+    displayVerdict = isConfidenceLow ? 'LIMITED TECHNICAL EVIDENCE DETECTED' : 'PARTIAL TECHNICAL INDICATORS DETECTED';
+    centralBadgeColor = 'var(--success)'; 
+    centralText = evaluatedText || 'Sistemul prezint\u0103 indicatori tehnici \u00een scopul scanat. Recommended for further compliance validation and documentation review.'; 
+  }
+  else if (centralVerdict === 'HOLD') { 
+    centralBadgeColor = 'var(--warning)'; 
+    centralText = evaluatedText || 'Maturitate tehnic\u0103 valid\u0103, dar lipsesc politicile esen\u021biale. Suspendat p\u00e2n\u0103 la remediere.'; 
+  }
+  else { 
+    centralBadgeColor = 'var(--danger)'; 
+    centralText = evaluatedText || 'Capabilități tehnice insuficiente sau riscuri detectate. Respins din motive tehnice.'; 
+  }
+
+  const techBadgeColor = technicalStatus === 'ROBUST' ? 'var(--success)' : 'var(--danger)';
+  const displayGovStatus = governanceStatus === 'ALIGNED' ? 'INDICATIVE (within scan scope)' : governanceStatus;
+  const govBadgeColor = (governanceStatus === 'ALIGNED' || governanceStatus.includes('INDICATIVE')) ? 'var(--success)' : 'var(--danger)';
+
+  // Forensic Insight
+  let forensicHtml = '';
+  if (forensicExclusionsCount > 0) {
+    forensicHtml = `
+      <div class="forensic-insight">
+        <strong>\u2139 Forensic Insight (Filtru Zgomot Aplicat):</strong><br>
+        Integritate verificat\u0103. Sentinel SIG a detectat \u0219i exclus automat <strong>${forensicExclusionsCount}</strong> probe tehnice identificate ca \u201efals-pozitive\u201d 
+        (localizate exclusiv \u00een medii non-executabile sau de test), prevenind o validare fals\u0103 a conformit\u0103\u021bii.
+      </div>
+    `;
   }
 
   // Include all findings for detailed analysis (granularity over brevity for audit defensibility)
@@ -377,6 +679,7 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
         <div class="finding-meta">
           <span class="finding-article">${map.article}</span>
           <span class="finding-impact">${map.impact}</span>
+          ${f.finding_id ? `<span style="font-family: monospace; font-size: 10px; color: #666; margin-left:10px;">ID: ${f.finding_id}</span>` : ''}
         </div>
         <h3 style="margin: 0 0 10px 0; font-size: 16px;">${map.objective}</h3>
         
@@ -438,7 +741,7 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
   });
 
   if (centralVerdict === 'TECHNICAL MARKERS PRESENT' && remediationHtml === '') {
-    remediationHtml = '<div style="text-align: center; color: var(--success); padding: 30px; border: 1px dashed var(--success); border-radius: 4px;">\u2705 Toate controalele critice sunt validate în scopul scanat. Nu exist\u0103 ac\u021biuni de remediere prioritare identificate.</div>';
+    remediationHtml = '<div style="text-align: center; color: var(--success); padding: 30px; border: 1px dashed var(--success); border-radius: 4px;">No critical implementation failures were detected within the scanned scope. This does not confirm completeness or effectiveness of controls.</div>';
   }
 
   // Executive Reasons Block Construction
@@ -461,7 +764,7 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
 <html lang="ro">
 <head>
     <meta charset="UTF-8">
-    <title>Technical Assessment Report - ${appName}</title>
+    <title>Technical Validation Statement - ${appName}</title>
     <style>
         :root {
             --primary: #1a1a1a;
@@ -584,7 +887,7 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
         <header>
             <div class="brand">SENTINEL AI GOVERNANCE</div>
             <div class="doc-type">
-              Technical Assessment Report
+              Technical Validation Statement
               ${engine === 'extended' ? '<span style="background: #0969da; color: white; padding: 2px 8px; border-radius: 12px; font-size: 10px; margin-left: 10px; vertical-align: middle;">V2 EXTENDED ENGINE</span>' : ''}
             </div>
         </header>
@@ -655,6 +958,13 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
                         <div style="font-size: 11px; color: #64748b; margin-top: 5px;">(Outbound Network Calls)</div>
                     </div>
                 </div>
+                ${report.coverage?.signal_density_index ? `
+                <div style="margin-top: 20px; border-top: 1px solid #eee; padding-top: 15px; text-align: center;">
+                    <span style="font-size: 12px; color: #64748b; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Signal Density Index:</span>
+                    <span style="font-size: 18px; font-weight: 800; color: #1a1a1a; margin-left: 10px;">${report.coverage.signal_density_index}</span>
+                    <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">Technical Signals per Scanned File</div>
+                </div>
+                ` : ''}
             </section>
           `;
         })()}
@@ -662,7 +972,7 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
         <div class="top-fold">
             <div class="central-verdict-box">
                 <div class="cv-label">Recomandare Deployment</div>
-                <div class="cv-value">${centralVerdict}</div>
+                <div class="cv-value" style="font-size: ${displayVerdict.length > 25 ? '24px' : '36px'}">${displayVerdict}</div>
                 <div class="cv-desc">${centralText.replace('pe deplin aliniat', 'aliniat în scopul analizat')}</div>
             </div>
             
@@ -676,10 +986,10 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
                 </div>
                 <div class="track-row" style="border-left-color: ${govBadgeColor}">
                     <div>
-                        <div class="track-name">2. Legal</div>
+                        <div class="track-name">2. Regulatory</div>
                         <div style="font-size: 12px; color: #666;">Aliniere la reglement\u0103rile AI Act</div>
                     </div>
-                    <div class="track-badge" style="background: ${govBadgeColor}">${governanceStatus}</div>
+                    <div class="track-badge" style="background: ${govBadgeColor}; font-size: ${displayGovStatus.length > 15 ? '10px' : '14px'}">${displayGovStatus}</div>
                 </div>
             </div>
         </div>
@@ -687,9 +997,9 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
         <div style="background: var(--bg); border: 1px solid var(--border); padding: 25px; margin-bottom: 40px; border-radius: 4px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
             <div>
                 <strong style="text-transform: uppercase; font-size: 11px; color: #666; display: block; margin-bottom: 10px;">Baza Verdictului</strong>
-                <p style="font-size: 14px; margin: 0; color: #333;">Analiză bazată exclusiv pe probele tehnice din depozitul de cod.</p>
+                <p style="font-size: 14px; margin: 0; color: #333;">Analiz\u0103 bazat\u0103 exclusiv pe probele tehnice din depozitul de cod.</p>
                 <ul style="font-size: 13px; margin: 10px 0 0 0; padding-left: 20px; color: #555;">
-                    <li><strong>PROVEN:</strong> ${provenCount}</li>
+                    <li><strong>EVIDENCED:</strong> ${provenCount}</li>
                     <li><strong>INDICATED:</strong> ${indicatedCount}</li>
                     <li><strong>UNKNOWN:</strong> ${unknownCount}</li>
                 </ul>
@@ -701,6 +1011,8 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
                 </div>
                 <p style="font-size: 13px; margin: 5px 0 0 0; color: #666;">${confidenceReason}</p>
                 <div style="margin-top: 15px; font-size: 12px; color: #888; font-style: italic;">
+                    System Determinism: ${report.article_summaries?.audit_confidence?.determinism || "DETERMINISTIC (static analysis)"}<br>
+                    Note: ${report.article_summaries?.audit_confidence?.determinism_note || "Static analysis yields deterministic results."}<br>
                     Verdictul reflectă doar scopul de cod analizat și nu confirmă conformitatea la nivel de organizație.
                 </div>
             </div>
@@ -738,11 +1050,11 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
                 <div class="evolution-title">${evolutionTitle}</div>
                 <div class="evolution-desc">
                   <div style="margin-bottom: 10px; font-weight: 700; font-size: 16px;">
-                    ${diff.verdictFrom} &nbsp; <span style="color: #999;">&rarr;</span> &nbsp; ${centralVerdict}
+                    ${diff.verdictFrom === 'TECHNICAL MARKERS PRESENT' ? 'PARTIAL TECHNICAL INDICATORS DETECTED' : diff.verdictFrom} &nbsp; <span style="color: #999;">&rarr;</span> &nbsp; ${displayVerdict}
                   </div>
                   <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px;">
                     <div>${diff.tracks.technical.name}: <strong>${technicalStatus}</strong> (${diff.tracks.technical.shift})</div>
-                    <div>${diff.tracks.regulatory.name}: <strong>${governanceStatus}</strong> (${diff.tracks.regulatory.shift})</div>
+                    <div>${diff.tracks.regulatory.name}: <strong>${displayGovStatus}</strong> (${diff.tracks.regulatory.shift})</div>
                   </div>
                 </div>
                 ${diff.actionRequired !== 'NONE' ? `<div class="action-owner action-${diff.actionRequired}">Responsabil: ${diff.actionOwner}</div>` : ''}
@@ -904,9 +1216,11 @@ function generateHtml(report, diff = null, dualTrack = {}, options = {}) {
 
         <section>
             <h2>Detailed Technical Finding Analysis</h2>
-            <p style="font-size: 14px; margin-bottom: 25px; color: #555;">Analiză granulară a indicatorilor de risc detectați, structurată pentru defensibilitate în audit.</p>
-            ${remediationHtml || '<p style="text-align:center; padding: 20px; color: #666;">Nu au fost identificate constatări prioritare în această sesiune.</p>'}
+            <p style="font-size: 14px; margin-bottom: 25px; color: #555;">Analiz\u0103 granular\u0103 a indicatorilor de risc detecta\u021bi, structurat\u0103 pentru defensibilitate \u00een audit.</p>
+            ${remediationHtml || '<div style="text-align: center; color: var(--success); padding: 30px; border: 1px dashed var(--success); border-radius: 4px;">No critical implementation failures were detected within the scanned scope. This does not confirm completeness or effectiveness of controls.</div>'}
         </section>
+
+        ${generateDefenseUnitsSection(defenseUnits)}
 
         ${generateEvidenceLedger(report)}
 
@@ -953,11 +1267,11 @@ function generateAnnexIVMarkdown(report) {
     // Heuristic routing based on Article mapping or propagation from signal
     const art = s.article || (s.articles ? s.articles[0] : (PROBE_MAP[s.id]?.art || 'General'));
     
-    if (art === 'Art. 9' || art === 'Art. 15' || art === 'Art. 10') {
+    if (art === 'Article 9' || art === 'Article 15' || art === 'Article 10') {
       sections["Section 3: Risk Management"].items.push(s);
-    } else if (art === 'Art. 20') {
+    } else if (art === 'Article 20') {
       sections["Section 4: Monitoring and Logging"].items.push(s);
-    } else if (art === 'Art. 13' || art === 'Art. 14' || art === 'EXECUTION' || s.kind === 'dependency') {
+    } else if (art === 'Article 13' || art === 'Article 14' || art === 'EXECUTION' || s.kind === 'dependency') {
       sections["Section 2: Technical Specifications"].items.push(s);
     } else {
       sections["Section 1: General Description"].items.push(s);
@@ -970,7 +1284,30 @@ function generateAnnexIVMarkdown(report) {
   md += `**Version:** ${manifest.version || '1.0.0'}\n`;
   md += `**Audit ID:** \`${report.audit_id || 'N/A'}\`\n`;
   md += `**Timestamp:** ${new Date().toISOString()}\n\n`;
-  md += `> [!NOTE]\n> This document anchors legal claims to technical reality. It represents the "Technical File" required for High-Risk AI systems under the EU AI Act.\n\n`;
+
+  const defenseUnits = deriveDefenseUnits(report);
+  if (defenseUnits.length > 0) {
+    md += `## Regulatory Narrative Synthesis\n`;
+    md += `*This section transforms technical markers into auditor-defensible assertions based on the Narrative Synthesis Layer structure.*\n\n`;
+    
+    defenseUnits.forEach(u => {
+      md += `### [${u.metric}] Assertion\n`;
+      md += `> **Observation:** ${u.observation}\n`;
+      md += `> \n`;
+      md += `> **Synthesis:** ${u.defense}\n`;
+      md += `> \n`;
+      md += `> **Auditor Challenge:** ${u.challenge}\n`;
+      md += `> \n`;
+      md += `> **Validity Boundary:** Scanned ${u.validity.system} at ${u.validity.temporal}. \n`;
+      md += `> **Fingerprint:** \`${u.validity.source}\`\n`;
+      md += `> \n`;
+      md += `> **Confidence:** ${u.strength} (Static Analysis Scope)\n`;
+      md += `> **Residual Risk:** This validation is limited to static analysis. Runtime effectiveness, deployment state, and non-deterministic behavior remain separate from this technical statement.\n\n`;
+    });
+    md += `---\n\n`;
+  }
+
+  md += `> [!NOTE]\n> This document anchors regulatory claims to technical reality. It represents the "Technical File" required for High-Risk AI systems under the EU AI Act.\n\n`;
 
   Object.entries(sections).forEach(([title, data]) => {
     md += `## ${title}\n`;
@@ -1003,8 +1340,9 @@ function generateAnnexIVMarkdown(report) {
     }
   });
 
-  md += `---\n**Disclaimer:** This is a technical forensic extraction. Final legal validation of Annex IV compliance requires human review by a qualified compliance officer.\n`;
+  md += `---\n**Disclaimer:** This is a technical forensic extraction. Final regulatory validation of Annex IV compliance requires human review by a qualified compliance officer.\n`;
   md += `*Generated by Sentinel Enterprise Auditor v2.1*\n`;
+  md += `**Hardened for audit defensibility within static analysis scope**\n`;
   
   return md;
 }

@@ -1,9 +1,0 @@
-{
-  "app_name": "forbidden-app",
-  "version": "1.0.0",
-  "risk_category": "High",
-  "declared_flags": [
-    "social_scoring",
-    "subliminal_techniques"
-  ]
-}

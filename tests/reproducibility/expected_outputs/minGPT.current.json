@@ -28,7 +28,7 @@
     ],
     "result": "NOT DECLARED",
     "technicalStatement": "Declaration consistency check not performed because context was not declared",
-    "note": "Declaration consistency is based on manifest declarations and repository-scoped technical evidence only. It is not a legal classification."
+    "note": "Declaration consistency is based on manifest declarations and repository-scoped technical evidence only. It is not a regulatory classification."
   },
   "_executive_summary": {
     "aiUsage": "Experimental AI usage",
@@ -291,7 +291,7 @@
         "fix_snippet": "Implement Python logging control using standard logging module or loguru. Create a sentinel_log() wrapper function.",
         "hardening_verdict": "FAIL",
         "search_metadata": {
-          "files_scanned": 29,
+          "files_scanned": 21,
           "patterns": [
             "winston",
             "pino",
@@ -313,7 +313,7 @@
         "fix_snippet": "Implement Python manual override hook using a decorator or function. Create a sentinel_override() wrapper function.",
         "hardening_verdict": "FAIL",
         "search_metadata": {
-          "files_scanned": 29,
+          "files_scanned": 21,
           "patterns": [
             "manual_override|user_confirmation|force_override",
             "emergency_stop|kill_switch|panic_button",
@@ -332,7 +332,7 @@
         "fix_snippet": "No specific code location identified. Apply recommended Python compliance control at the primary AI execution entry point.",
         "hardening_verdict": "FAIL",
         "search_metadata": {
-          "files_scanned": 29,
+          "files_scanned": 21,
           "patterns": [
             "ai_disclosure_provided|transparency_label|powered_by_ai",
             "about_this_ai|system_card"
@@ -356,7 +356,7 @@
           "evidence_hash": "SIG-6E288F823A5F325D"
         },
         "search_metadata": {
-          "files_scanned": 29,
+          "files_scanned": 21,
           "patterns": [
             "\\b(generateText|generateObject|streamText|streamObject|useChat|useCompletion|useObject|complete|predict|chat|invoke|run)\\b(?:<[^>]+>)?\\s*\\(",
             "export\\s+function\\s+(generate|stream|predict|createAI)",
@@ -368,15 +368,13 @@
         "connectivity": {
           "identifier": "config",
           "definition": "mingpt\\trainer.py",
-          "reference_count": 108,
+          "reference_count": 102,
           "files": [
-            ".sentinel\\vault\\audit_17522c044fac8ec5.json",
             "generate.ipynb",
             "mingpt\\model.py",
             "mingpt\\utils.py",
             "projects\\adder\\adder.py",
             "projects\\chargpt\\chargpt.py",
-            "sentinel-audit.html",
             "tests\\test_huggingface_import.py"
           ],
           "classification": "Multiple references detected"
@@ -392,7 +390,7 @@
         "fix_snippet": "No specific code location identified. Apply recommended Python compliance control at the primary AI execution entry point.",
         "hardening_verdict": "FAIL",
         "search_metadata": {
-          "files_scanned": 29,
+          "files_scanned": 21,
           "patterns": [
             "fetch\\s*\\(|axios\\.(get|post|request)|http\\.request\\(|https\\.request\\(|urllib\\.request",
             "new\\s+WebSocket\\(|socket\\.io|net\\.createConnection",
@@ -401,6 +399,6 @@
         }
       }
     ],
-    "files": 29
+    "files": 21
   }
 }
