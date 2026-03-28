@@ -9,21 +9,28 @@ jobs:
 
     steps:
       - name: Checkout repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: 18
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
 
       - name: Install deps
         run: npm install
 
       - name: Run TEST 1 (manifest-lie)
         run: |
-          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/manifest-lie/sentinel.manifest.json --json)
+          set +e
+          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/manifest-lie/sentinel.manifest.json --json 2>&1)
+          CLI_EXIT=$?
+          set -e
           echo "$OUTPUT" > test1_manifest_lie.json
           STATUS=$(echo "$OUTPUT" | jq -r '.status')
+          echo "CLI_EXIT=$CLI_EXIT"
           echo "STATUS=$STATUS"
           if [ "$STATUS" != "FAIL" ]; then
             echo "❌ Expected FAIL but got $STATUS"
@@ -32,9 +39,13 @@ jobs:
 
       - name: Run TEST 2 (dead-code)
         run: |
-          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/dead-code/sentinel.manifest.json --json)
+          set +e
+          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/dead-code/sentinel.manifest.json --json 2>&1)
+          CLI_EXIT=$?
+          set -e
           echo "$OUTPUT" > test2_dead_code.json
           STATUS=$(echo "$OUTPUT" | jq -r '.status')
+          echo "CLI_EXIT=$CLI_EXIT"
           echo "STATUS=$STATUS"
           if [ "$STATUS" != "FAIL" ]; then
             echo "❌ Expected FAIL but got $STATUS"
@@ -43,9 +54,13 @@ jobs:
 
       - name: Run TEST 3A (partial)
         run: |
-          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/partial/sentinel.manifest.json --json)
+          set +e
+          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/partial/sentinel.manifest.json --json 2>&1)
+          CLI_EXIT=$?
+          set -e
           echo "$OUTPUT" > test3_partial.json
           STATUS=$(echo "$OUTPUT" | jq -r '.status')
+          echo "CLI_EXIT=$CLI_EXIT"
           echo "STATUS=$STATUS"
           if [ "$STATUS" != "GAP" ]; then
             echo "❌ Expected GAP but got $STATUS"
@@ -54,9 +69,13 @@ jobs:
 
       - name: Run TEST 3B (full)
         run: |
-          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/full/sentinel.manifest.json --json)
+          set +e
+          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/full/sentinel.manifest.json --json 2>&1)
+          CLI_EXIT=$?
+          set -e
           echo "$OUTPUT" > test4_full.json
           STATUS=$(echo "$OUTPUT" | jq -r '.status')
+          echo "CLI_EXIT=$CLI_EXIT"
           echo "STATUS=$STATUS"
           if [ "$STATUS" != "PASS" ]; then
             echo "❌ Expected PASS but got $STATUS"
@@ -64,8 +83,8 @@ jobs:
           fi
 
       - name: Upload validation artifacts
-        uses: actions/upload-artifact@v4
         if: always()
+        uses: actions/upload-artifact@v4
         with:
           name: sentinel-validation-report
           path: |
