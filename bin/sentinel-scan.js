@@ -872,9 +872,8 @@ function computeVerdict(score, findings, manifest, requiresGovernance = true) {
 
     // 1. Identify contradictions (manifest vs technical reality)
     if (
-      f.source === 'epistemic' ||
-      f.source === 'intelligence' ||
-      (f.rule_id && f.rule_id.includes('CONTRADICTION'))
+      (f.source === 'epistemic' || f.source === 'intelligence' || (f.rule_id && f.rule_id.includes('CONTRADICTION'))) &&
+      (f.hard_fail === true || severity === 'critical')
     ) {
       hasContradiction = true;
     }
@@ -885,7 +884,7 @@ function computeVerdict(score, findings, manifest, requiresGovernance = true) {
     }
   }
 
-  // PRIORITY 1: FAIL (Contradictions or Direct Violations)
+  // PRIORITY 1: FAIL (Critical Contradictions or Direct Violations)
   if (hasContradiction || hasViolation) {
     return 'FAIL';
   }
