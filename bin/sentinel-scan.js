@@ -7,6 +7,12 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+
+const isJson = process.argv.includes('--json');
+if (isJson) {
+  console.log = () => {};
+  console.error = () => {};
+}
 const { execSync } = require('child_process');
 const cliProgress = require('cli-progress');
 
@@ -52,7 +58,10 @@ function colorVerdict(verdict) {
 }
 
 function pauseAndExit(code = 0) {
-  if (process.stdout.isTTY && process.env.SENTINEL_INTERACTIVE !== 'false' && process.platform === 'win32' && !process.argv.includes('--json')) {
+  if (isJson) {
+    process.exit(code);
+  }
+  if (process.stdout.isTTY && process.env.SENTINEL_INTERACTIVE !== 'false' && process.platform === 'win32') {
     process.stdout.write(`\n${C.gray}Scan finished. Press ENTER to close this window...${C.reset}`);
     process.stdin.resume();
     process.stdin.on('data', () => process.exit(code));
@@ -62,6 +71,7 @@ function pauseAndExit(code = 0) {
 }
 
 function printBanner() {
+  if (isJson) return;
   console.log(`\n${C.cyan}${C.bold}╔══════════════════════════════════════════════════╗`);
   console.log(`║  🛡  SENTINEL — LOCAL DIAG NOSTIC TOOL (OFFLINE)  ║`);
   console.log(`╚══════════════════════════════════════════════════╝${C.reset}\n`);
@@ -69,6 +79,7 @@ function printBanner() {
 }
 
 function printHelp() {
+  if (isJson) return;
   console.log(`${C.bold}Usage:${C.reset}`);
   console.log(`  npx @radu_api/sentinel-scan check --threshold 90 --manifest sentinel.manifest.json`);
   console.log(`  npx @radu_api/sentinel-scan discover`);
@@ -92,6 +103,16 @@ function printHelp() {
   console.log(`  --generate-tech-file   Generate an Annex IV Technical Documentation dossier (Markdown)`);
   console.log(`  --endpoint <url>       Custom Edge API endpoint`);
   console.log(`  --help                 Show this help`);
+}
+
+function printVersion() {
+  if (isJson) return;
+  try {
+    const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '../package.json'), 'utf8'));
+    console.log(`v${pkg.version}`);
+  } catch (e) {
+    console.log(`v2.0.0-sovereign`);
+  }
 }
 
 const OFFLINE_RULES = {
@@ -893,7 +914,8 @@ async function reportError(err) {
   } catch (e) { }
 }
 
-function printOnboarding() {
+function printOnboarding(isJson = false) {
+  if (isJson) return;
   console.log(`\n${C.yellow}${C.bold}⚠  No sentinel.manifest.json found in the current directory.${C.reset}`);
   console.log(`${C.gray}Compliance cannot be evaluated until a manifest exists.${C.reset}\n`);
   console.log(`${C.cyan}${C.bold}How to initialize:${C.reset}`);
@@ -929,11 +951,9 @@ async function runRemote(manifest, apiKey, endpoint, telemetry = {}) {
     fallback_ai_verification: manifest.fallback_ai_verification || false
   });
 
-  if (process.env.SENTINEL_DEBUG === 'true' || !process.argv.includes('--json')) {
+  if (process.env.SENTINEL_DEBUG === 'true' && !isJson) {
     console.log(`${C.gray}REMOTE REQUEST: POST ${url.href}${C.reset}`);
-    if (process.env.SENTINEL_DEBUG === 'true') {
-      console.log(`${C.gray}PAYLOAD: ${body}${C.reset}`);
-    }
+    console.log(`${C.gray}PAYLOAD: ${body}${C.reset}`);
   }
 
   const pkg = require('../package.json');
@@ -962,7 +982,7 @@ async function runRemote(manifest, apiKey, endpoint, telemetry = {}) {
 
     const results = await response.json();
 
-    if (process.env.SENTINEL_DEBUG === 'true') {
+    if (process.env.SENTINEL_DEBUG === 'true' && !isJson) {
       console.log(`${C.gray}REMOTE RESPONSE: ${JSON.stringify(results, null, 2)}${C.reset}`);
     }
 
@@ -1173,7 +1193,7 @@ async function pushEvidence(dirPath, apiKey, endpoint) {
   // Calculate hash to verify integrity before push
   const currentHash = calculateEvidenceHash(absolutePath);
   if (metadata.evidence_hash && metadata.evidence_hash !== currentHash) {
-    console.warn(`${C.yellow}⚠️  Warning: Evidence pack integrity hash mismatch. Files may have been tampered with.${C.reset}`);
+    if (!isJson) console.warn(`${C.yellow}⚠️  Warning: Evidence pack integrity hash mismatch. Files may have been tampered with.${C.reset}`);
   }
 
   const payload = {
@@ -1225,6 +1245,7 @@ async function pushEvidence(dirPath, apiKey, endpoint) {
 }
 
 function printSuccess(policyPath, auditMetadata = {}) {
+  if (isJson) return;
   console.log("");
   console.log(`${C.bold}${C.green}✅ Sentinel compliance check passed${C.reset}`);
 
@@ -1263,6 +1284,7 @@ function printSuccess(policyPath, auditMetadata = {}) {
 }
 
 function printFailure(missingFiles, policyPath) {
+  if (isJson) return;
   console.log("");
   console.log("Repository is not EU AI Act ready.");
   console.log("");
@@ -1401,17 +1423,26 @@ function loadPolicyPackRegistry() {
   }
 }
 
-function printPolicyPackList() {
+function printPolicyPackList(isJson = false) {
   const registry = loadPolicyPackRegistry();
 
   if (registry.error) {
-    console.error("");
-    console.error(`Sentinel policy pack registry error: ${registry.error}`);
-    console.error("");
+    if (isJson) {
+      console.error(JSON.stringify({ error: registry.error }));
+    } else {
+      console.error("");
+      console.error(`Sentinel policy pack registry error: ${registry.error}`);
+      console.error("");
+    }
     process.exit(1);
   }
 
   const packs = Array.isArray(registry.config?.packs) ? registry.config.packs : [];
+
+  if (isJson) {
+    console.log(JSON.stringify({ status: "SUCCESS", packs }));
+    return;
+  }
 
   console.log("");
   console.log("Available Sentinel policy packs:");
@@ -1427,13 +1458,17 @@ function printPolicyPackList() {
   }
 }
 
-function printPolicyPackDetails(policyPackName) {
+function printPolicyPackDetails(policyPackName, isJson = false) {
   const registry = loadPolicyPackRegistry();
 
   if (registry.error) {
-    console.error("");
-    console.error(`Sentinel policy pack registry error: ${registry.error}`);
-    console.error("");
+    if (isJson) {
+      console.log(JSON.stringify({ status: "FAIL", error: true, message: registry.error }));
+    } else {
+      console.error("");
+      console.error(`Sentinel policy pack registry error: ${registry.error}`);
+      console.error("");
+    }
     process.exit(1);
   }
 
@@ -1441,9 +1476,13 @@ function printPolicyPackDetails(policyPackName) {
   const packMeta = packs.find(pack => pack.name === policyPackName);
 
   if (!packMeta) {
-    console.error("");
-    console.error(`Sentinel policy pack error: Pack not found: ${policyPackName}`);
-    console.error("");
+    if (isJson) {
+      console.log(JSON.stringify({ status: "FAIL", error: true, message: `Pack not found: ${policyPackName}` }));
+    } else {
+      console.error("");
+      console.error(`Sentinel policy pack error: Pack not found: ${policyPackName}`);
+      console.error("");
+    }
     process.exit(1);
   }
 
@@ -1462,6 +1501,11 @@ function printPolicyPackDetails(policyPackName) {
       Array.isArray(pack.config.rules.required_documents)
       ? pack.config.rules.required_documents
       : [];
+
+  if (isJson) {
+    console.log(JSON.stringify({ status: "PASS", pack: packMeta, config: pack.config }));
+    return;
+  }
 
   console.log("");
   console.log(`Policy Pack: ${packMeta.name}`);
@@ -1695,14 +1739,16 @@ function generateEvidence(policyConfig) {
     JSON.stringify(index, null, 2)
   );
 
-  console.log("");
-  console.log(`${C.bold}${C.green}✅ Sentinel evidence templates generated.${C.reset}`);
-  if (createdDocs.length > 0) {
-    console.log(`Created ${createdDocs.length} new templates in docs/compliance/`);
-  } else {
-    console.log("No new documents needed or all already exist.");
+  if (!isJson) {
+    console.log("");
+    console.log(`${C.bold}${C.green}✅ Sentinel evidence templates generated.${C.reset}`);
+    if (createdDocs.length > 0) {
+      console.log(`Created ${createdDocs.length} new templates in docs/compliance/`);
+    } else {
+      console.log("No new documents needed or all already exist.");
+    }
+    console.log("");
   }
-  console.log("");
 }
 
 function printResult(verdict, isJson, isSarif, policyPath = "sentinel.policy.json") {
@@ -1886,7 +1932,7 @@ function writeSummary(report, summaryPath) {
     fs.writeFileSync(path.resolve(summaryPath), md);
     return true;
   } catch (e) {
-    console.error(`\n${C.yellow}Warning: Failed to generate summary: ${e.message}${C.reset}`);
+    if (!isJson) console.error(`\n${C.yellow}Warning: Failed to generate summary: ${e.message}${C.reset}`);
     return false;
   }
 }
@@ -1948,7 +1994,7 @@ function generateFinalAuditPosition(findings, score) {
  */
 async function performAudit(manifestPath, threshold, options = {}) {
   const engine = options.engine || 'stable';
-  if (process.env.SENTINEL_DEBUG === 'true') {
+  if (process.env.SENTINEL_DEBUG === 'true' && !options.isJson) {
      console.log(`[DEBUG] performAudit call: ${manifestPath} (Threshold: ${threshold}) | Engine: ${engine}`);
   }
   const manifestDir = path.dirname(path.resolve(manifestPath));
@@ -1994,7 +2040,9 @@ async function performAudit(manifestPath, threshold, options = {}) {
         }
       }
     } catch (err) {
-      console.warn(`[ENGINE-EXTENDED] Warning: Could not merge extended rules: ${err.message}`);
+      if (!options.isJson) {
+        console.warn(`[ENGINE-EXTENDED] Warning: Could not merge extended rules: ${err.message}`);
+      }
     }
   }
 
@@ -2005,15 +2053,17 @@ async function performAudit(manifestPath, threshold, options = {}) {
   const buildId = options.buildId || null;
   const traceStatus = buildId ? 'USER_DECLARED' : 'UNBOUND';
 
-  process.stdout.write(`\n${C.cyan}${C.bold}Production Trace Context:${C.reset}\n`);
-  process.stdout.write(`* build_id: ${buildId || 'NOT PROVIDED'}\n`);
-  process.stdout.write(`* trace_status: ${traceStatus}\n`);
+  if (!options.isJson) {
+    process.stdout.write(`\n${C.cyan}${C.bold}Production Trace Context:${C.reset}\n`);
+    process.stdout.write(`* build_id: ${buildId || 'NOT PROVIDED'}\n`);
+    process.stdout.write(`* trace_status: ${traceStatus}\n`);
 
-  if (!buildId) {
-    process.stdout.write(`\n${C.yellow}${C.bold}EVIDENCE SCOPE LIMITATION:${C.reset}\n`);
-    process.stdout.write(`No production build reference (--build-id) was provided.\n`);
-    process.stdout.write(`This audit verifies repository-level technical signals only.\n`);
-    process.stdout.write(`It does NOT establish traceability to a deployed production system.\n`);
+    if (!buildId) {
+      process.stdout.write(`\n${C.yellow}${C.bold}EVIDENCE SCOPE LIMITATION:${C.reset}\n`);
+      process.stdout.write(`No production build reference (--build-id) was provided.\n`);
+      process.stdout.write(`This audit verifies repository-level technical signals only.\n`);
+      process.stdout.write(`It does NOT establish traceability to a deployed production system.\n`);
+    }
   }
 
   // 1.06 Strict Mode Enforcement (Hardened with Evidence Trace)
@@ -2034,30 +2084,34 @@ async function performAudit(manifestPath, threshold, options = {}) {
     const missing = declaredFlags.filter(f => !detectedSignals.some(s => s.type === f));
 
     if (undeclared.length > 0 || missing.length > 0) {
-      process.stdout.write(`\n${C.red}${C.bold}❌ STRICT MODE VIOLATION${C.reset}\n`);
-      process.stdout.write(`${C.white}Strict mode enforces exact alignment between declared capabilities and detected technical signals without interpretation.${C.reset}\n`);
-      
-      if (undeclared.length > 0) {
-        process.stdout.write(`\n${C.yellow}Undeclared signals detected:${C.reset}\n`);
-        undeclared.forEach(s => {
-          process.stdout.write(`- ${C.white}${s.type}${C.reset}\n`);
-          process.stdout.write(`  ${C.gray}file:  ${s.file}${C.reset}\n`);
-          process.stdout.write(`  ${C.gray}line:  ${s.line}${C.reset}\n`);
-          if (s.match && s.match !== "unknown") {
-            process.stdout.write(`  ${C.gray}match: ${C.cyan}${s.match}${C.reset}\n`);
-          }
-        });
+      if (!options.isJson) {
+        process.stdout.write(`\n${C.red}${C.bold}❌ STRICT MODE VIOLATION${C.reset}\n`);
+        process.stdout.write(`${C.white}Strict mode enforces exact alignment between declared capabilities and detected technical signals without interpretation.${C.reset}\n`);
+        
+        if (undeclared.length > 0) {
+          process.stdout.write(`\n${C.yellow}Undeclared signals detected:${C.reset}\n`);
+          undeclared.forEach(s => {
+            process.stdout.write(`- ${C.white}${s.type}${C.reset}\n`);
+            process.stdout.write(`  ${C.gray}file:  ${s.file}${C.reset}\n`);
+            process.stdout.write(`  ${C.gray}line:  ${s.line}${C.reset}\n`);
+            if (s.match && s.match !== "unknown") {
+              process.stdout.write(`  ${C.gray}match: ${C.cyan}${s.match}${C.reset}\n`);
+            }
+          });
+        }
+        
+        if (missing.length > 0) {
+          process.stdout.write(`\n${C.yellow}Declared but not detected:${C.reset}\n`);
+          [...new Set(missing)].forEach(f => process.stdout.write(`- ${f}\n`));
+        }
+        
+        process.stdout.write(`\n${C.gray}Audit Terminated (Strict Mode).${C.reset}\n\n`);
       }
-      
-      if (missing.length > 0) {
-        process.stdout.write(`\n${C.yellow}Declared but not detected:${C.reset}\n`);
-        [...new Set(missing)].forEach(f => process.stdout.write(`- ${f}\n`));
-      }
-      
-      process.stdout.write(`\n${C.gray}Exit immediately.${C.reset}\n\n`);
-      process.exit(1);
+      throw new Error(`STRICT MODE VIOLATION: Declared flags do not match detected signals.`);
     }
-    process.stdout.write(`${C.green}${C.bold}✅ STRICT MODE PASSED${C.reset}\n`);
+    if (!options.isJson) {
+      process.stdout.write(`${C.green}${C.bold}✅ STRICT MODE PASSED${C.reset}\n`);
+    }
   }
 
   // 1.1 Governance Context
@@ -2246,7 +2300,7 @@ async function performAudit(manifestPath, threshold, options = {}) {
         semanticReport = generateSemanticReport(evalResults);
       }
     } catch (e) {
-      if (process.env.SENTINEL_DEBUG === 'true') {
+      if (process.env.SENTINEL_DEBUG === 'true' && !options.isJson) {
         console.log(`[DEBUG] Semantic evaluation failed or skipped: ${e.message}`);
       }
       semanticReport = null;
@@ -2769,7 +2823,8 @@ function findManifests(dir, found = []) {
  * Portfolio Audit Orchestrator.
  */
 async function runPortfolio(args) {
-    console.log(`\n${C.cyan}${C.bold}🚀 Sentinel Portfolio Audit Starting...${C.reset}`);
+    const isJson = args.includes('--json');
+    if (!isJson) console.log(`\n${C.cyan}${C.bold}🚀 Sentinel Portfolio Audit Starting...${C.reset}`);
     
     // 1. Setup results dir
     const projectRoot = process.cwd();
@@ -2778,7 +2833,7 @@ async function runPortfolio(args) {
 
     // 2. Discover manifests
     const manifests = findManifests(projectRoot);
-    console.log(`${C.gray}Found ${manifests.length} audit units.${C.reset}\n`);
+    if (!isJson) console.log(`${C.gray}Found ${manifests.length} audit units.${C.reset}\n`);
 
     const thresholdArgIdx = args.indexOf('--threshold');
     const threshold = (thresholdArgIdx !== -1 && args[thresholdArgIdx + 1]) ? parseInt(args[thresholdArgIdx + 1]) : 90;
@@ -2790,223 +2845,140 @@ async function runPortfolio(args) {
         const relativePath = path.relative(projectRoot, manifestPath);
         const repoName = path.dirname(relativePath) === '.' ? 'root' : path.dirname(relativePath).replace(/[/\\]/g, '-');
         
-        process.stdout.write(`${C.gray}Auditing [${C.white}${repoName}${C.gray}]... ${C.reset}`);
+        if (!isJson) process.stdout.write(`${C.gray}Auditing [${C.white}${repoName}${C.gray}]... ${C.reset}`);
         
         try {
-            const report = await performAudit(manifestPath, threshold);
+            const report = await performAudit(manifestPath, threshold, { isJson });
             const resultFile = path.join(resultsDir, `sentinel-${repoName}-report.json`);
             fs.writeFileSync(resultFile, JSON.stringify(report, null, 2));
             
-            const statusColor = report.status === 'PASS' ? C.green : C.red;
-            console.log(`${statusColor}${report.status}${C.reset} (${report.score}/100)`);
+            if (!isJson) {
+                const statusColor = report.status === 'PASS' ? C.green : C.red;
+                console.log(`${statusColor}${report.status}${C.reset} (${report.score}/100)`);
+            }
             successCount++;
         } catch (err) {
-            console.log(`${C.red}ERROR${C.reset}`);
-            console.error(`  ${C.red}↳ ${err.message}${C.reset}`);
+            if (!isJson) {
+                console.log(`${C.red}ERROR${C.reset}`);
+                console.error(`  ${C.red}↳ ${err.message}${C.reset}`);
+            }
             failCount++;
         }
     }
 
-    console.log(`\n${C.bold}Portfolio Audit Complete:${C.reset}`);
-    console.log(`  - ${C.green}Processed: ${successCount}${C.reset}`);
-    if (failCount > 0) console.log(`  - ${C.red}Failed/Skipped: ${failCount}${C.reset}`);
+    if (!isJson) {
+        console.log(`\n${C.bold}Portfolio Audit Complete:${C.reset}`);
+        console.log(`  - ${C.green}Processed: ${successCount}${C.reset}`);
+        if (failCount > 0) console.log(`  - ${C.red}Failed/Skipped: ${failCount}${C.reset}`);
 
-    // 3. Trigger Unification (Consolidator)
-    console.log(`\n${C.cyan}Synthesizing Portfolio Dashboard...${C.reset}`);
-    try {
-        const consolidatorPath = path.join(projectRoot, 'sovereign-consolidator.js');
-        if (fs.existsSync(consolidatorPath)) {
-            require(consolidatorPath); // This runs the consolidator logic
-        } else {
-            console.warn(`${C.yellow}Warning: sovereign-consolidator.js not found. Skipping dashboard generation.${C.reset}`);
+        // 3. Trigger Unification (Consolidator)
+        console.log(`\n${C.cyan}Synthesizing Portfolio Dashboard...${C.reset}`);
+        try {
+            const consolidatorPath = path.join(projectRoot, 'sovereign-consolidator.js');
+            if (fs.existsSync(consolidatorPath)) {
+                require(consolidatorPath); // This runs the consolidator logic
+            } else {
+                console.warn(`${C.yellow}Warning: sovereign-consolidator.js not found. Skipping dashboard generation.${C.reset}`);
+            }
+        } catch (e) {
+            console.error(`${C.red}Failed to generate dashboard: ${e.message}${C.reset}`);
         }
-    } catch (e) {
-        console.error(`${C.red}Failed to generate dashboard: ${e.message}${C.reset}`);
+        
+        console.log(`\n${C.green}${C.bold}✔ Portfolio audit cycle finished.${C.reset}\n`);
     }
-    
-    console.log(`\n${C.green}${C.bold}✔ Portfolio audit cycle finished.${C.reset}\n`);
+
+    if (isJson) {
+        // For portfolio mode, we might want to emit a summary JSON
+        console.log(JSON.stringify({
+            status: failCount === 0 ? "PASS" : "FAIL",
+            portfolio_audit: true,
+            success_count: successCount,
+            fail_count: failCount
+        }));
+    }
 }
 
 async function runCheck(args, productionHash = null, isStrict = false, buildId = null) {
-  const isJson = args.includes('--json');
-  
-  // CI/CD Flags
-  const failOnArgIdx = args.indexOf('--fail-on');
-  const failOnPolicy = (failOnArgIdx !== -1 && args[failOnArgIdx + 1]) ? args[failOnArgIdx + 1].toUpperCase() : 'REJECTED';
-  
-  const summaryArgIdx = args.indexOf('--summary');
-  const summaryPath = (summaryArgIdx !== -1 && args[summaryArgIdx + 1]) ? args[summaryArgIdx + 1] : null;
+  let result = null;
+  let exitCode = 0;
 
-  const engineArgIdx = args.indexOf('--engine');
-  const engine = (engineArgIdx !== -1 && args[engineArgIdx + 1]) ? args[engineArgIdx + 1].toLowerCase() : 'stable';
-
-  const isGenerateTechFile = args.includes('--generate-tech-file');
-
-  // 1. Resolve Threshold (Default to 0)
-  const thresholdArgIdx = args.indexOf('--threshold');
-  let threshold = 0;
-  if (thresholdArgIdx !== -1 && args[thresholdArgIdx + 1]) {
-    threshold = parseInt(args[thresholdArgIdx + 1]);
+  try {
+    // 1. Resolve Parameters
+    const thresholdArgIdx = args.indexOf('--threshold');
+    let threshold = (thresholdArgIdx !== -1 && args[thresholdArgIdx + 1]) ? parseInt(args[thresholdArgIdx + 1]) : 0;
     if (isNaN(threshold)) threshold = 0;
-  }
 
-  // 2. Resolve Manifest
-  const manifestPath = resolveTargetManifest(args);
-  if (!manifestPath || !fs.existsSync(manifestPath)) {
-    console.error(`${C.red}Error: No manifest found. Use --manifest <path>${C.reset}`);
-    process.exit(2);
-  }
-
-  // 3. Perform Audit via SSoT Engine
-  let report;
-  try {
-    report = await performAudit(manifestPath, threshold, { engine, productionHash, strict: isStrict, buildId });
-  } catch (err) {
-    console.error(`${C.red}${C.bold}Audit Critical Failure: ${err.message}${C.reset}`);
-    process.exit(1);
-  }
-
-  const { score, trust_confidence, verdict } = report; // Destructure for display (internal names might vary)
-
-  // 4. Output
-  // 4. Enterprise Upgrade (SIG, P2, Vault, V2.1 HTML)
-  try {
-    const manifestDir = path.dirname(path.resolve(manifestPath));
-    const upgradedReport = await PreAuditor.upgrade(report, manifestDir, { generateHtml: !isJson, engine });
-    report = upgradedReport;
-  } catch (err) {
-    console.error(`Sentinel Pre-Auditor Error: ${err.message}`);
-  }
-
-  // 5. Output Handler
-  if (isJson) {
-    console.log(JSON.stringify(report, null, 2));
-    process.exit(report.exit_code || 0);
-  }
-
-  if (report.status === 'PASS') {
-    console.log(`\n${C.green}${C.bold}Sentinel Check: PASS${C.reset}`);
-  } else if (report.status === 'NEEDS_REVIEW') {
-    console.log(`\n${C.yellow}${C.bold}Sentinel Check: NEEDS_REVIEW${C.reset}`);
-  } else {
-    console.log(`\n${C.red}${C.bold}Sentinel Check: FAIL${C.reset}`);
-  }
-
-  const pos = report.final_audit_position || {};
-  console.log(`${C.gray}Audit Readiness: ${C.white}${pos.audit_readiness || 'N/A'}${C.reset}`);
-  console.log(`${C.gray}Risk Level:      ${C.white}${pos.risk_level || 'N/A'}${C.reset}`);
-  console.log(`${C.gray}Manifest:        ${C.white}${manifestPath}${C.reset}`);
-  console.log(`${C.gray}Total Score:           ${score < threshold ? C.red + C.bold : C.green + C.bold}${score}${C.gray}/100${C.reset}`);
-  
-  const confColor = report.confidence === 'HIGH' ? C.green : (report.confidence === 'MEDIUM' ? C.yellow : C.red);
-  console.log(`${C.gray}Trust Confidence (φ):  ${confColor}${C.bold}${report.confidence}${C.reset}${C.gray} (Saturation: ${Math.round(report.phi * 100)}%)${C.reset}`);
-  console.log(`${C.gray}Risk Exposure Index:   ${C.white}${report.exposure}${C.reset}`);
-
-  if (report.score_breakdown) {
-    console.log(`\n${C.cyan}Compliance Breakdown:${C.reset}`);
-    Object.entries(report.score_breakdown).forEach(([art, data]) => {
-      const artScore = Math.round((data.claim * 0.2 + data.evidence * 0.8) * 100);
-      console.log(`  - ${C.white}${art.padEnd(8)}${C.reset}: ${C.gray}Score: ${C.white}${artScore.toString().padStart(3)}${C.gray} | Weight: ${C.white}${data.weight}${C.reset}`);
-    });
-  }
-
-  if (report._internal && report._internal.signal_breakdown) {
-    const sb = report._internal.signal_breakdown;
-    console.log(`\n${C.gray}Audit Rigor:           ${C.white}${report._internal.total_signals} signals extracted${C.reset}`);
-    process.stdout.write(`${C.gray}   ↳ [ AI Assets: ${C.white}${sb.ai_assets}${C.gray} | Trans: ${C.white}${sb.transparency}${C.gray} | Oversight: ${C.white}${sb.oversight}${C.gray} | Log: ${C.white}${sb.logging}${C.gray} ]${C.reset}\n`);
-  }
-
-  if (report.confidence === 'LOW') {
-    console.log(`\n${C.red}${C.bold}⚠ TRUST GAP DETECTED:${C.reset}${C.red} Declared coverage not matched by evidence substance.${C.reset}`);
-  }
-
-
-  if (report.risk_category && report.risk_category.toUpperCase() === 'HIGH') {
-    console.log(`\n${C.yellow}${C.bold}⚠ High-risk system detected${C.reset}`);
-    console.log(`${C.cyan}Recommended minimum threshold: 90${C.reset}`);
-  }
-
-  if (score < threshold) {
-    const allFindings = (report._internal && report._internal.all_findings) || [];
-    const docFindings = allFindings.filter(f => f.source === 'evidence');
-    const impFindings = allFindings.filter(f => f.source === 'implementation');
-
-    if (docFindings.length > 0) {
-      console.log(`\n${C.bold}📄 DOCUMENTATION FINDINGS:${C.reset}`);
-      docFindings.slice(0, 3).forEach(f => {
-        const regulatoryRef = f.article ? ` (${f.article})` : '';
-        console.log(`- [${C.yellow}${f.description}${C.reset}]${regulatoryRef}`);
-        if (f.fix_snippet) console.log(`  ${C.green}→ ${f.fix_snippet}${C.reset}`);
-      });
+    const manifestPath = resolveTargetManifest(args);
+    if (!manifestPath || !fs.existsSync(manifestPath)) {
+      throw new Error("No manifest found. Use --manifest <path>");
     }
 
-    if (impFindings.length > 0) {
-      console.log(`\n${C.bold}💻 DEEP ENFORCEMENT FINDINGS (Hardening):${C.reset}`);
-      impFindings.forEach(f => {
-        const regulatoryRef = f.article ? ` (${f.article})` : '';
-        console.log(`- [${C.red}${f.description}${C.reset}]${regulatoryRef}`);
-        if (f.fix_snippet) console.log(`  ${C.green}→ ${f.fix_snippet}${C.reset}`);
-      });
-    }
+    const engineArgIdx = args.indexOf('--engine');
+    const engine = (engineArgIdx !== -1 && args[engineArgIdx + 1]) ? args[engineArgIdx + 1].toLowerCase() : 'stable';
+    const failOnArgIdx = args.indexOf('--fail-on');
+    const failOnPolicy = (failOnArgIdx !== -1 && args[failOnArgIdx + 1]) ? args[failOnArgIdx + 1].toUpperCase() : 'REJECTED';
 
-
-    const contextualFix = manifestPath ? ` --manifest ${manifestPath}` : '';
-    console.log(`\n${C.cyan}Next step: run ${C.bold}npx @radu_api/sentinel-scan fix --apply${contextualFix}${C.reset} to scaffold structure.`);
-    console.log(`${C.gray}Note: scaffolds missing structure only. Manual content still required.${C.reset}\n`);
-  }
-
-  // 5. Enterprise Upgrade (SIG, P2, Vault, V2.1 HTML)
-  try {
-    if (!isJson) {
-      console.log(`\n${C.cyan}${C.bold}🏛  Audit Trail Foundation: Archiving Snapshot...${C.reset}`);
-    }
-    const manifestDir = path.dirname(path.resolve(manifestPath));
-    const upgradedReport = await PreAuditor.upgrade(report, manifestDir, { generateHtml: !isJson, engine });
-    report = upgradedReport; // Sync for summary/enforcement
+    // 2. Perform Audit
+    let report = await performAudit(manifestPath, threshold, { engine, productionHash, strict: isStrict, buildId, isJson });
     
-    if (!isJson) {
-      console.log(`${C.green}✔ Audit archived to .sentinel/vault/${C.reset}`);
-      console.log(`${C.green}✔ Professional V2.1 Audit Statement generated: sentinel-audit.html${C.reset}`);
+    // 3. Enterprise Upgrade
+    try {
+      const manifestDir = path.dirname(path.resolve(manifestPath));
+      report = await PreAuditor.upgrade(report, manifestDir, { generateHtml: !isJson, engine });
+    } catch (err) {
+      if (!isJson) console.error(`Sentinel Pre-Auditor Error: ${err.message}`);
     }
 
-    // Annex IV Generation Hook
-    if (isGenerateTechFile) {
-      const ReportGenerator = require('./lib/report-generator');
-      const techFileContent = ReportGenerator.generateAnnexIVMarkdown(report);
-      fs.writeFileSync('ANNEX_IV_EVIDENCE_PACK.md', techFileContent);
-      if (!isJson) {
-        console.log(`${C.green}✔ Professional Annex IV Technical Dossier generated: ANNEX_IV_EVIDENCE_PACK.md${C.reset}`);
+    // 4. Finalize Result
+    report.status = computeDeterministicStatus(report._internal?.all_findings || [], report.verdict);
+    report.exit_code = (report.status === 'FAIL' || report.score < threshold || isEnforcementViolation(report.central_verdict || report.verdict, failOnPolicy)) ? 1 : 0;
+    
+    result = report;
+    exitCode = report.exit_code;
+
+    // 5. Pretty Output (Gated)
+    if (!isJson) {
+      if (report.status === 'PASS') {
+        process.stdout.write(`\n${C.green}${C.bold}Sentinel Check: PASS${C.reset}\n`);
+      } else if (report.status === 'NEEDS_REVIEW') {
+        process.stdout.write(`\n${C.yellow}${C.bold}Sentinel Check: NEEDS_REVIEW${C.reset}\n`);
+      } else if (report.status === 'GAP') {
+        process.stdout.write(`\n${C.yellow}${C.bold}Sentinel Check: GAP${C.reset}\n`);
+      } else {
+        process.stdout.write(`\n${C.red}${C.bold}Sentinel Check: FAIL${C.reset}\n`);
+      }
+
+      console.log(`${C.gray}Audit Readiness: ${C.white}${report.final_audit_position?.audit_readiness || 'N/A'}${C.reset}`);
+      console.log(`${C.gray}Risk Level:      ${C.white}${report.final_audit_position?.risk_level || 'N/A'}${C.reset}`);
+      console.log(`${C.gray}Manifest:        ${C.white}${manifestPath}${C.reset}`);
+      console.log(`${C.gray}Total Score:           ${report.score < threshold ? C.red + C.bold : C.green + C.bold}${report.score}${C.gray}/100${C.reset}`);
+      
+      const confColor = report.confidence === 'HIGH' ? C.green : (report.confidence === 'MEDIUM' ? C.yellow : C.red);
+      console.log(`${C.gray}Trust Confidence (φ):  ${confColor}${C.bold}${report.confidence}${C.reset}${C.gray} (Saturation: ${Math.round(report.phi * 100)}%)${C.reset}`);
+      
+      if (report.score < threshold) {
+        console.log(`\n${C.red}${C.bold}❌ SCOREGATE FAILURE: Score (${report.score}) is below threshold (${threshold})${C.reset}`);
       }
     }
   } catch (err) {
-    console.error(`\n${C.yellow}⚠️  Audit Trail Warning: Failed to archive snapshot: ${err.message}${C.reset}`);
+    result = {
+      schema: "sentinel.audit.v1",
+      status: "FAIL",
+      error: true,
+      message: err.message
+    };
+    if (process.env.SENTINEL_DEBUG === 'true' && !isJson) {
+      console.error(err.stack);
+    }
+    exitCode = 1;
+  } finally {
+    if (isJson) {
+      console.log(JSON.stringify(result));
+      process.exit(exitCode);
+    } else {
+      pauseAndExit(exitCode);
+    }
   }
-
-  // 6. CI/CD Enforcement & Summary
-  if (summaryPath) {
-    writeSummary(report, summaryPath);
-  }
-
-  const isTotalFail = report.exit_code === 1;
-
-  if (isJson) {
-    console.log(JSON.stringify(report, null, 2));
-    process.exit(isTotalFail ? 1 : 0);
-  }
-
-  if (isTotalFail) {
-      if (report.score < threshold) {
-          console.log(`\n${C.red}${C.bold}❌ SCOREGATE FAILURE: Score (${report.score}) is below threshold (${threshold})${C.reset}`);
-      }
-      if (isEnforcementViolation(report.central_verdict, failOnPolicy)) {
-          console.log(`\n${C.red}${C.bold}❌ CI ENFORCEMENT FAILURE: Verdict (${report.central_verdict}) violates policy (${failOnPolicy})${C.reset}`);
-      }
-      if (report.status === 'FAIL' && !isEnforcementViolation(report.central_verdict, failOnPolicy) && report.score >= threshold) {
-          console.log(`\n${C.red}${C.bold}❌ COMPLIANCE GATE FAILURE: Deterministic status is FAIL due to critical findings or contradictions.${C.reset}`);
-      }
-  }
-
-  process.exit(isTotalFail ? 1 : 0);
 }
 
 /**
@@ -3062,7 +3034,6 @@ function computeDeterministicStatus(findings = [], evidenceVerdict = "COMPLIANT"
  * Re-validates evidence hashes against the current filesystem.
  */
 async function runVerify(args) {
-  const isJson = args.includes('--json');
   
   if (args.includes('--package')) {
     const pkgIdx = args.indexOf('--package');
@@ -3079,33 +3050,34 @@ async function runVerify(args) {
   if (auditId) {
     report = AuditVault.getAuditById(rootDir, auditId);
     if (!report) {
-      console.error(`${C.red}Error: Audit '${auditId}' not found in vault.${C.reset}`);
-      process.exit(1);
+      throw new Error(`Audit '${auditId}' not found in vault.`);
     }
   } else if (auditPathIdx !== -1 && args[auditPathIdx + 1]) {
     try {
       report = JSON.parse(fs.readFileSync(args[auditPathIdx + 1], 'utf8'));
     } catch (e) {
-      console.error(`${C.red}Error reading audit file: ${e.message}${C.reset}`);
+      if (!isJson) console.error(`${C.red}Error reading audit file: ${e.message}${C.reset}`);
+      if (isJson) console.log(JSON.stringify({ status: "FAIL", error: true, message: e.message }));
       process.exit(1);
     }
   } else {
     report = AuditVault.getLatestAudit(rootDir);
     if (!report) {
-      console.error(`${C.red}Error: No audit found. Use --audit <id> or --file <path>.${C.reset}`);
-      process.exit(1);
+      throw new Error("No audit found. Use --audit <id> or --file <path>.");
     }
   }
 
   const auditIdReport = (report._audit_trail?.audit_id || report.audit_metadata?.audit_id || 'Unknown');
   const commit = (report._audit_trail?.commit || report.audit_metadata?.commit || 'N/A');
-  console.log(`\n${C.cyan}${C.bold}🔍 Sentinel Evidence Verification Engine${C.reset}`);
-  console.log(`${C.gray}Audit ID: ${C.white}${auditIdReport}${C.reset}`);
-  console.log(`${C.gray}Reference Commit: ${C.white}${commit}${C.reset}\n`);
+  if (!isJson) {
+    console.log(`\n${C.cyan}${C.bold}🔍 Sentinel Evidence Verification Engine${C.reset}`);
+    console.log(`${C.gray}Audit ID: ${C.white}${auditIdReport}${C.reset}`);
+    console.log(`${C.gray}Reference Commit: ${C.white}${commit}${C.reset}\n`);
+  }
 
   const signals = report._internal?.signals || [];
   if (signals.length === 0) {
-    console.log(`${C.yellow}No technical evidence found in report to verify.${C.reset}\n`);
+    if (!isJson) console.log(`${C.yellow}No technical evidence found in report to verify.${C.reset}\n`);
     process.exit(0);
   }
 
@@ -3113,8 +3085,10 @@ async function runVerify(args) {
   let tamperedCount = 0;
   let missingCount = 0;
 
-  console.log(`${C.bold}${'STATUS'.padEnd(12)} | ${'REGULATORY ARTICLE'.padEnd(15)} | ${'LOCATION'}${C.reset}`);
-  console.log(`${C.gray}-------------|-----------------|-----------------------------------${C.reset}`);
+  if (!isJson) {
+    console.log(`${C.bold}${'STATUS'.padEnd(12)} | ${'REGULATORY ARTICLE'.padEnd(15)} | ${'LOCATION'}${C.reset}`);
+    console.log(`${C.gray}-------------|-----------------|-----------------------------------${C.reset}`);
+  }
 
   for (const s of signals) {
     const fullPath = path.join(rootDir, s.source_path);
@@ -3128,44 +3102,48 @@ async function runVerify(args) {
     const regArt = PROBE_MAP[s.id] || 'Other';
 
     if (!fs.existsSync(fullPath)) {
-      console.log(`${C.red}${'MISSING'.padEnd(12)}${C.reset} | ${regArt.padEnd(15)} | ${s.source_path}:${s.line}`);
+      if (!isJson) console.log(`${C.red}${'MISSING'.padEnd(12)}${C.reset} | ${regArt.padEnd(15)} | ${s.source_path}:${s.line}`);
       missingCount++;
       continue;
     }
 
     const currentContent = fs.readFileSync(fullPath, 'utf8');
     const currentHash = crypto.createHash('sha256').update(currentContent).digest('hex');
+    const expectedHash = s.source_sha256;
 
-    if (currentHash === s.sha256) {
-      console.log(`${C.green}${'VERIFIED'.padEnd(12)}${C.reset} | ${regArt.padEnd(15)} | ${s.source_path}:${s.line || 'base'}`);
+    if (currentHash === expectedHash) {
+      if (!isJson) console.log(`${C.green}${'VERIFIED'.padEnd(12)}${C.reset} | ${regArt.padEnd(15)} | ${s.source_path}:${s.line} (${s.id})`);
       verifiedCount++;
     } else {
-      if (process.env.SENTINEL_DEBUG === 'true') {
-        console.log(`[DEBUG] Hash Mismatch for ${s.source_path}:`);
-        console.log(`  Stored:  ${s.sha256}`);
-        console.log(`  Current: ${currentHash}`);
-      }
-      console.log(`${C.red}${'TAMPERED'.padEnd(12)}${C.reset} | ${regArt.padEnd(15)} | ${s.source_path}:${s.line || 'base'}`);
+      if (!isJson) console.log(`${C.red}${'TAMPERED'.padEnd(12)}${C.reset} | ${regArt.padEnd(15)} | ${s.source_path}:${s.line} (${s.id})`);
       tamperedCount++;
     }
   }
 
-  console.log(`\n${C.bold}Verification Summary:${C.reset}`);
-  console.log(`  - ${C.green}Verified: ${verifiedCount}${C.reset}`);
-  if (tamperedCount > 0) console.log(`  - ${C.red}Tampered/Changed: ${tamperedCount}${C.reset}`);
-  if (missingCount > 0) console.log(`  - ${C.red}Missing Files: ${missingCount}${C.reset}`);
+  if (!isJson) {
+    console.log(`\n${C.bold}Verification Result:${C.reset}`);
+    console.log(`  - Verified: ${C.green}${verifiedCount}${C.reset}`);
+    if (tamperedCount > 0) console.log(`  - Tampered: ${C.red}${tamperedCount}${C.reset}`);
+    if (missingCount > 0) console.log(`  - Missing:  ${C.yellow}${missingCount}${C.reset}`);
+    console.log("");
 
-  const cryptoUtils = require('./lib/crypto-utils');
-  const sigValid = cryptoUtils.verifyAuditSignature(report);
-  console.log(`\n${C.bold}Audit Signature:${C.reset} ${sigValid ? C.green + 'VALID ✅' : C.red + 'INVALID ❌'}${C.reset}`);
-
-  if (tamperedCount === 0 && missingCount === 0 && sigValid) {
-    console.log(`\n${C.green}${C.bold}✔ ALL TECHNICAL EVIDENCE IS CRYPTOGRAPHICALLY AUTHENTIC.${C.reset}\n`);
-    process.exit(0);
-  } else {
-    console.log(`\n${C.red}${C.bold}✖ INTEGRITY BREACH: Technical evidence does not match the audit record.${C.reset}\n`);
-    process.exit(1);
+    if (tamperedCount === 0 && missingCount === 0) {
+      console.log(`${C.green}${C.bold}✔ ALL TECHNICAL EVIDENCE VERIFIED.${C.reset}\n`);
+    } else {
+      console.log(`${C.red}${C.bold}✖ AUDIT INTEGRITY FAILURE: EVIDENCE HAS CHANGED.${C.reset}\n`);
+    }
   }
+
+  if (isJson) {
+    console.log(JSON.stringify({
+      status: (tamperedCount === 0 && missingCount === 0) ? "PASS" : "FAIL",
+      verified: verifiedCount,
+      tampered: tamperedCount,
+      missing: missingCount
+    }));
+  }
+  
+  process.exit((tamperedCount === 0 && missingCount === 0) ? 0 : 1);
 }
 
 /**
@@ -3173,14 +3151,17 @@ async function runVerify(args) {
  * Frictionless: Auth Check -> Integrity Check -> Traceability Check.
  */
 async function runPackageVerify(packagePath, argv) {
+  const isJson = argv.includes('--json');
   if (!packagePath) {
-    console.error(`${C.red}✖ Error: Missing package path. Usage: sentinel verify --package <path.zip>${C.reset}`);
+    if (!isJson) console.error(`${C.red}✖ Error: Missing package path. Usage: sentinel verify --package <path.zip>${C.reset}`);
+    if (isJson) console.log(JSON.stringify({ status: "FAIL", error: true, message: "Missing package path" }));
     process.exit(1);
   }
 
   const fullPackagePath = path.resolve(packagePath);
   if (!fs.existsSync(fullPackagePath)) {
-    console.error(`${C.red}✖ Error: Package not found: ${fullPackagePath}${C.reset}`);
+    if (!isJson) console.error(`${C.red}✖ Error: Package not found: ${fullPackagePath}${C.reset}`);
+    if (isJson) console.log(JSON.stringify({ status: "FAIL", error: true, message: `Package not found: ${fullPackagePath}` }));
     process.exit(1);
   }
 
@@ -3190,8 +3171,10 @@ async function runPackageVerify(packagePath, argv) {
   const CryptoUtils = require('./lib/crypto-utils');
 
   try {
-    console.log(`\n${C.cyan}${C.bold}🔍 Sentinel Forensic Verification Engine [Offline Mode]${C.reset}`);
-    console.log(`${C.gray}Loading package: ${path.basename(fullPackagePath)}${C.reset}\n`);
+    if (!isJson) {
+      console.log(`\n${C.cyan}${C.bold}🔍 Sentinel Forensic Verification Engine [Offline Mode]${C.reset}`);
+      console.log(`${C.gray}Loading package: ${path.basename(fullPackagePath)}${C.reset}\n`);
+    }
 
     // 1. Extract Package
     try {
@@ -3203,7 +3186,7 @@ async function runPackageVerify(packagePath, argv) {
         execSync(`unzip -o "${fullPackagePath}" -d "${tempDir}"`);
       }
     } catch (err) {
-      console.error(`${C.red}✖ Error: Failed to extract package. ${err.message}${C.reset}`);
+      if (!isJson) console.error(`${C.red}✖ Error: Failed to extract package. ${err.message}${C.reset}`);
       process.exit(1);
     }
 
@@ -3214,7 +3197,7 @@ async function runPackageVerify(packagePath, argv) {
     const checksumsPath = path.join(tempDir, 'checksums.sha256');
 
     if (!fs.existsSync(sigJsonPath) || !fs.existsSync(sigBinPath) || !fs.existsSync(pubKeyPath)) {
-      console.log(`${C.red}AUTH CHECK: FAIL → MISSING SECURITY ANCHORS${C.reset}`);
+      if (!isJson) console.log(`${C.red}AUTH CHECK: FAIL → MISSING SECURITY ANCHORS${C.reset}`);
       process.exit(1);
     }
 
@@ -3227,10 +3210,10 @@ async function runPackageVerify(packagePath, argv) {
     const isSignedCorrectly = CryptoUtils.verifyData(checksums, signatureBin, publicKey);
 
     if (!isSignedCorrectly) {
-      console.log(`${C.red}AUTH CHECK: FAIL → AUTH BREACH (Invalid Signature)${C.reset}`);
+      if (!isJson) console.log(`${C.red}AUTH CHECK: FAIL → AUTH BREACH (Invalid Signature)${C.reset}`);
       process.exit(1);
     }
-    console.log(`${C.green}AUTH CHECK: PASS${C.reset}`);
+    if (!isJson) console.log(`${C.green}AUTH CHECK: PASS${C.reset}`);
 
     // 3. Integrity Check (Structure)
     const checksumLines = checksums.split('\n').filter(l => l.trim());
@@ -3255,10 +3238,10 @@ async function runPackageVerify(packagePath, argv) {
     }
 
     if (integrityFailed) {
-      console.log(`${C.red}INTEGRITY CHECK: FAIL → STRUCTURE BREACH (Corrupted Files)${C.reset}`);
+      if (!isJson) console.log(`${C.red}INTEGRITY CHECK: FAIL → STRUCTURE BREACH (Corrupted Files)${C.reset}`);
       process.exit(1);
     }
-    console.log(`${C.green}INTEGRITY CHECK: PASS${C.reset}`);
+    if (!isJson) console.log(`${C.green}INTEGRITY CHECK: PASS${C.reset}`);
 
     // 4. Traceability Check (Deep Evidence Alignment)
     const auditReport = JSON.parse(fs.readFileSync(path.join(tempDir, 'audit.json'), 'utf8'));
@@ -3281,14 +3264,16 @@ async function runPackageVerify(packagePath, argv) {
     });
 
     if (traceFailCount > 0) {
-      console.log(`${C.red}TRACEABILITY CHECK: FAIL → EVIDENCE BREACH (${traceFailCount} mismatched signals)${C.reset}`);
+      if (!isJson) console.log(`${C.red}TRACEABILITY CHECK: FAIL → EVIDENCE BREACH (${traceFailCount} mismatched signals)${C.reset}`);
       process.exit(1);
     }
-    console.log(`${C.green}TRACEABILITY CHECK: PASS${C.reset}`);
+    if (!isJson) {
+      console.log(`${C.green}TRACEABILITY CHECK: PASS${C.reset}`);
 
-    console.log(`\n${C.green}${C.bold}FINAL VERDICT: AUDIT VALIDATED${C.reset}\n`);
-    console.log(`${C.gray}Artifact ID: ${C.white}${signatureJson.signed_content_digest}${C.reset}`);
-    console.log(`${C.gray}Authority:   ${C.white}${signatureJson.signed_by} (${signatureJson.authority_id})${C.reset}\n`);
+      console.log(`\n${C.green}${C.bold}FINAL VERDICT: AUDIT VALIDATED${C.reset}\n`);
+      console.log(`${C.gray}Artifact ID: ${C.white}${signatureJson.signed_content_digest}${C.reset}`);
+      console.log(`${C.gray}Authority:   ${C.white}${signatureJson.signed_by} (${signatureJson.authority_id})${C.reset}\n`);
+    }
 
   } finally {
     if (fs.existsSync(tempDir)) {
@@ -3306,28 +3291,30 @@ async function runExport(args) {
   const outputIdx = args.indexOf('--output');
   const outputPath = (outputIdx !== -1 && args[outputIdx + 1]) ? args[outputIdx + 1] : `sentinel-audit-${Date.now()}.zip`;
 
-  console.log(`\n${C.cyan}${C.bold}📦 Sentinel Forensic Export Engine${C.reset}`);
-  console.log(`${C.gray}Target Audit: ${C.white}${auditId}${C.reset}`);
+  if (!isJson) {
+    console.log(`\n${C.cyan}${C.bold}📦 Sentinel Forensic Export Engine${C.reset}`);
+    console.log(`${C.gray}Target Audit: ${C.white}${auditId}${C.reset}`);
+  }
 
   const rootDir = process.cwd();
   const report = auditId === 'latest' ? AuditVault.getLatestAudit(rootDir) : AuditVault.getAuditById(rootDir, auditId);
 
   if (!report) {
-    console.error(`${C.red}✖ Error: Audit record '${auditId}' not found in vault.${C.reset}`);
+    if (!isJson) console.error(`${C.red}✖ Error: Audit record '${auditId}' not found in vault.${C.reset}`);
     process.exit(1);
   }
 
-  console.log(`${C.gray}Generating forensic bundle...${C.reset}`);
+  if (!isJson) console.log(`${C.gray}Generating forensic bundle...${C.reset}`);
   
   try {
     const success = await AuditExporter.exportBundle(report, rootDir, outputPath);
-    if (success) {
+    if (success && !isJson) {
       console.log(`\n${C.green}${C.bold}✔ FORENSIC ARTIFACT GENERATED SUCCESSFULLY${C.reset}`);
       console.log(`${C.white}Location: ${path.resolve(outputPath)}${C.reset}`);
       console.log(`${C.gray}Digital Signature: ${report._audit_signature?.digest.substring(0, 16)}...${C.reset}\n`);
     }
   } catch (err) {
-    console.error(`${C.red}✖ Export failed: ${err.message}${C.reset}`);
+    if (!isJson) console.error(`${C.red}✖ Export failed: ${err.message}${C.reset}`);
     process.exit(1);
   }
 }
@@ -3336,553 +3323,65 @@ async function main() {
   const args = process.argv.slice(2);
   const command = (args[0] || '').toLowerCase();
 
-  // Global Production Hash & Strict Mode Extraction
-  let productionHash = null;
-  const hashIdx = args.indexOf('--production-hash');
-  if (hashIdx !== -1 && args[hashIdx + 1]) {
-    productionHash = args[hashIdx + 1];
-    if (!/^[a-fA-F0-9]{64}$/.test(productionHash)) {
-      console.error(`\n${C.red}${C.bold}❌ Error: Invalid production hash format.${C.reset}`);
-      console.error(`${C.red}Must be a valid SHA-256 (64 hex characters).${C.reset}\n`);
-      process.exit(1);
-    }
-  }
-
-  const isStrict = args.includes('--strict');
-
-  let buildId = null;
-  const buildIdx = args.indexOf('--build-id');
-  if (buildIdx !== -1 && args[buildIdx + 1]) {
-    buildId = args[buildIdx + 1];
-  }
-
-  // 1. Global Flags (Priority)
-  if (args.includes('--version') || args.includes('-v')) {
-    printBanner();
-    printVersion();
-    process.exit(0);
-  }
-  if (args.includes('--help') || args.includes('-h')) {
-    printBanner();
-    printHelp();
-    process.exit(0);
-  }
-
-  // 2. Subcommand Routing (MUST EXIT AFTER)
-
-  if (command === 'fix') {
-    await runFix(args.slice(1));
-    process.exit(0);
-  }
-
-  if (command === 'check') {
-    await runCheck(args.slice(1), productionHash, isStrict, buildId);
-    process.exit(0);
-  }
-
-  if (command === 'verify') {
-    await runVerify(args.slice(1));
-    process.exit(0);
-  }
-
-  if (command === 'export') {
-    await runExport(args.slice(1));
-    process.exit(0);
-  }
-
-  if (command === 'history') {
-    const rootDir = process.cwd();
-    const index = AuditVault.getHistory(rootDir);
-    if (!index || !index.history || index.history.length === 0) {
-      console.log(`\n${C.yellow}No audit history found for this project.${C.reset}\n`);
-      process.exit(0);
-    }
-    console.log(`\n${C.cyan}${C.bold}🏛  Sentinel Audit History: ${index.project_name}${C.reset}\n`);
-    console.log(`${C.gray}${'ID'.padEnd(10)} | ${'TIMESTAMP'.padEnd(20)} | ${'VERDICT'.padEnd(10)} | ${'COMMIT'}${C.reset}`);
-    console.log(`${C.gray}-----------|----------------------|------------|--------${C.reset}`);
-    index.history.reverse().forEach(h => {
-      const vColor = h.verdict === 'APPROVED' ? C.green : (h.verdict === 'HOLD' ? C.yellow : C.red);
-      console.log(`${C.white}${h.audit_id.substring(0, 8).padEnd(10)}${C.reset} | ${C.gray}${h.timestamp.substring(0, 19).padEnd(20)}${C.reset} | ${vColor}${h.verdict.padEnd(10)}${C.reset} | ${C.white}${h.commit || '----'}${C.reset}`);
-    });
-    console.log("");
-    process.exit(0);
-  }
-
-  if (command === 'diff') {
-    const rootDir = process.cwd();
-    const argsCopy = args.slice(1);
-    const isJson = argsCopy.includes('--json');
-    
-    // CI/CD Flags
-    const failOnArgIdx = argsCopy.indexOf('--fail-on');
-    const failOnPolicy = (failOnArgIdx !== -1 && argsCopy[failOnArgIdx + 1]) ? argsCopy[failOnArgIdx + 1].toUpperCase() : 'REJECTED';
-    
-    const summaryArgIdx = argsCopy.indexOf('--summary');
-    const summaryPath = (summaryArgIdx !== -1 && argsCopy[summaryArgIdx + 1]) ? argsCopy[summaryArgIdx + 1] : null;
-
-    const baseIdArgIndex = argsCopy.indexOf('--base');
-    let baseReport = null;
-
-    if (baseIdArgIndex !== -1 && argsCopy[baseIdArgIndex + 1]) {
-      const baseId = argsCopy[baseIdArgIndex + 1];
-      baseReport = AuditVault.getAuditById(rootDir, baseId);
-      if (!baseReport) {
-        console.error(`\n${C.red}Error: Base audit with ID '${baseId}' not found in vault.${C.reset}\n`);
-        process.exit(1);
-      }
-    } else {
-      baseReport = AuditVault.getLatestAudit(rootDir);
-      if (!baseReport) {
-        console.error(`\n${C.yellow}No previous audits found to compare against.${C.reset}\n`);
-        process.exit(0);
-      }
-    }
-
-    console.log(`\n${C.cyan}${C.bold}📈 Sentinel Compliance Evolution${C.reset}`);
-    console.log(`${C.gray}Comparing current state against: ${baseReport.audit_metadata?.audit_id || 'Unknown'} (${baseReport.audit_metadata?.timestamp || 'N/A'})${C.reset}\n`);
-
-    // To perform a real-time diff, we must run a fresh check but without archiving it as a new "history" entry just yet,
-    // or just run the check and let PreAuditor handle the diff injection for the report.
-    // For the CLI output, we'll run performAudit.
-    
-    const manifestArgIndex = argsCopy.indexOf('--manifest');
-    const manifestPath = (manifestArgIndex !== -1 && argsCopy[manifestArgIndex + 1]) || 'sentinel.manifest.json';
-    // rootDir is already declared at line 1853
-    
-    const thresholdArgIndex = argsCopy.indexOf('--threshold');
-    const threshold = (thresholdArgIndex !== -1 && parseInt(argsCopy[thresholdArgIndex + 1])) || 0;
-
-    try {
-      let currentReport = await performAudit(manifestPath, threshold);
-      currentReport.threshold = threshold; // Explicit sync!
-
-      // 1. Sentinel Integrity Guard (SIG)
-      const { runSig } = require('./lib/sentinel-bridge');
-      const probingRulesPath = path.join(__dirname, 'lib', 'probing-rules.json');
-      const sigReport = await runSig(currentReport, probingRulesPath, rootDir);
-      
-      currentReport = {
-        ...currentReport,
-        enterprise_confidence: sigReport.enterprise_confidence,
-        defensibility: sigReport.defensibility,
-        integrity_issues: sigReport.integrity_issues,
-        _sig_internal: sigReport._internal
-      };
-
-      // 2. Generate Traceability Metadata
-      const AuditMetadata = require('./lib/audit-metadata');
-      const AuditSignature = require('./lib/crypto-utils');
-      const auditMeta = AuditMetadata.createMetadataBlock(rootDir);
-      currentReport._audit_trail = auditMeta;
-      currentReport._audit_signature = AuditSignature.generateAuditSignature(currentReport);
-
-      // 3. Evaluate Dual-Track Result
-      const Evaluator = require('./lib/evaluator');
-      currentReport._dual_track = Evaluator.evaluate(currentReport);
-      currentReport._dual_track.auditMeta = auditMeta; // Pass meta to report generator
-      
-      const diff = DiffEngine.compare(currentReport, baseReport);
-      
-      const isImproved = diff.evolution === 'PROGRES';
-      const isRegressed = diff.evolution === 'DECLIN';
-      const statusColor = isImproved ? C.green : (isRegressed ? C.red : C.yellow);
-      
-      console.log(`  Verdict: ${statusColor}${C.bold}${diff.verdictFrom} ➔ ${diff.verdictTo}${C.reset} (${diff.evolution})`);
-      console.log(`  ${diff.tracks.technical.name}: ${diff.tracks.technical.shift === 'PROGRES' ? C.green : (diff.tracks.technical.shift === 'DECLIN' ? C.red : C.gray)}${diff.tracks.technical.from} ➔ ${diff.tracks.technical.to}${C.reset}`);
-      console.log(`  ${diff.tracks.regulatory.name}:     ${diff.tracks.regulatory.shift === 'PROGRES' ? C.green : (diff.tracks.regulatory.shift === 'DECLIN' ? C.red : C.gray)}${diff.tracks.regulatory.from} ➔ ${diff.tracks.regulatory.to}${C.reset}`);
-      
-      console.log(`\n${C.white}${C.bold}RESPONSABIL AC\u021aIUNE:${C.reset}`);
-      console.log(`${statusColor}${C.bold}${diff.actionOwner}${C.reset}`);
-      
-      if (diff.actionRequired === 'ENGINEERING') {
-        console.log(`${C.gray}Sunt necesare interven\u021bii tehnice pentru a remedia vulnerabilit\u0103\u021bile identificate.${C.reset}`);
-      } else if (diff.actionRequired === 'GOVERNANCE') {
-        console.log(`${C.gray}Este necesar\u0103 revizuirea politicilor \u0219i a documenta\u021biei de guvernan\u021b\u0103.${C.reset}`);
-      } else {
-        console.log(`${C.green}Sistemul se afl\u0103 \u00eentr-o stare de conformitate stabil\u0103.${C.reset}`);
-      }
-      
-      // Update HTML Report with evolution context
-      const ReportGenerator = require('./lib/report-generator');
-      const html = ReportGenerator.generateHtml(currentReport, diff, currentReport._dual_track);
-      fs.writeFileSync(path.join(process.cwd(), 'sentinel-audit.html'), html);
-      console.log(`\n ${C.blue}${C.bold}🏛  Audit Trail Foundation: Executive Statement updated.${C.reset}`);
-      
-      console.log("");
-      // 6. CI/CD Enforcement & Summary
-      if (summaryPath) {
-        writeSummary(currentReport, summaryPath);
-      }
-
-      const enforcementFailed = isEnforcementViolation(currentReport.central_verdict, failOnPolicy);
-      
-      if (isJson) {
-        console.log(JSON.stringify(currentReport, null, 2));
-        process.exit(enforcementFailed ? 1 : 0);
-      }
-
-      if (enforcementFailed) {
-        console.log(`\n${C.red}${C.bold}❌ CI Enforcement Failure: Current Verdict (${currentReport.central_verdict}) violates policy (${failOnPolicy})${C.reset}\n`);
-      }
-
-      process.exit(enforcementFailed ? 1 : 0);
-    } catch (err) {
-      console.error(`\n${C.red}Diff Failure: ${err.message}${C.reset}\n`);
-      process.exit(1);
-    }
-  }
-
-  if (command === 'portfolio') {
-    await runPortfolio(args.slice(1));
-    process.exit(0);
-  }
-
-  if (command === 'init') {
-    runInit();
-    process.exit(0);
-  }
-
-  if (command === 'discover') {
-    printBanner();
-    console.log(`${C.cyan}${C.bold}🔍 Sentinel Magic Onboarding: Scanning repository...${C.reset}`);
-    const repoFiles = autodiscovery.crawlRepository(process.cwd());
-    const signals = autodiscovery.extractSignals(repoFiles, discoveryRules);
-    const suggestedManifest = autodiscovery.generateManifestFromSignals(signals, repoFiles);
-    console.log(`${C.gray}Analyzed ${repoFiles.length} files. Detected ${signals.length} signals.${C.reset}\n`);
-    console.log(`${C.bold}Generated suggested manifest for ${C.cyan}${suggestedManifest.app_name}${C.reset}:`);
-    console.log(JSON.stringify(suggestedManifest, null, 2));
-    console.log("");
-    const manifestPath = path.join(process.cwd(), "sentinel.manifest.json");
-    if (fs.existsSync(manifestPath)) {
-      console.log(`${C.yellow}⚠️  A manifest already exists. Skipping auto-save.${C.reset}`);
-    } else {
-      fs.writeFileSync(manifestPath, JSON.stringify(suggestedManifest, null, 2));
-      console.log(`${C.green}${C.bold}✅ Suggested manifest saved to sentinel.manifest.json${C.reset}`);
-    }
-    process.exit(0);
-  }
-
-  if (command === "policy-pack") {
-    if (args[1] === "list") { printPolicyPackList(); process.exit(0); }
-    if (args[1] === "show" && args[2]) { printPolicyPackDetails(args[2]); process.exit(0); }
-  }
-
-  if (command === "evidence") {
-    if (args[1] === "generate") {
-      let policyPath = "sentinel.policy.json";
-      let policyPack = null;
-      for (let i = 0; i < args.length; i++) {
-        if (args[i] === "--policy" && args[i + 1]) { policyPath = args[i + 1]; i++; }
-        if (args[i] === "--policy-pack" && args[i + 1]) { policyPack = args[i + 1]; i++; }
-      }
-      let policy = policyPack ? { path: resolvePolicyPack(policyPack).path, config: resolvePolicyPack(policyPack).config } : loadPolicy(policyPath);
-      if (policy.error) { console.error(`\nError: ${policy.error}\n`); process.exit(1); }
-      generateEvidence(policy.config);
-      process.exit(0);
-    }
-    if (args[1] === "push") {
-      const dir = args[2] || "sentinel-evidence";
-      const apiKeyIdx = args.indexOf('--api-key');
-      const apiKey = apiKeyIdx !== -1 ? args[apiKeyIdx + 1] : process.env.SENTINEL_API_KEY || '';
-      if (!apiKey) { console.error(`${C.red}Error: --api-key required.${C.reset}`); process.exit(1); }
-      console.log(`${C.cyan}🚀 Porting Evidence...${C.reset}`);
-      pushEvidence(dir, apiKey, 'https://api.gettingsentinel.com/v1').then(() => process.exit(0));
-      return;
-    }
-  }
-
-  // 3. Default Scan Logic (Locked Contract)
-  let manifestPath = null;
-  const validSubcommands = ['fix', 'check', 'init', 'discover', 'policy-pack', 'evidence'];
-
-  if (args.length === 0) {
-    if (fs.existsSync('sentinel.manifest.json')) {
-      manifestPath = 'sentinel.manifest.json';
-    } else if (fs.existsSync('manifest.json')) {
-      manifestPath = 'manifest.json';
-    } else {
-      printOnboarding();
-      process.exit(0);
-      return;
-    }
-  } else if (!validSubcommands.includes(command) && !args[0].startsWith('-')) {
-    // If it's a positional argument but not a subcommand -> DISALLOWED
-    console.error(`\n${C.red}❌ Error: Ambiguous usage. Positional manifest aliases are no longer supported.${C.reset}`);
-    console.log(`\n${C.cyan}${C.bold}Correct usage:${C.reset}`);
-    console.log(`  npx @radu_api/sentinel-scan check --threshold 90 --manifest <path>`);
-    console.log(`  npx @radu_api/sentinel-scan`);
-    process.exit(1);
-    return;
-  } else if (!validSubcommands.includes(command)) {
-    // Other ambiguous usage (e.g. flags without check subcommand)
-    console.error(`\n${C.red}❌ Error: Invalid command or flag usage: "${args[0]}"${C.reset}`);
-    console.log(`\n${C.cyan}${C.bold}Correct usage:${C.reset}`);
-    console.log(`  npx @radu_api/sentinel-scan check --threshold 90 --manifest <path>`);
-    process.exit(1);
-    return;
-  }
-
-  // Initialize scan variables
-  const isRemote = args.includes('--remote');
-  const isJson = args.includes('--json');
-  const isSarif = args.includes('--sarif');
-  const isEvidence = args.includes('--evidence');
-  const isAutodiscover = args.includes('--autodiscover');
-
-  let policyPath = "sentinel.policy.json";
-  let baselinePath = null;
-  let policyPack = null;
-
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--policy" && args[i + 1]) { policyPath = args[i + 1]; i++; }
-    if (args[i] === "--baseline" && args[i + 1]) { baselinePath = args[i + 1]; i++; }
-    if (args[i] === "--policy-pack" && args[i + 1]) { policyPack = args[i + 1]; i++; }
-  }
-
-  const apiKeyIdx = args.indexOf('--api-key');
-  const apiKey = apiKeyIdx !== -1 ? args[apiKeyIdx + 1] : process.env.SENTINEL_API_KEY || '';
-  const endpointIdx = args.indexOf('--endpoint');
-  const endpoint = endpointIdx !== -1 ? args[endpointIdx + 1] : 'https://api.gettingsentinel.com/v1';
-
-  let manifest;
   try {
-    manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
-    if (!manifest || (typeof manifest !== 'object')) {
-      throw new Error("Manifest must be a JSON object or array.");
+    // 1. Global Flags
+    if (args.includes('--version') || args.includes('-v')) {
+      printBanner();
+      printVersion();
+      process.exit(0);
     }
-  } catch (e) {
-    console.error(`\n${C.red}❌ Error: Invalid manifest format: ${e.message}${C.reset}`);
-    pauseAndExit(2);
-    return; // Atomic exit
-  }
 
-  // Hard-Gate Validation Guard
-  if (!manifest) {
-    return; // Exit main flow immediately
-  }
+    if (args.includes('--help') || args.includes('-h')) {
+      printBanner();
+      printHelp();
+      process.exit(0);
+    }
 
-  if (!isJson && !isSarif) {
-    printBanner();
-    console.log(`${C.gray}Scanning: ${path.resolve(manifestPath)}${C.reset}`);
-    console.log(`${C.gray}Mode: ${isRemote ? '🌐 Remote Audit' : '⚡ Local Diagnostic'}${C.reset}\n`);
-  }
-
-  let alignmentIssues = [];
-  if (isAutodiscover && !Array.isArray(manifest)) {
-    if (!isJson && !isSarif) console.log(`${C.cyan}${C.bold}🔍 Running Sentinel Autodiscovery...${C.reset}`);
-    const repoFiles = autodiscovery.crawlRepository(process.cwd());
-    const signals = autodiscovery.extractSignals(repoFiles, discoveryRules);
-    alignmentIssues = autodiscovery.verifyAlignment(manifest, signals);
-    if (!isJson && !isSarif) {
-      console.log(`${C.gray}Analyzed ${repoFiles.length} files. Detected ${signals.length} signals.${C.reset}`);
-      if (alignmentIssues.length > 0) {
-        console.log(`\n${C.yellow}${C.bold}⚠️  INTEGRITY ISSUES DETECTED:${C.reset}`);
-        alignmentIssues.forEach(issue => console.log(`${C.yellow}- [${issue.type}] ${issue.recommendation}${C.reset}`));
-        console.log("");
+    // 2. Command Routing
+    if (command === 'check') {
+      await runCheck(args);
+    } else if (command === 'verify') {
+      await runVerify(args);
+    } else if (command === 'init') {
+      await runInit(args);
+    } else if (command === 'discover') {
+      await runDiscover(args);
+    } else if (command === 'fix') {
+      await runFix(args);
+    } else if (command === 'portfolio') {
+      await runPortfolio(args);
+    } else if (command === 'export') {
+      await runExport(args);
+    } else if (command === 'history') {
+      const history = AuditVault.getHistory(process.cwd());
+      if (!isJson) {
+        console.log(`\n${C.cyan}${C.bold}Audit History:${C.reset}`);
+        history.reverse().forEach(h => console.log(`- ${h.timestamp}: ${h.status} (Score: ${h.score}) | ID: ${h.audit_id}`));
       } else {
-        console.log(`${C.green}✅ No integrity discrepancies found between code and manifest.${C.reset}\n`);
+        console.log(JSON.stringify(history));
       }
-    }
-  }
-
-  try {
-    let results;
-    const telemetry = {
-      clientId: getOrCreateClientId(),
-      scanId: require('crypto').randomBytes(8).toString('hex'),
-      projectHash: computeProjectHash(),
-      executionContext: detectExecutionContext()
-    };
-
-    if (Array.isArray(manifest)) {
-      const bar = new cliProgress.SingleBar({
-        format: `${C.cyan}Scanning |${C.reset}{bar}${C.cyan}| {percentage}% || {value}/{total} Items`,
-        barCompleteChar: '\u2588', barIncompleteChar: '\u2591', hideCursor: true
-      });
-      if (!isJson && !isSarif) bar.start(manifest.length, 0);
-      results = [];
-      for (const item of manifest) {
-        results.push(isRemote ? await runRemote(item, apiKey, endpoint, telemetry) : await runOffline(item));
-        if (!isJson && !isSarif) bar.increment();
+    } else {
+      if (!isJson) {
+        printBanner();
+        printHelp();
       }
-      if (!isJson && !isSarif) bar.stop();
-    } else {
-      results = isRemote ? await runRemote(manifest, apiKey, endpoint, telemetry) : await runOffline(manifest);
+      process.exit(0);
     }
-
-    let policy;
-    if (policyPack) {
-      const pack = resolvePolicyPack(policyPack);
-      if (pack.error) { console.error(`\n${pack.error}\n`); process.exit(1); }
-      policy = { path: pack.path, config: pack.config };
-    } else {
-      policy = loadPolicy(policyPath);
-      if (policy.warning && !isJson && !isSarif) console.log(`${C.yellow}⚠  ${policy.warning}${C.reset}`);
-      if (policy.error) { console.error(`\nSentinel policy error: ${policy.error}\n`); process.exit(1); }
-    }
-
-    const baseline = loadBaseline(baselinePath);
-    if (baseline.error) { console.error(`\nSentinel baseline error: ${baseline.error}\n`); process.exit(1); }
-
-    const missingPolicyFiles = checkRequiredDocuments(policy.config);
-    const newMissingPolicyFiles = filterMissingFilesAgainstBaseline(missingPolicyFiles, baseline.config);
-
-    const combinedFindings = [];
-    const engineFindings = Array.isArray(results) ? results : [results];
-    for (const v of engineFindings) {
-      if (v && Array.isArray(v.violations)) combinedFindings.push(...v.violations);
-    }
-
-    if (newMissingPolicyFiles.length > 0) {
-      combinedFindings.push(...newMissingPolicyFiles.map(file => ({
-        rule_id: "EUAI-DOC-001",
-        description: `Missing required document: ${file}`,
-        source: "filesystem"
-      })));
-    }
-
-    const manifestDir = path.dirname(path.resolve(manifestPath));
-    const singleManifest = Array.isArray(manifest) ? manifest[0] : manifest;
-    const evidenceFindings = validateEvidence(singleManifest, manifestDir);
-
-    for (const finding of evidenceFindings) {
-      combinedFindings.push({
-        rule_id: finding.rule_id,
-        description: finding.description,
-        severity: finding.severity,
-        source: finding.source,
-        article: finding.article,
-        hard_fail: finding.hard_fail
-      });
-    }
-
-    let riskCat = (singleManifest.risk_category || "minimal").toLowerCase();
-    if (signals.some(s => s.id === 'BEHAVIORAL_SUSPICION_FLAG_HIGH_RISK')) {
-      riskCat = 'high';
-    }
-    let required = riskCat === 'high' ? ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'] : ['Art. 13'];
-    const trustMetrics = computeTrustMetrics(evidenceFindings, singleManifest);
-    const verifiedArticles = determineVerifiedArticles(evidenceFindings, singleManifest);
-    const evidenceVerdict = computeVerdict(trustMetrics.finalScore, evidenceFindings, singleManifest);
-
-    const summary = {
-      violations_total: combinedFindings.length,
-      high: combinedFindings.filter(v => ['high', 'critical'].includes(v.severity?.toLowerCase())).length,
-      medium: combinedFindings.filter(v => v.severity?.toLowerCase() === 'medium').length,
-      low: combinedFindings.filter(v => v.severity?.toLowerCase() === 'low').length,
-      informational: combinedFindings.filter(v => v.severity?.toLowerCase() === 'informational').length
-    };
-
-    let complianceStatus = evidenceVerdict;
-    if (combinedFindings.some(v => v.rule_id?.startsWith('EUAI-BLOCK-'))) complianceStatus = "BLOCKED";
-
-    const status = computeDeterministicStatus(combinedFindings, evidenceVerdict);
-
-    const epistemicMap = {
-      contradictions_detected: combinedFindings.filter(f => {
-        const desc = (f.description || "").toLowerCase();
-        const ruleId = (f.rule_id || "").toUpperCase();
-        return desc.includes("contradiction") || desc.includes("declared but not found") || ruleId.includes("CONTRADICTION");
-      }).map(f => ({ factor: "Manifest Declaration vs Technical Reality", detail: f.description }))
-    };
-
-    const finalReport = {
-      schema: "sentinel.audit.v1",
-      schema_version: "2026-03",
-      status: status,
-      verdict: evidenceVerdict,
-      score: trustMetrics.finalScore,
-      claim_score: trustMetrics.claim_score,
-      evidence_score: trustMetrics.evidence_score,
-      confidence: trustMetrics.confidence,
-      mapped_articles: verifiedArticles,
-      risk_category: riskCat,
-      required_articles: required,
-      compliance_status: complianceStatus,
-      summary,
-      epistemic_map: epistemicMap,
-      evidence_findings: evidenceFindings,
-      violations: combinedFindings.map(v => {
-        let ruleId = v.rule_id;
-        if (!ruleId && v.description) {
-          const desc = v.description.toLowerCase();
-          if (desc.includes('transparent about being an ai')) ruleId = 'EUAI-TECH-001';
-          else if (desc.includes('human oversight')) ruleId = 'EUAI-GOV-002';
-          else if (desc.includes('bias')) ruleId = 'EUAI-DATA-001';
-          else if (desc.includes('missing required document')) ruleId = 'EUAI-DOC-001';
-        }
-        return {
-          ...v,
-          rule_id: ruleId || "EUAI-GENERIC",
-          source: v.source || (ruleId?.startsWith('EUAI-DOC-') ? 'filesystem' : 'engine')
-        };
-      })
-    };
-
-    const remoteResult = Array.isArray(results) ? results[0] : results;
-    if (isRemote && remoteResult) {
-      let remoteScore = remoteResult.score !== undefined ? remoteResult.score : (remoteResult.risk_score !== undefined ? 100 - remoteResult.risk_score : undefined);
-      if (remoteScore !== undefined) finalReport.score = Math.min(trustMetrics.finalScore, remoteScore);
-      if (remoteResult.verdict && !["COMPLIANT", "COMPLIANT_VIA_AI_REVIEW"].includes(remoteResult.verdict)) {
-        finalReport.verdict = "NON_COMPLIANT";
-        if (remoteResult.justification) {
-          combinedFindings.push({
-            rule_id: remoteResult.verdict === "INVALID_PAYLOAD" ? "SENTINEL-API-001" : "EUAI-REMOTE-001",
-            description: `Remote Audit Feedback: ${remoteResult.justification.join(", ")}`,
-            source: "remote"
-          });
-        }
-      }
-    }
-
-    if (isEvidence) {
-      const git = getGitMetadata();
-      const pkg = require('../package.json');
-      const packMetadata = {
-        schema: "sentinel.audit.v1",
-        schema_version: "2026-03",
-        scan_id: require('crypto').randomUUID ? require('crypto').randomUUID() : Math.random().toString(36).substring(7),
-        timestamp: new Date().toISOString(),
-        repo_path: process.cwd(),
-        project: git.project,
-        commit: git.commit,
-        branch: git.branch,
-        sentinel_version: pkg.version,
-        engine_version: "2.0.0",
-        ruleset: "eu-ai-act",
-        evidence_version: 1,
-        required_documents: policy.config?.rules?.required_documents || []
-      };
-      const sarifData = generateSarif(finalReport, manifestPath);
-      const { outDir, evidenceHash } = generateEvidencePack({ report: finalReport, metadata: packMetadata, sarif: sarifData, policyPath: policy.path });
-      console.log(`\n${C.green}${C.bold}✔ Evidence pack generated at ${outDir}${C.reset}`);
-      console.log(`${C.gray}Integrity Hash: ${evidenceHash}${C.reset}\n`);
-    }
-
-    if (isSarif) {
-      console.log(JSON.stringify(generateSarif(finalReport, manifestPath), null, 2));
-      if (status === 'FAIL') { process.exit(1); } else { process.exit(0); }
-    }
-
-    if (isJson) {
-      console.log(JSON.stringify(finalReport, null, 2));
-      if (status === 'FAIL') { process.exit(1); } else { process.exit(0); }
-    }
-
-    printResult(finalReport, isJson, isSarif, policy.path);
-    if (status === 'FAIL') {
-      pauseAndExit(1);
-    } else {
-      pauseAndExit(0);
-    }
-    return;
   } catch (err) {
-    console.error(`${C.red}Scan failed: ${err.message}${C.reset}`);
-    await reportError(err);
-    pauseAndExit(2);
-    return;
+    if (isJson) {
+      process.stdout.write(JSON.stringify({
+        status: "FAIL",
+        error: true,
+        message: err.message
+      }) + '\n');
+    } else {
+      console.error(`\n${C.red}${C.bold}Critical Error: ${err.message}${C.reset}`);
+    }
+    process.exit(1);
   }
 }
+
+main();
 
 /**
  * Guided remediation for compliance gaps.
@@ -3894,7 +3393,7 @@ async function runFix(args) {
   const manifestPath = resolveTargetManifest(args);
 
   if (!manifestPath || !fs.existsSync(manifestPath)) {
-    console.error(`${C.red}Error: No sentinel.manifest.json or manifest.json found in current directory.${C.reset}`);
+    if (!isJson) console.error(`${C.red}Error: No sentinel.manifest.json or manifest.json found in current directory.${C.reset}`);
     process.exit(1);
   }
 
@@ -3903,14 +3402,14 @@ async function runFix(args) {
   try {
     manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   } catch (e) {
-    console.error(`${C.red}Error reading manifest: ${e.message}${C.reset}`);
+    if (!isJson) console.error(`${C.red}Error reading manifest: ${e.message}${C.reset}`);
     process.exit(1);
   }
 
   // 2. Initial Audit
   const repoFiles = autodiscovery.crawlRepository(manifestDir);
   const signals = autodiscovery.extractSignals(repoFiles, discoveryRules, probingRules);
-  if (process.env.SENTINEL_DEBUG === 'true') {
+  if (process.env.SENTINEL_DEBUG === 'true' && !isJson) {
     console.log(`[DEBUG] Extracted Signals: ${signals.length}`);
     signals.forEach(s => console.log(`  - Signal: ${s.id} from ${s.source_path} (${s.probe_type || 'standard'})`));
   }
@@ -3928,7 +3427,7 @@ async function runFix(args) {
   const actionableFindings = allFindings.filter(f => actionableRuleIds.includes(f.rule_id));
 
   if (actionableFindings.length === 0) {
-    console.log(`\n${C.green}No structural or implementation fixes available.${C.reset}`);
+    if (!isJson) console.log(`\n${C.green}No structural or implementation fixes available.${C.reset}`);
     return;
   }
 
@@ -3969,23 +3468,29 @@ async function runFix(args) {
     plan.push({ type: 'code', file: 'logger.js', desc: 'Implement production-grade logging (Winston)' });
   }
 
-  console.log(`\n${C.cyan}${C.bold}🛠  Sentinel Remediation Plan${C.reset}`);
-  console.log(`${C.gray}Target manifest: ${C.white}${manifestPath}${C.reset}\n`);
+  if (!isJson) {
+    console.log(`\n${C.cyan}${C.bold}🛠  Sentinel Remediation Plan${C.reset}`);
+    console.log(`${C.gray}Target manifest: ${C.white}${manifestPath}${C.reset}\n`);
+  }
 
   plan.forEach(step => {
-    const icon = step.type === 'create' ? `${C.green} + ` : (step.type === 'update' ? `${C.yellow} ~ ` : `${C.gray} . `);
-    const label = step.type === 'create' ? 'CREATE' : (step.type === 'update' ? 'UPDATE' : 'SKIP  ');
-    console.log(`${icon}${C.bold}${label}${C.reset} ${C.white}${step.file}${C.reset} ${C.gray} (${step.desc})${C.reset}`);
+    if (!isJson) {
+      const icon = step.type === 'create' ? `${C.green} + ` : (step.type === 'update' ? `${C.yellow} ~ ` : `${C.gray} . `);
+      const label = step.type === 'create' ? 'CREATE' : (step.type === 'update' ? 'UPDATE' : 'SKIP  ');
+      console.log(`${icon}${C.bold}${label}${C.reset} ${C.white}${step.file}${C.reset} ${C.gray} (${step.desc})${C.reset}`);
+    }
   });
 
   if (!isApply) {
-    console.log(`\n${C.yellow}Dry-run mode. No changes made.${C.reset}`);
-    console.log(`Run with ${C.white}--apply${C.reset} to execute this plan.`);
+    if (!isJson) {
+      console.log(`\n${C.yellow}Dry-run mode. No changes made.${C.reset}`);
+      console.log(`Run with ${C.white}--apply${C.reset} to execute this plan.`);
+    }
     return;
   }
 
   // 5. Apply Plan
-  console.log(`\n${C.cyan}${C.bold}🚀 Applying fixes...${C.reset}`);
+  if (!isJson) console.log(`\n${C.cyan}${C.bold}🚀 Applying fixes...${C.reset}`);
 
   const patchedManifest = JSON.parse(JSON.stringify(manifest));
   const declaredFlags = patchedManifest.declared_flags || [];
@@ -4012,12 +3517,12 @@ async function runFix(args) {
   }
 
   fs.writeFileSync(manifestPath, JSON.stringify(patchedManifest, null, 2));
-  console.log(`${C.green}✔ Updated ${manifestPath}${C.reset}`);
+  if (!isJson) console.log(`${C.green}✔ Updated ${manifestPath}${C.reset}`);
 
   uniqueDocs.forEach(doc => {
     const docPath = path.join(manifestDir, doc);
     if (fs.existsSync(docPath)) {
-      console.log(`${C.gray}. Skipped ${doc} (exists)${C.reset}`);
+      if (!isJson) console.log(`${C.gray}. Skipped ${doc} (exists)${C.reset}`);
     } else {
       const docDir = path.dirname(docPath);
       if (!fs.existsSync(docDir)) fs.mkdirSync(docDir, { recursive: true });
@@ -4032,7 +3537,7 @@ async function runFix(args) {
       }
 
       fs.writeFileSync(docPath, content);
-      console.log(`${C.green}✔ Created ${doc}${C.reset}`);
+      if (!isJson) console.log(`${C.green}✔ Created ${doc}${C.reset}`);
     }
   });
 
@@ -4080,7 +3585,7 @@ class SentinelOversight {
 module.exports = new SentinelOversight();
 `;
       fs.writeFileSync(oversightPath, oversightCode);
-      console.log(`${C.green}✔ Created ${oversightPath} (Art. 14 Oversight Hook)${C.reset}`);
+      if (!isJson) console.log(`${C.green}✔ Created ${oversightPath} (Art. 14 Oversight Hook)${C.reset}`);
     }
   }
 
@@ -4089,13 +3594,15 @@ module.exports = new SentinelOversight();
     if (!fs.existsSync(loggerPath)) {
       const loggerCode = `/**\n * Sentinel Sovereign Logging Implementation\n * Auto-generated scaffolding for Art. 20 Compliance.\n */\nconst winston = require('winston');\n\nconst logger = winston.createLogger({\n  level: 'info',\n  format: winston.format.combine(\n    winston.format.timestamp(),\n    winston.format.json()\n  ),\n  transports: [\n    new winston.transports.Console(),\n    new winston.transports.File({ filename: 'audit_trail.log' })\n  ]\n});\n\n/**\n * Sentinel Compliance Logging Hook\n */\nfunction sentinelLog(level, message, meta = {}) {\n  logger.log(level, message, { ...meta, sentinel_audit: true });\n}\n\nmodule.exports = { logger, sentinelLog };\n`;
       fs.writeFileSync(loggerPath, loggerCode);
-      console.log(`${C.green}✔ Created ${loggerPath} (Winston Scaffolding)${C.reset}`);
-      console.log(`${C.yellow}👉 Remember to run: npm install winston${C.reset}`);
+      if (!isJson) {
+        console.log(`${C.green}✔ Created ${loggerPath} (Winston Scaffolding)${C.reset}`);
+        console.log(`${C.yellow}👉 Remember to run: npm install winston${C.reset}`);
+      }
     }
   }
 
   // 6. Audit Comparison
-  console.log(`\n${C.cyan}${C.bold}📊 Verification Audit${C.reset}`);
+  if (!isJson) console.log(`\n${C.cyan}${C.bold}📊 Verification Audit${C.reset}`);
 
   // Pre-fix Audit (Full)
   const oldFiles = autodiscovery.crawlRepository(manifestDir);
@@ -4123,31 +3630,43 @@ module.exports = new SentinelOversight();
   const newScore = newTrust.finalScore;
   const newVerdict = computeVerdict(newScore, newAllFindings, patchedManifest);
 
-  console.log(`${C.gray}Previous Status: ${C.reset}${oldVerdict} (${oldScore}/100)`);
-  const statusColor = newVerdict === 'COMPLIANT' ? C.green : (newVerdict === 'PARTIAL' ? C.yellow : C.red);
-  console.log(`${C.gray}New Status:      ${C.reset}${C.bold}${statusColor}${newVerdict}${C.reset} (${C.bold}${newScore}/100${C.reset})`);
-  console.log(`\n${C.green}${C.bold}✔ Structural compliance issues resolved.${C.reset}`);
+  if (!isJson) {
+    console.log(`${C.gray}Previous Status: ${C.reset}${oldVerdict} (${oldScore}/100)`);
+    const statusColor = newVerdict === 'COMPLIANT' ? C.green : (newVerdict === 'PARTIAL' ? C.yellow : C.red);
+    console.log(`${C.gray}New Status:      ${C.reset}${C.bold}${statusColor}${newVerdict}${C.reset} (${C.bold}${newScore}/100${C.reset})`);
+    console.log(`\n${C.green}${C.bold}✔ Structural compliance issues resolved.${C.reset}`);
 
-  if (newEngineViolations.length > 0) {
-    console.log(`\n${C.yellow}${C.bold}Remaining findings require human review:${C.reset}`);
-    console.log(`${C.yellow}- governance${C.reset}`);
-    console.log(`${C.yellow}- data quality${C.reset}`);
-    console.log(`${C.yellow}- risk assessment${C.reset}`);
+    if (newEngineViolations.length > 0) {
+      console.log(`\n${C.yellow}${C.bold}Remaining findings require human review:${C.reset}`);
+      console.log(`${C.yellow}- governance${C.reset}`);
+      console.log(`${C.yellow}- data quality${C.reset}`);
+      console.log(`${C.yellow}- risk assessment${C.reset}`);
+    }
+
+    console.log(`\n${C.gray}Sentinel prepares your system for audit.${C.reset}`);
+    console.log(`${C.gray}It does not replace regulatory validation.${C.reset}\n`);
   }
 
-  console.log(`\n${C.gray}Sentinel prepares your system for audit.${C.reset}`);
-  console.log(`${C.gray}It does not replace regulatory validation.${C.reset}\n`);
+  if (isJson) {
+    console.log(JSON.stringify({
+      status: newVerdict,
+      score: newScore,
+      actionable_findings: actionableFindings.length,
+      plan_steps: plan.length
+    }));
+  }
 }
 
 /**
  * Initialize a new Sentinel project scaffolding.
  */
-function runInit() {
+function runInit(args) {
+  const isJson = (args || []).includes('--json');
   const hasManifestJson = fs.existsSync('manifest.json');
   const hasSentinelManifest = fs.existsSync('sentinel.manifest.json');
 
   if (hasManifestJson || hasSentinelManifest) {
-    console.error(`\n${C.red}${C.bold}Error: Manifest already exists. Aborting to avoid overwrite.${C.reset}\n`);
+    if (!isJson) console.error(`\n${C.red}${C.bold}Error: Manifest already exists. Aborting to avoid overwrite.${C.reset}\n`);
     process.exit(1);
   }
 
@@ -4160,13 +3679,13 @@ function runInit() {
   };
 
   fs.writeFileSync('sentinel.manifest.json', JSON.stringify(minimalManifest, null, 2));
-  console.log(`${C.green}✔ Created sentinel.manifest.json${C.reset}`);
+  if (!isJson) console.log(`${C.green}✔ Created sentinel.manifest.json${C.reset}`);
 
   // 2. Create docs/compliance directory
   const complianceDir = path.join(process.cwd(), 'docs/compliance');
   if (!fs.existsSync(complianceDir)) {
     fs.mkdirSync(complianceDir, { recursive: true });
-    console.log(`${C.green}✔ Created docs/compliance/${C.reset}`);
+    if (!isJson) console.log(`${C.green}✔ Created docs/compliance/${C.reset}`);
   }
 
   // 3. Create starter templates
@@ -4200,17 +3719,42 @@ function runInit() {
     }
   });
 
-  if (createdCount > 0) {
-    console.log(`${C.green}✔ Created ${createdCount} files:${C.reset}`);
-    createdList.forEach(f => console.log(`  - ${f}`));
-  }
-  if (skippedCount > 0) {
-    console.log(`${C.gray}. Skipped ${skippedCount} files (already exist)${C.reset}`);
+  if (!isJson) {
+    if (createdCount > 0) {
+      console.log(`${C.green}✔ Created ${createdCount} files:${C.reset}`);
+      createdList.forEach(f => console.log(`  - ${f}`));
+    }
+    if (skippedCount > 0) {
+      console.log(`${C.gray}. Skipped ${skippedCount} files (already exist)${C.reset}`);
+    }
+
+    console.log(`\n${C.bold}Next steps:${C.reset}`);
+    console.log(`1. Run: ${C.cyan}npx @radu_api/sentinel-scan check --threshold 90 --manifest sentinel.manifest.json${C.reset}`);
+    console.log(`2. Review findings`);
+    console.log(`3. Run: ${C.cyan}npx @radu_api/sentinel-scan fix --apply --manifest sentinel.manifest.json${C.reset}\n`);
   }
 
-  console.log(`\n${C.bold}Next steps:${C.reset}`);
-  console.log(`1. Run: ${C.cyan}npx @radu_api/sentinel-scan check --threshold 90 --manifest sentinel.manifest.json${C.reset}`);
-  console.log(`2. Review findings`);
-  console.log(`3. Run: ${C.cyan}npx @radu_api/sentinel-scan fix --apply --manifest sentinel.manifest.json${C.reset}\n`);
+  if (isJson) {
+    console.log(JSON.stringify({
+      status: "PASS",
+      initialized: true,
+      manifest: "sentinel.manifest.json",
+      templates: createdList
+    }));
+  }
 }
-main().catch(err => { console.error(err); process.exit(1); });
+main().catch(err => {
+  const isJson = process.argv.includes('--json');
+  if (isJson) {
+    console.log(JSON.stringify({
+      schema: "sentinel.audit.v1",
+      status: "FAIL",
+      error: true,
+      message: err.message
+    }));
+  } else {
+    console.error(`\n${C.red}Critical Error: ${err.message}${C.reset}\n`);
+    if (process.env.SENTINEL_DEBUG === 'true') console.error(err.stack);
+  }
+  process.exit(1);
+});
