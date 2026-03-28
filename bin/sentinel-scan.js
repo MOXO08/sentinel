@@ -860,6 +860,7 @@ function hasHardFail(findings) {
 function computeVerdict(score, findings, manifest, requiresGovernance = true) {
   let hasContradiction = false;
   let hasViolation = false;
+  let hasImplementationSignals = false;
 
   if (hasHardFail(findings)) {
     hasViolation = true;
@@ -872,15 +873,20 @@ function computeVerdict(score, findings, manifest, requiresGovernance = true) {
 
     // 1. Identify contradictions (manifest vs technical reality)
     if (
-      (f.source === 'epistemic' || f.source === 'intelligence' || (f.rule_id && f.rule_id.includes('CONTRADICTION'))) &&
-      (f.hard_fail === true || severity === 'critical')
+      (f.source === 'epistemic' || f.source === 'intelligence' || (f.rule_id && f.rule_id.includes('CONTRADICTION')))
+      && f.hard_fail === true
     ) {
       hasContradiction = true;
     }
 
-    // 2. Identify violations (hard fails or critical risks)
-    if (f.hard_fail === true || severity === 'critical') {
+    // 2. Identify violations (hard fails)
+    if (f.hard_fail === true) {
       hasViolation = true;
+    }
+
+    // 3. Track implementation presence (for GAP fallback)
+    if (f.source === 'implementation' || f.source === 'technical' || (f.rule_id && f.rule_id.startsWith('SIG-'))) {
+      hasImplementationSignals = true;
     }
   }
 
@@ -889,9 +895,7 @@ function computeVerdict(score, findings, manifest, requiresGovernance = true) {
     return 'FAIL';
   }
 
-  // PRIORITY 2: GAP (Evidence missing or Score below threshold)
-  if (!requiresGovernance && findings.length === 0 && score >= 90) return 'PASS';
-
+  // PRIORITY 2: PASS (Sufficient Verified Evidence across all required articles)
   const riskCat = (manifest.risk_category || "minimal").toLowerCase();
   let required = ['Art. 13'];
   if (riskCat === 'high') {
@@ -902,8 +906,14 @@ function computeVerdict(score, findings, manifest, requiresGovernance = true) {
   const allRequiredVerified = required.every(a => verified.includes(a));
 
   if (allRequiredVerified && score >= 85) return 'PASS';
-  if (score >= 60) return 'GAP';
+
+  // PRIORITY 3: GAP (Partial State)
+  // Resolve to GAP if score is >= 60 OR if technical signals exist without critical violations
+  if (score >= 60 || (hasImplementationSignals && !hasViolation)) {
+    return 'GAP';
+  }
   
+  // PRIORITY 4: FAIL (Non-Compliant State - Zero/Near-zero evidence)
   return 'FAIL';
 }
 
