@@ -873,8 +873,8 @@ function computeVerdict(score, findings, manifest, requiresGovernance = true) {
     // 1. Identify contradictions (manifest vs technical reality)
     if (
       f.source === 'epistemic' ||
-      (f.rule_id && f.rule_id.includes('CONTRADICTION')) ||
-      (f.hardening_verdict === 'FAIL' && f.source === 'implementation')
+      f.source === 'intelligence' ||
+      (f.rule_id && f.rule_id.includes('CONTRADICTION'))
     ) {
       hasContradiction = true;
     }
