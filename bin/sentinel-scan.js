@@ -3013,21 +3013,42 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
  * Deterministic Status Engine Layer.
  * Derives PASS/FAIL/NEEDS_REVIEW from technical pulse.
  */
-function computeDeterministicStatus(report) {
-  const findings = report.findings || [];
-  const dual = report.dual_track || {};
-  const contradictions = report.contradictions || [];
+function computeDeterministicStatus(findings = [], evidenceVerdict = "COMPLIANT") {
+  let hasContradiction = false;
+  let hasGap = false;
+  let hasViolation = false;
 
-  const centralVerdict = dual.centralVerdict || dual.central_verdict;
-  const governanceStatus = dual.governanceStatus || dual.governance_status;
+  if (evidenceVerdict === "NON_COMPLIANT") {
+    hasViolation = true;
+  }
 
-  const hasCritical = findings.some(f => (f.severity || "").toLowerCase() === 'critical' || (f.reasoning?.severity || "").toLowerCase() === 'critical');
-  const hasGap = governanceStatus === 'GAP';
-  const hasHold = centralVerdict === 'HOLD';
-  const hasContradiction = contradictions.length > 0;
+  for (const f of findings) {
+    const desc = (f.description || "").toLowerCase();
+    const ruleId = (f.rule_id || "").toUpperCase();
+    const severity = (f.severity || "").toLowerCase();
 
-  if (hasCritical || hasGap || hasHold || hasContradiction) {
+    // Identify contradictions (manifest vs reality)
+    if (desc.includes("contradiction") || desc.includes("declared but not found") || ruleId.includes("CONTRADICTION")) {
+      hasContradiction = true;
+    }
+
+    // Identify missing or incomplete evidence -> GAP
+    if (f.hardening_verdict === 'FAIL' || desc.includes("not detected") || desc.includes("missing")) {
+      hasGap = true;
+    }
+
+    // Explicit violations or critical risks -> FAIL
+    if (f.hard_fail === true || severity === 'critical') {
+      hasViolation = true;
+    }
+  }
+
+  if (hasContradiction || hasViolation) {
     return "FAIL";
+  }
+
+  if (hasGap || evidenceVerdict === "PARTIAL") {
+    return "GAP";
   }
 
   if (findings.length > 0) {
@@ -3036,7 +3057,6 @@ function computeDeterministicStatus(report) {
 
   return "PASS";
 }
-
 /**
  * Independent Audit Verification Engine.
  * Re-validates evidence hashes against the current filesystem.
@@ -3758,6 +3778,14 @@ async function main() {
 
     const status = computeDeterministicStatus(combinedFindings, evidenceVerdict);
 
+    const epistemicMap = {
+      contradictions_detected: combinedFindings.filter(f => {
+        const desc = (f.description || "").toLowerCase();
+        const ruleId = (f.rule_id || "").toUpperCase();
+        return desc.includes("contradiction") || desc.includes("declared but not found") || ruleId.includes("CONTRADICTION");
+      }).map(f => ({ factor: "Manifest Declaration vs Technical Reality", detail: f.description }))
+    };
+
     const finalReport = {
       schema: "sentinel.audit.v1",
       schema_version: "2026-03",
@@ -3772,6 +3800,7 @@ async function main() {
       required_articles: required,
       compliance_status: complianceStatus,
       summary,
+      epistemic_map: epistemicMap,
       evidence_findings: evidenceFindings,
       violations: combinedFindings.map(v => {
         let ruleId = v.rule_id;
