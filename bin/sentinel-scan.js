@@ -30,6 +30,7 @@ const AuditVault = require('./lib/vault');
 const DiffEngine = require('./lib/diff-engine');
 const AuditMetadata = require('./lib/audit-metadata');
 const AuditExporter = require('./lib/exporter');
+const ReportGenerator = require('./lib/report-generator');
 const { extractDocsFromRepo,
         evaluateAllDocuments,
         generateSemanticReport } = require('./lib/semantic-evaluator');
@@ -267,8 +268,8 @@ function computeHardeningFindings(signals, manifest, findings, repoFilesOrCount 
   Object.entries(probingRules.probes).forEach(([probeKey, probe]) => {
     const article = probe.article;
     const probeSignals = signals.filter(s => {
-      // Use the new kind-based filtering where possible
-      if (s.kind === 'code_signature_call' || s.kind === 'code_signature_load' || s.kind === 'dependency') {
+      // Use the new kind-based filtering only for specific probes that require it
+      if ((probeKey === 'ai_execution' || probeKey === 'connectivity') && (s.kind === 'code_signature_call' || s.kind === 'code_signature_load' || s.kind === 'dependency')) {
         if (probeKey === 'ai_execution') return (s.id.includes('AI') || s.id.includes('MODEL') || s.id.includes('LLM'));
         if (probeKey === 'connectivity') return (s.id.startsWith('CODE_HTTP') || s.id.startsWith('CODE_SOCKET') || s.id.startsWith('CODE_URI'));
       }
@@ -331,8 +332,10 @@ function computeHardeningFindings(signals, manifest, findings, repoFilesOrCount 
         });
         
         if (ungovernedExecutions.length > 0) {
-            verdict = 'FAIL';
-            ungovernedExecutions.forEach(e => e.governance_gap = article);
+            verdict = hasWeak ? 'WEAK PASS' : 'FAIL';
+            if (verdict === 'FAIL') {
+                ungovernedExecutions.forEach(e => e.governance_gap = article);
+            }
         } else if (executionSignals.length > 0) {
             verdict = 'PASS';
         } else {
@@ -619,7 +622,7 @@ function validateEvidence(manifest, manifestDir, signals = [], requiresGovernanc
   const hasLogging = !!manifest.logging_capabilities || !!manifest.logging_evidence_path;
 
   if (requiresGovernance && !hasTransparencyFlag && !hasTransparencyFile && !hasOversight && !hasLogging) {
-    findings.push({ article: 'General', rule_id: 'EUAI-MIN-001', description: "[Missing baseline structure]", deduction: 30, severity: 'critical', hard_fail: true, source: 'evidence', fix_snippet: "Add required top-level flags and evidence fields." });
+    findings.push({ article: 'General', rule_id: 'EUAI-MIN-001', description: "[Missing baseline structure]", deduction: 30, severity: 'critical', hard_fail: false, source: 'evidence', fix_snippet: "Add required top-level flags and evidence fields." });
   }
   
   if (isLimited && hasTransparencyFlag && !hasTransparencyFile) {
@@ -857,66 +860,6 @@ function hasHardFail(findings) {
 }
 
 
-function computeVerdict(score, findings, manifest, requiresGovernance = true) {
-  let hasContradiction = false;
-  let hasViolation = false;
-  let hasImplementationSignals = false;
-
-  if (hasHardFail(findings)) {
-    hasViolation = true;
-  }
-
-  for (const f of findings) {
-    const desc = (f.description || "").toLowerCase();
-    const ruleId = (f.rule_id || "").toUpperCase();
-    const severity = (f.severity || "").toLowerCase();
-
-    // 1. Identify contradictions (manifest vs technical reality)
-    if (
-      (f.source === 'epistemic' || f.source === 'intelligence' || (f.rule_id && f.rule_id.includes('CONTRADICTION')))
-      && f.hard_fail === true
-    ) {
-      hasContradiction = true;
-    }
-
-    // 2. Identify violations (hard fails)
-    if (f.hard_fail === true) {
-      hasViolation = true;
-    }
-
-    // 3. Track implementation presence (for GAP fallback)
-    if (f.source === 'implementation' || f.source === 'technical' || (f.rule_id && f.rule_id.startsWith('SIG-'))) {
-      hasImplementationSignals = true;
-    }
-  }
-
-  // PRIORITY 1: FAIL (Critical Contradictions or Direct Violations)
-  if (hasContradiction || hasViolation) {
-    return 'FAIL';
-  }
-
-  // PRIORITY 2: PASS (Sufficient Verified Evidence across all required articles)
-  const riskCat = (manifest.risk_category || "minimal").toLowerCase();
-  let required = ['Art. 13'];
-  if (riskCat === 'high') {
-    required = ['Art. 9', 'Art. 13', 'Art. 14', 'Art. 20'];
-  }
-
-  const verified = determineVerifiedArticles(findings, manifest);
-  const allRequiredVerified = required.every(a => verified.includes(a));
-
-  if (allRequiredVerified && score >= 85) return 'PASS';
-
-  // PRIORITY 3: GAP (Partial State)
-  // Resolve to GAP if score is >= 60 OR if technical signals exist without critical violations
-  if (score >= 60 || (hasImplementationSignals && !hasViolation)) {
-    return 'GAP';
-  }
-  
-  // PRIORITY 4: FAIL (Non-Compliant State - Zero/Near-zero evidence)
-  return 'FAIL';
-}
-
 async function reportError(err) {
   if (process.env.SENTINEL_NO_TELEMETRY === 'true') return;
   try {
@@ -1127,77 +1070,58 @@ function calculateEvidenceHash(outDir) {
   }
   return hash.digest('hex');
 }
-
-function generateEvidencePack(params) {
-  const { report, metadata, sarif, policyPath } = params;
-  const outDir = path.resolve(process.cwd(), "sentinel-evidence");
-
+function generateEvidencePack(report, manifestPath) {
+  const manifestDir = path.dirname(path.resolve(manifestPath));
+  const outDir = path.join(manifestDir, 'sentinel-evidence');
+  
   if (!fs.existsSync(outDir)) {
     fs.mkdirSync(outDir, { recursive: true });
   }
 
-  // 1. scan-metadata.json
-  fs.writeFileSync(path.join(outDir, "scan-metadata.json"), JSON.stringify(metadata, null, 2));
+  console.log(`Evidence path: ${path.resolve(outDir)}`);
 
-  // 2. scan-report.json
-  fs.writeFileSync(path.join(outDir, "scan-report.json"), JSON.stringify(report, null, 2));
+  const manifestRaw = fs.readFileSync(manifestPath, 'utf8');
+  const manifest = JSON.parse(manifestRaw);
 
-  // 3. scan-report.sarif
-  fs.writeFileSync(path.join(outDir, "scan-report.sarif"), JSON.stringify(sarif, null, 2));
+  const fileList = [];
 
-  // 4. audit-evidence.json
-  const auditEvidence = {
-    documents: (metadata.required_documents || []).map(doc => ({
-      path: doc,
-      rule_id: "EUAI-DOC-001",
-      status: fs.existsSync(path.resolve(process.cwd(), doc)) ? "present" : "missing",
-      source: "filesystem"
-    })),
-    violations: report.violations.map(v => ({
-      rule_id: v.rule_id,
-      severity: v.severity,
-      status: "open",
-      source: v.source || (v.rule_id?.startsWith('EUAI-DOC-') ? 'filesystem' : 'engine')
-    }))
-  };
-  fs.writeFileSync(path.join(outDir, "audit-evidence.json"), JSON.stringify(auditEvidence, null, 2));
+  // 1. AUDITOR_SUMMARY.md
+  const summaryMd = ReportGenerator.generateAuditorMarkdown(report);
+  const summaryPath = path.join(outDir, "AUDITOR_SUMMARY.md");
+  fs.writeFileSync(summaryPath, summaryMd);
+  fileList.push("AUDITOR_SUMMARY.md");
 
-  // 5. compliance-summary.md
-  const highRisk = report.violations.filter(v => v.severity?.toLowerCase() === 'high' || v.severity?.toLowerCase() === 'critical');
-  const missingDocs = auditEvidence.documents.filter(d => d.status === 'missing');
+  // 2. audit.json
+  const auditJsonPath = path.join(outDir, "audit.json");
+  fs.writeFileSync(auditJsonPath, JSON.stringify(report, null, 2));
+  fileList.push("audit.json");
 
-  const md = `# Sentinel Compliance Summary
+  // 3. sentinel.manifest.json (Snapshot)
+  const manifestSnapshotPath = path.join(outDir, "sentinel.manifest.json");
+  fs.writeFileSync(manifestSnapshotPath, manifestRaw);
+  fileList.push("sentinel.manifest.json");
 
-## Overall Status
-**${report.verdict}**
+  // 4. EVIDENCE.md (Snapshot - only if path relates to existing file)
+  if (manifest.evidence_path) {
+    const evidencePath = path.resolve(manifestDir, manifest.evidence_path);
+    if (fs.existsSync(evidencePath)) {
+      const evidenceContent = fs.readFileSync(evidencePath, 'utf8');
+      fs.writeFileSync(path.join(outDir, "EVIDENCE.md"), evidenceContent);
+      fileList.push("EVIDENCE.md");
+    }
+  }
 
-## Findings
-- Total findings: ${report.violations.length}
-- High/Critical severity: ${highRisk.length}
-- Missing required documentation: ${missingDocs.length}
+  // 5. checksums.txt (SHA-256 Ledger)
+  const checksums = [];
+  for (const fileName of fileList) {
+    const filePath = path.join(outDir, fileName);
+    const content = fs.readFileSync(filePath);
+    const hash = crypto.createHash('sha256').update(content).digest('hex');
+    checksums.push(`${hash}  ${fileName}`);
+  }
+  fs.writeFileSync(path.join(outDir, "checksums.txt"), checksums.join('\n') + '\n');
 
-## Top Findings
-${report.violations.slice(0, 5).map(v => `- **${v.rule_id}** — ${v.description}`).join('\n')}
-
-## Missing Documentation
-${missingDocs.length > 0 ? missingDocs.map(d => `- ${d.path}`).join('\n') : "- None"}
-
-## Recommended Next Actions
-1. ${missingDocs.length > 0 ? "Add required compliance documentation" : "Address identified engine findings"}
-2. Re-run Sentinel scan with evidence export
-3. Review full report in \`scan-report.json\`
-
----
-Generated by Sentinel CLI (Evidence Pack v1)
-`;
-  fs.writeFileSync(path.join(outDir, "compliance-summary.md"), md);
-
-  // 6. Update scan-metadata.json with integrity hash
-  const evidenceHash = calculateEvidenceHash(outDir);
-  const updatedMetadata = { ...metadata, evidence_hash: evidenceHash };
-  fs.writeFileSync(path.join(outDir, "scan-metadata.json"), JSON.stringify(updatedMetadata, null, 2));
-
-  return { outDir, evidenceHash };
+  return { outDir };
 }
 
 async function pushEvidence(dirPath, apiKey, endpoint) {
@@ -2141,8 +2065,7 @@ async function performAudit(manifestPath, threshold, options = {}) {
   }
 
   // 1.1 Governance Context
-  const riskCat = (manifest.risk_category || "").toLowerCase();
-  const isMinimal = riskCat === 'minimal';
+  const isMinimal = (manifest.risk_category || "").toLowerCase() === 'minimal';
   const hasAISignals = signals.length > 0;
   const requiresGovernance = !isMinimal || hasAISignals;
 
@@ -2208,7 +2131,7 @@ async function performAudit(manifestPath, threshold, options = {}) {
   const allFindings = [...evidenceFindings, ...allEngineViolations, ...hardeningFindings];
   
   // 3.0 Auditor Resistance: Detect Document Contradictions
-  const docConflicts = intelligence.detectDocumentContradictions(manifest, allFindings);
+  const docConflicts = intelligence.detectDocumentContradictions(manifest, signals);
   const combinedFindings = [...allFindings, ...docConflicts].filter(f => {
       if (requiresGovernance) return true;
       // Suppress advanced AI Act rules for Minimal Non-AI projects
@@ -2231,8 +2154,6 @@ async function performAudit(manifestPath, threshold, options = {}) {
   });
 
   // 3.1 Evidence Correlation Layer
-  correlateFindings(combinedFindings, repoFiles);
-
   // Phase 1.5: Reasoning Hardening
   intelligence.correlateFindings(combinedFindings, manifest, signals);
 
@@ -2291,8 +2212,6 @@ async function performAudit(manifestPath, threshold, options = {}) {
     overall_posture: score < 40 ? "HIGH RISK" : (score < 80 ? "MODERATE RISK" : "LOW RISK")
   };
 
-  const verdict = computeVerdict(score, combinedFindings, manifest, requiresGovernance);
-
   // V2.1 Dual-Track Evaluation (Premium)
   const Evaluator = require('./lib/evaluator');
   const dualTrack = Evaluator.evaluate({
@@ -2342,61 +2261,10 @@ async function performAudit(manifestPath, threshold, options = {}) {
   const signalsExpected = discoveryRuleCount + probingRuleCount;
   const coverageRatio = signalsExpected > 0 ? (signalsDetected / signalsExpected).toFixed(4) : 0;
 
-  // Phase 15: HARDENED DETERMINISTIC STATUS ENGINE
-  // 1. Identify Critical Risks and Contradictions
-  const hasCriticalSeverity = combinedFindings.some(f => 
-    (f.severity || "").toUpperCase() === 'CRITICAL' || 
-    (f.reasoning?.severity || "").toUpperCase() === 'CRITICAL'
-  );
-  
-  const contradictionFindings = combinedFindings.filter(f => (f.rule_id || "").startsWith('EUAI-CONTRADICTION'));
 
-  // 2. Map Epistemic Contradictions (DECLARED_ONLY or MISSING_TECHNICAL_EVIDENCE)
-  const epistemicMap = contradictionFindings.map(f => ({
-    rule_id: f.rule_id,
-    contradiction_type: f.reasoning?.contradiction_type || "DECLARED_ONLY",
-    article: f.article,
-    description: f.description
-  }));
-
-  // 3. Extract Status metrics
-  const auditReadiness = (articleSummaries.audit_readiness || "LOW").toUpperCase();
-  const auditorAttestationStatus = (articleSummaries.auditor_attestation?.status || "UNSUPPORTED").toUpperCase();
-  const govStatus = (dualTrack.governanceStatus || "GAP").toUpperCase();
-  const cVerdict = (dualTrack.centralVerdict || "HOLD").toUpperCase();
-
-  // 4. Deterministic Final Status Computation
-  // PRIORITY 1: FAIL conditions
-  const isFail = (
-    auditReadiness === "LOW" ||
-    auditorAttestationStatus === "UNSUPPORTED" ||
-    govStatus === "GAP" ||
-    cVerdict === "HOLD" ||
-    hasCriticalSeverity ||
-    epistemicMap.length > 0
-  );
-
-  // PRIORITY 2: NEEDS_REVIEW conditions
-  const isNeedsReview = (
-    !isFail &&
-    (auditReadiness === "MEDIUM" || govStatus === "PARTIAL")
-  );
-
-  let finalStatus = "PASS";
-  let finalExitCode = 0;
-
-  if (isFail) {
-    finalStatus = "FAIL";
-    finalExitCode = 1;
-  } else if (isNeedsReview) {
-    finalStatus = "NEEDS_REVIEW";
-    finalExitCode = 1;
-  }
-
-  
   // 4. Construct SSoT Report
   const report = {
-    status: verdict,
+    status: "COMPLIANT", // Initial status; overridden by resolveFinalVerdict
     score,
     findings: combinedFindings,
     confidence: trust.confidence,
@@ -2423,25 +2291,17 @@ async function performAudit(manifestPath, threshold, options = {}) {
       build_id: buildId || 'NOT PROVIDED',
       trace_status: buildId ? 'USER_DECLARED' : 'UNBOUND'
     },
-    verdict: dualTrack.centralVerdict,
     system_assessment: systemAssessment,
     reasoning_summary: reasoningSummary,
     article_summaries: articleSummaries,
-    epistemic_map: epistemicMap,
-    audit_scope: auditScope,
     final_audit_position: generateFinalAuditPosition(combinedFindings, score),
     _context_validation: evaluateContextSufficiency(manifest, combinedFindings, engine),
     _declaration_consistency: checkDeclarationConsistency(manifest, combinedFindings, signals, engine),
     _executive_summary: generateExecutiveSummary(manifest, combinedFindings, signals, engine),
-    central_verdict: dualTrack.centralVerdict,
-    technical_status: dualTrack.technicalStatus,
-    governance_status: dualTrack.governanceStatus,
     findings: combinedFindings,
-    dual_track: dualTrack,
-    contradictions: epistemicMap,
     risk_category: signals.some(s => s.id === 'BEHAVIORAL_SUSPICION_FLAG_HIGH_RISK') ? "High" : (manifest.risk_category || "Minimal"),
     semantic_quality: semanticReport?.semantic_quality ?? { evaluated: false },
-    exit_code: finalExitCode,
+    exit_code: 0,
     findings_count: combinedFindings.length,
     score_breakdown: trust.breakdown,
     top_findings: combinedFindings.slice(0, 5).map(f => ({
@@ -2522,6 +2382,7 @@ async function performAudit(manifestPath, threshold, options = {}) {
     }
   };
 
+
   // Phase 7: Confidence Enrichment (Corrected Location)
   report.audit_confidence = articleSummaries.audit_confidence;
   delete articleSummaries.audit_confidence;
@@ -2547,11 +2408,64 @@ async function performAudit(manifestPath, threshold, options = {}) {
     report.audit_confidence.confidence_explanation = explanation;
   }
 
-  // Phase 16: Deterministic Status Injection
-  report.status = computeDeterministicStatus(report);
+  // RULE 5: Runtime Safety - Define core verdict variables
+  const findings = report.findings || [];
+  const activeRisk = (manifest.risk_category || manifest.risk_level_declared || "minimal").toUpperCase();
+  
+  // Rule 1 & 2: Identify Contradictions (Manifest vs reality)
+  const contradictions = findings.filter(f => {
+    const isDirectContradiction = (f.source === 'epistemic' || (f.rule_id || "").includes('CONTRADICTION'));
+    const hasContradictionText = f.description.toLowerCase().includes("contradiction");
+    const isHardFail = f.hard_fail === true;
+    const isNotFound = f.description.toLowerCase().includes("not found");
 
-  // 4.1 Final Sanitization Pass (Neutral Audit Language)
-  const sanitizeObject = (obj) => {
+    // RULE: "not found" is only a contradiction if:
+    // 1. It is explicitly marked as a hard_fail (critical violation)
+    // 2. It comes from the epistemic engine (direct manifest-vs-code mismatch)
+    if (isNotFound && !isHardFail && f.source !== 'epistemic') {
+      return false;
+    }
+
+    return isDirectContradiction || hasContradictionText || isHardFail;
+  });
+
+  // Rule 3: Mandatory Controls (Article 14, Article 20, Connectivity)
+  const missingMandatory = findings.filter(f => {
+    const ruleId = (f.rule_id || "").toUpperCase();
+    const art = (f.article || "").toUpperCase();
+    const isMandatoryField = art.includes('ARTICLE 14') || art.includes('ARTICLE 20') || ruleId.includes('CONNECTIVITY');
+    return isMandatoryField && f.hardening_verdict === 'FAIL';
+  });
+
+  // Rule 1: Gaps (Incomplete but no contradiction)
+  const gaps = findings.filter(f => {
+    if (contradictions.includes(f) || missingMandatory.includes(f)) return false;
+    
+    return (
+      f.hardening_verdict === 'WEAK PASS' ||
+      f.hardening_verdict === 'FAIL' || // non-mandatory hardening fails
+      f.description.toLowerCase().includes("not detected") ||
+      f.description.toLowerCase().includes("incomplete")
+    );
+  });
+
+  // Rule 4: Single Source of Truth
+  const finalState = resolveFinalVerdict(contradictions, missingMandatory, gaps);
+  
+  report.status = finalState;
+  report.exit_code = (finalState === "FAIL") ? 1 : 0;
+
+  // Add mandatory metadata to the report object
+  report.audit_metadata = {
+    verdict: finalState,
+    contradictions_found: contradictions.length,
+    missing_mandatory: missingMandatory.length,
+    gaps_detected: gaps.length,
+    timestamp: new Date().toISOString()
+  };
+
+  // RULE 5: Runtime Safety - Final Sanitization Pass
+  function sanitizeObject(obj) {
     if (!obj) return obj;
     if (typeof obj === 'string') return intelligence.sanitize(obj);
     if (Array.isArray(obj)) return obj.map(sanitizeObject);
@@ -2563,7 +2477,7 @@ async function performAudit(manifestPath, threshold, options = {}) {
       return sanitized;
     }
     return obj;
-  };
+  }
 
   return sanitizeObject(report);
 }
@@ -2929,6 +2843,7 @@ async function runPortfolio(args) {
 async function runCheck(args, productionHash = null, isStrict = false, buildId = null) {
   let result = null;
   let exitCode = 0;
+  const isEvidence = args.includes('--evidence');
 
   try {
     // 1. Resolve Parameters
@@ -2958,12 +2873,32 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     }
 
     // 4. Finalize Result
-    const finalVerdict = computeVerdict(report.score, report._internal?.all_findings || [], manifest, requiresGovernance);
-    report.status = finalVerdict;
-    report.exit_code = (report.status === 'FAIL' || report.score < threshold || isEnforcementViolation(report.central_verdict || report.verdict, failOnPolicy)) ? 1 : 0;
+    // CLEANUP: Remove legacy dual-track blocks to prevent auditor confusion
+    delete report.dual_track;
+    delete report._dual_track;
+
+    // ADD CONTEXT: Disclaimer for defensibility field
+    const defensibilityNote = "Reflects signal coverage of this scan, not tool validity. Increase evidence signals (CI/CD, test files, correlated patterns) to raise to STRONG.";
     
-    result = report;
-    exitCode = report.exit_code;
+    // Sibling field addition (ensuring order for JSON output)
+    const finalReport = {};
+    for (const key of Object.keys(report)) {
+      finalReport[key] = report[key];
+      if (key === 'defensibility') {
+        finalReport.defensibility_note = defensibilityNote;
+      }
+    }
+    
+    result = finalReport;
+    exitCode = finalReport.exit_code;
+
+    // 4.1 Auditor Package V1 (Orchestration)
+    if (isEvidence) {
+      const { dossierName } = generateEvidencePack(report, manifestPath);
+      if (!isJson) {
+        process.stdout.write(`\n${C.green}${C.bold}✔ AUDITOR PACKAGE GENERATED: ${dossierName}${C.reset}\n`);
+      }
+    }
 
     // 5. Pretty Output (Gated)
     if (!isJson) {
@@ -3014,53 +2949,11 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
  * Deterministic Status Engine Layer.
  * Derives PASS/FAIL/NEEDS_REVIEW from technical pulse.
  */
-function computeDeterministicStatus(findings = [], evidenceVerdict = "COMPLIANT") {
-  let hasContradiction = false;
-  let hasGap = false;
-  let hasViolation = false;
-
-  if (evidenceVerdict === "NON_COMPLIANT") {
-    hasViolation = true;
-  }
-
-  for (const f of findings) {
-    const desc = (f.description || "").toLowerCase();
-    const ruleId = (f.rule_id || "").toUpperCase();
-    const severity = (f.severity || "").toLowerCase();
-
-    // Identify contradictions (manifest vs reality)
-    if (desc.includes("contradiction") || desc.includes("declared but not found") || ruleId.includes("CONTRADICTION")) {
-      hasContradiction = true;
-    }
-
-    // Identify missing or incomplete evidence -> GAP
-    if (f.hardening_verdict === 'FAIL' || desc.includes("not detected") || desc.includes("missing")) {
-      hasGap = true;
-    }
-
-    // Explicit violations or critical risks -> FAIL
-    if (f.hard_fail === true || severity === 'critical') {
-      hasViolation = true;
-    }
-  }
-
-  // 1. FAIL: Priority violations or contradictions
-  if (hasContradiction || hasViolation) {
-    return "FAIL";
-  }
-
-  // 2. GAP: Missing evidence (incomplete)
-  if (hasGap || evidenceVerdict === "PARTIAL") {
-    return "GAP";
-  }
-
-  // 3. NEEDS_REVIEW: Low confidence/Unmapped issues
-  if (findings.length > 0) {
-    return "NEEDS_REVIEW";
-  }
-
-  // 4. PASS: No findings
-  return "PASS";
+function resolveFinalVerdict(contradictions, missingMandatory, gaps) {
+  if (contradictions.length > 0) return "FAIL";
+  if (missingMandatory.length > 0) return "FAIL";
+  if (gaps.length > 0) return "GAP";
+  return "COMPLIANT";
 }
 /**
  * Independent Audit Verification Engine.
@@ -3648,7 +3541,7 @@ module.exports = new SentinelOversight();
 
   const oldTrust = computeTrustMetrics(oldEvidenceFindings, manifest, oldBreakdown);
   const oldScore = oldTrust.finalScore;
-  const oldVerdict = computeVerdict(oldScore, oldAllFindings, manifest);
+  const oldVerdict = oldScore >= threshold ? 'COMPLIANT' : 'FAIL';
 
   // Post-fix Audit (Full)
   const newFiles = autodiscovery.crawlRepository(manifestDir);
@@ -3661,7 +3554,7 @@ module.exports = new SentinelOversight();
 
   const newTrust = computeTrustMetrics(newEvidenceFindings, patchedManifest, newBreakdown);
   const newScore = newTrust.finalScore;
-  const newVerdict = computeVerdict(newScore, newAllFindings, patchedManifest);
+  const newVerdict = newScore >= threshold ? 'COMPLIANT' : 'FAIL';
 
   if (!isJson) {
     console.log(`${C.gray}Previous Status: ${C.reset}${oldVerdict} (${oldScore}/100)`);
