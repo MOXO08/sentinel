@@ -856,26 +856,42 @@ function hasHardFail(findings) {
   return findings.some(f => f.hard_fail === true);
 }
 
-/**
- * Deterministic Status Engine Layer.
- */
-function computeDeterministicStatus(findings = [], verdict = 'COMPLIANT') {
+
+function computeVerdict(score, findings, manifest, requiresGovernance = true) {
   let hasContradiction = false;
+  let hasViolation = false;
+
+  if (hasHardFail(findings)) {
+    hasViolation = true;
+  }
+
   for (const f of findings) {
     const desc = (f.description || "").toLowerCase();
-    if (desc.includes("contradiction") || desc.includes("declared but not found")) {
+    const ruleId = (f.rule_id || "").toUpperCase();
+    const severity = (f.severity || "").toLowerCase();
+
+    // 1. Identify contradictions (manifest vs technical reality)
+    if (
+      f.source === 'epistemic' ||
+      (f.rule_id && f.rule_id.includes('CONTRADICTION')) ||
+      (f.hardening_verdict === 'FAIL' && f.source === 'implementation')
+    ) {
       hasContradiction = true;
+    }
+
+    // 2. Identify violations (hard fails or critical risks)
+    if (f.hard_fail === true || severity === 'critical') {
+      hasViolation = true;
     }
   }
 
-  if (hasContradiction || verdict === 'NON_COMPLIANT') return 'FAIL';
-  if (findings.length > 0) return 'GAP';
-  return 'PASS';
-}
+  // PRIORITY 1: FAIL (Contradictions or Direct Violations)
+  if (hasContradiction || hasViolation) {
+    return 'FAIL';
+  }
 
-function computeVerdict(score, findings, manifest, requiresGovernance = true) {
-  if (hasHardFail(findings)) return 'NON_COMPLIANT';
-  if (!requiresGovernance && findings.length === 0 && score >= 90) return 'COMPLIANT';
+  // PRIORITY 2: GAP (Evidence missing or Score below threshold)
+  if (!requiresGovernance && findings.length === 0 && score >= 90) return 'PASS';
 
   const riskCat = (manifest.risk_category || "minimal").toLowerCase();
   let required = ['Art. 13'];
@@ -886,9 +902,10 @@ function computeVerdict(score, findings, manifest, requiresGovernance = true) {
   const verified = determineVerifiedArticles(findings, manifest);
   const allRequiredVerified = required.every(a => verified.includes(a));
 
-  if (allRequiredVerified && score >= 85) return 'COMPLIANT';
-  if (score >= 60) return 'PARTIAL';
-  return 'NON_COMPLIANT';
+  if (allRequiredVerified && score >= 85) return 'PASS';
+  if (score >= 60) return 'GAP';
+  
+  return 'FAIL';
 }
 
 async function reportError(err) {
@@ -2265,7 +2282,7 @@ async function performAudit(manifestPath, threshold, options = {}) {
     overall_posture: score < 40 ? "HIGH RISK" : (score < 80 ? "MODERATE RISK" : "LOW RISK")
   };
 
-  const verdict = computeVerdict(score, combinedFindings, manifest);
+  const verdict = computeVerdict(score, combinedFindings, manifest, requiresGovernance);
 
   // V2.1 Dual-Track Evaluation (Premium)
   const Evaluator = require('./lib/evaluator');
@@ -2367,8 +2384,13 @@ async function performAudit(manifestPath, threshold, options = {}) {
     finalExitCode = 1;
   }
 
+  
   // 4. Construct SSoT Report
   const report = {
+    status: verdict,
+    score,
+    findings: combinedFindings,
+    confidence: trust.confidence,
     command: "check",
     manifest_path: manifestPath,
     audit_context: {
@@ -2382,11 +2404,8 @@ async function performAudit(manifestPath, threshold, options = {}) {
       signals_expected: signalsExpected,
       coverage_ratio: parseFloat(coverageRatio)
     },
-    status: finalStatus,
-    score,
     claim_score: trust.claim_score,
     evidence_score: trust.evidence_score,
-    confidence: trust.confidence,
     phi: trust.phi,
     exposure: trust.exposure,
     threshold,
@@ -2930,7 +2949,8 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     }
 
     // 4. Finalize Result
-    report.status = computeDeterministicStatus(report._internal?.all_findings || [], report.verdict);
+    const finalVerdict = computeVerdict(report.score, report._internal?.all_findings || [], manifest, requiresGovernance);
+    report.status = finalVerdict;
     report.exit_code = (report.status === 'FAIL' || report.score < threshold || isEnforcementViolation(report.central_verdict || report.verdict, failOnPolicy)) ? 1 : 0;
     
     result = report;
@@ -2972,8 +2992,8 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     }
     exitCode = 1;
   } finally {
-    if (isJson) {
-      console.log(JSON.stringify(result));
+    if (isJson && result) {
+      process.stdout.write(JSON.stringify(result));
       process.exit(exitCode);
     } else {
       pauseAndExit(exitCode);
@@ -3015,18 +3035,22 @@ function computeDeterministicStatus(findings = [], evidenceVerdict = "COMPLIANT"
     }
   }
 
+  // 1. FAIL: Priority violations or contradictions
   if (hasContradiction || hasViolation) {
     return "FAIL";
   }
 
+  // 2. GAP: Missing evidence (incomplete)
   if (hasGap || evidenceVerdict === "PARTIAL") {
     return "GAP";
   }
 
+  // 3. NEEDS_REVIEW: Low confidence/Unmapped issues
   if (findings.length > 0) {
     return "NEEDS_REVIEW";
   }
 
+  // 4. PASS: No findings
   return "PASS";
 }
 /**
