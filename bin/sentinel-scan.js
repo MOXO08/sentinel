@@ -835,6 +835,23 @@ function hasHardFail(findings) {
   return findings.some(f => f.hard_fail === true);
 }
 
+/**
+ * Deterministic Status Engine Layer.
+ */
+function computeDeterministicStatus(findings = [], verdict = 'COMPLIANT') {
+  let hasContradiction = false;
+  for (const f of findings) {
+    const desc = (f.description || "").toLowerCase();
+    if (desc.includes("contradiction") || desc.includes("declared but not found")) {
+      hasContradiction = true;
+    }
+  }
+
+  if (hasContradiction || verdict === 'NON_COMPLIANT') return 'FAIL';
+  if (findings.length > 0) return 'GAP';
+  return 'PASS';
+}
+
 function computeVerdict(score, findings, manifest, requiresGovernance = true) {
   if (hasHardFail(findings)) return 'NON_COMPLIANT';
   if (!requiresGovernance && findings.length === 0 && score >= 90) return 'COMPLIANT';
@@ -2245,6 +2262,57 @@ async function performAudit(manifestPath, threshold, options = {}) {
   const signalsExpected = discoveryRuleCount + probingRuleCount;
   const coverageRatio = signalsExpected > 0 ? (signalsDetected / signalsExpected).toFixed(4) : 0;
 
+  // Phase 15: HARDENED DETERMINISTIC STATUS ENGINE
+  // 1. Identify Critical Risks and Contradictions
+  const hasCriticalSeverity = combinedFindings.some(f => 
+    (f.severity || "").toUpperCase() === 'CRITICAL' || 
+    (f.reasoning?.severity || "").toUpperCase() === 'CRITICAL'
+  );
+  
+  const contradictionFindings = combinedFindings.filter(f => (f.rule_id || "").startsWith('EUAI-CONTRADICTION'));
+
+  // 2. Map Epistemic Contradictions (DECLARED_ONLY or MISSING_TECHNICAL_EVIDENCE)
+  const epistemicMap = contradictionFindings.map(f => ({
+    rule_id: f.rule_id,
+    contradiction_type: f.reasoning?.contradiction_type || "DECLARED_ONLY",
+    article: f.article,
+    description: f.description
+  }));
+
+  // 3. Extract Status metrics
+  const auditReadiness = (articleSummaries.audit_readiness || "LOW").toUpperCase();
+  const auditorAttestationStatus = (articleSummaries.auditor_attestation?.status || "UNSUPPORTED").toUpperCase();
+  const govStatus = (dualTrack.governanceStatus || "GAP").toUpperCase();
+  const cVerdict = (dualTrack.centralVerdict || "HOLD").toUpperCase();
+
+  // 4. Deterministic Final Status Computation
+  // PRIORITY 1: FAIL conditions
+  const isFail = (
+    auditReadiness === "LOW" ||
+    auditorAttestationStatus === "UNSUPPORTED" ||
+    govStatus === "GAP" ||
+    cVerdict === "HOLD" ||
+    hasCriticalSeverity ||
+    epistemicMap.length > 0
+  );
+
+  // PRIORITY 2: NEEDS_REVIEW conditions
+  const isNeedsReview = (
+    !isFail &&
+    (auditReadiness === "MEDIUM" || govStatus === "PARTIAL")
+  );
+
+  let finalStatus = "PASS";
+  let finalExitCode = 0;
+
+  if (isFail) {
+    finalStatus = "FAIL";
+    finalExitCode = 1;
+  } else if (isNeedsReview) {
+    finalStatus = "NEEDS_REVIEW";
+    finalExitCode = 1;
+  }
+
   // 4. Construct SSoT Report
   const report = {
     command: "check",
@@ -2260,7 +2328,7 @@ async function performAudit(manifestPath, threshold, options = {}) {
       signals_expected: signalsExpected,
       coverage_ratio: parseFloat(coverageRatio)
     },
-    status: score >= threshold ? "PASS" : "FAIL",
+    status: finalStatus,
     score,
     claim_score: trust.claim_score,
     evidence_score: trust.evidence_score,
@@ -2277,6 +2345,7 @@ async function performAudit(manifestPath, threshold, options = {}) {
     system_assessment: systemAssessment,
     reasoning_summary: reasoningSummary,
     article_summaries: articleSummaries,
+    epistemic_map: epistemicMap,
     audit_scope: auditScope,
     final_audit_position: generateFinalAuditPosition(combinedFindings, score),
     _context_validation: evaluateContextSufficiency(manifest, combinedFindings, engine),
@@ -2285,9 +2354,12 @@ async function performAudit(manifestPath, threshold, options = {}) {
     central_verdict: dualTrack.centralVerdict,
     technical_status: dualTrack.technicalStatus,
     governance_status: dualTrack.governanceStatus,
+    findings: combinedFindings,
+    dual_track: dualTrack,
+    contradictions: epistemicMap,
     risk_category: signals.some(s => s.id === 'BEHAVIORAL_SUSPICION_FLAG_HIGH_RISK') ? "High" : (manifest.risk_category || "Minimal"),
     semantic_quality: semanticReport?.semantic_quality ?? { evaluated: false },
-    exit_code: (score >= threshold && verdict !== 'NON_COMPLIANT') ? 0 : 1,
+    exit_code: finalExitCode,
     findings_count: combinedFindings.length,
     score_breakdown: trust.breakdown,
     top_findings: combinedFindings.slice(0, 5).map(f => ({
@@ -2392,6 +2464,9 @@ async function performAudit(manifestPath, threshold, options = {}) {
     }
     report.audit_confidence.confidence_explanation = explanation;
   }
+
+  // Phase 16: Deterministic Status Injection
+  report.status = computeDeterministicStatus(report);
 
   // 4.1 Final Sanitization Pass (Neutral Audit Language)
   const sanitizeObject = (obj) => {
@@ -2809,8 +2884,10 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     process.exit(report.exit_code || 0);
   }
 
-  if (score >= threshold) {
+  if (report.status === 'PASS') {
     console.log(`\n${C.green}${C.bold}Sentinel Check: PASS${C.reset}`);
+  } else if (report.status === 'NEEDS_REVIEW') {
+    console.log(`\n${C.yellow}${C.bold}Sentinel Check: NEEDS_REVIEW${C.reset}`);
   } else {
     console.log(`\n${C.red}${C.bold}Sentinel Check: FAIL${C.reset}`);
   }
@@ -2910,25 +2987,54 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     writeSummary(report, summaryPath);
   }
 
-  const thresholdFailed = report.score < threshold;
-  const enforcementFailed = isEnforcementViolation(report.central_verdict, failOnPolicy);
-  const totalFail = thresholdFailed || enforcementFailed || report.verdict === 'NON_COMPLIANT';
+  const isTotalFail = report.exit_code === 1;
 
   if (isJson) {
     console.log(JSON.stringify(report, null, 2));
-    process.exit(totalFail ? 1 : 0);
+    process.exit(isTotalFail ? 1 : 0);
   }
 
-  if (totalFail) {
-      if (thresholdFailed) {
+  if (isTotalFail) {
+      if (report.score < threshold) {
           console.log(`\n${C.red}${C.bold}❌ SCOREGATE FAILURE: Score (${report.score}) is below threshold (${threshold})${C.reset}`);
       }
-      if (enforcementFailed) {
+      if (isEnforcementViolation(report.central_verdict, failOnPolicy)) {
           console.log(`\n${C.red}${C.bold}❌ CI ENFORCEMENT FAILURE: Verdict (${report.central_verdict}) violates policy (${failOnPolicy})${C.reset}`);
+      }
+      if (report.status === 'FAIL' && !isEnforcementViolation(report.central_verdict, failOnPolicy) && report.score >= threshold) {
+          console.log(`\n${C.red}${C.bold}❌ COMPLIANCE GATE FAILURE: Deterministic status is FAIL due to critical findings or contradictions.${C.reset}`);
       }
   }
 
-  process.exit(totalFail ? 1 : 0);
+  process.exit(isTotalFail ? 1 : 0);
+}
+
+/**
+ * Deterministic Status Engine Layer.
+ * Derives PASS/FAIL/NEEDS_REVIEW from technical pulse.
+ */
+function computeDeterministicStatus(report) {
+  const findings = report.findings || [];
+  const dual = report.dual_track || {};
+  const contradictions = report.contradictions || [];
+
+  const centralVerdict = dual.centralVerdict || dual.central_verdict;
+  const governanceStatus = dual.governanceStatus || dual.governance_status;
+
+  const hasCritical = findings.some(f => (f.severity || "").toLowerCase() === 'critical' || (f.reasoning?.severity || "").toLowerCase() === 'critical');
+  const hasGap = governanceStatus === 'GAP';
+  const hasHold = centralVerdict === 'HOLD';
+  const hasContradiction = contradictions.length > 0;
+
+  if (hasCritical || hasGap || hasHold || hasContradiction) {
+    return "FAIL";
+  }
+
+  if (findings.length > 0) {
+    return "NEEDS_REVIEW";
+  }
+
+  return "PASS";
 }
 
 /**
@@ -3650,9 +3756,12 @@ async function main() {
     let complianceStatus = evidenceVerdict;
     if (combinedFindings.some(v => v.rule_id?.startsWith('EUAI-BLOCK-'))) complianceStatus = "BLOCKED";
 
+    const status = computeDeterministicStatus(combinedFindings, evidenceVerdict);
+
     const finalReport = {
       schema: "sentinel.audit.v1",
       schema_version: "2026-03",
+      status: status,
       verdict: evidenceVerdict,
       score: trustMetrics.finalScore,
       claim_score: trustMetrics.claim_score,
@@ -3723,20 +3832,20 @@ async function main() {
 
     if (isSarif) {
       console.log(JSON.stringify(generateSarif(finalReport, manifestPath), null, 2));
-      process.exit(finalReport.verdict === "NON_COMPLIANT" ? 1 : 0);
+      if (status === 'FAIL') { process.exit(1); } else { process.exit(0); }
     }
 
     if (isJson) {
       console.log(JSON.stringify(finalReport, null, 2));
-      process.exit(finalReport.verdict === "NON_COMPLIANT" ? 1 : 0);
+      if (status === 'FAIL') { process.exit(1); } else { process.exit(0); }
     }
 
     printResult(finalReport, isJson, isSarif, policy.path);
-    if (finalReport.verdict === "NON_COMPLIANT") {
+    if (status === 'FAIL') {
       pauseAndExit(1);
-      return;
+    } else {
+      pauseAndExit(0);
     }
-    pauseAndExit(0);
     return;
   } catch (err) {
     console.error(`${C.red}Scan failed: ${err.message}${C.reset}`);
