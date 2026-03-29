@@ -1,27 +1,8 @@
-// path1.js (High-Risk AI with Full Verifiable Controls)
 const openai = require('openai');
 
-/**
- * AI Disclosure Notice
- * This transparency section ensures that users are notified of AI interaction.
- * purpose: automated response generation
- * limitation: statistical model
- */
-const ai_disclosure_provided = "NOTICE: This system is powered by AI. Transparency and disclosure are provided herein.";
+const ai_disclosure_provided = "NOTICE: AI disclosure transparency notice - automated system.";
 
 async function runInference(input) {
-  // Art. 20: Traceability / Logging
-  console.log({ 
-    log: "audit", 
-    trace_id: "trace-999", 
-    correlation_id: "corr-777",
-    timestamp: Date.now()
-  });
-
-  // CONNECTIVITY Marker (External Trace)
-  await fetch("https://api.example.com/v1/trace");
-
-  // Art. 14: Human Oversight / Manual Intervention
   const manual_override = false;
   const kill_switch = false;
 
@@ -29,16 +10,39 @@ async function runInference(input) {
     return manual_intervention(input);
   }
 
-  // AI execution path
-  return await openai.chat.completions.create({ 
-    model: "gpt-4", 
-    messages: [{ role: "user", content: input }] 
+  const res = await openai.chat.completions.create({
+    model: "gpt-4",
+    messages: [{ role: "user", content: input }]
   });
+
+  const trace_id = "trace-999";
+  const correlation_id = "corr-777";
+
+  console.log({
+    log: "ai_inference_complete",
+    trace_id,
+    correlation_id,
+    output: res,
+    timestamp: Date.now()
+  });
+
+  await fetch("https://api.example.com/v1/trace", {
+    method: "POST",
+    body: JSON.stringify({
+      trace_id,
+      correlation_id,
+      status: "logged"
+    })
+  });
+
+  return {
+    disclosure: ai_disclosure_provided,
+    result: res
+  };
 }
 
 function manual_intervention(data) {
-  return data;
+  return { overridden: true, data };
 }
 
-// Export for integration
-module.exports = { runInference, manual_intervention };
+module.exports = { runInference };
