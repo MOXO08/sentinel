@@ -2795,7 +2795,7 @@ async function runPortfolio(args) {
             fs.writeFileSync(resultFile, JSON.stringify(report, null, 2));
             
             if (!isJson) {
-                const statusColor = report.status === 'PASS' ? C.green : C.red;
+                const statusColor = report.status === 'COMPLIANT' ? C.green : C.red;
                 console.log(`${statusColor}${report.status}${C.reset} (${report.score}/100)`);
             }
             successCount++;
@@ -2832,7 +2832,7 @@ async function runPortfolio(args) {
     if (isJson) {
         // For portfolio mode, we might want to emit a summary JSON
         console.log(JSON.stringify({
-            status: failCount === 0 ? "PASS" : "FAIL",
+            status: failCount === 0 ? "COMPLIANT" : "FAIL",
             portfolio_audit: true,
             success_count: successCount,
             fail_count: failCount
@@ -2902,8 +2902,8 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
 
     // 5. Pretty Output (Gated)
     if (!isJson) {
-      if (report.status === 'PASS') {
-        process.stdout.write(`\n${C.green}${C.bold}Sentinel Check: PASS${C.reset}\n`);
+      if (report.status === 'COMPLIANT') {
+        process.stdout.write(`\n${C.green}${C.bold}Sentinel Check: COMPLIANT${C.reset}\n`);
       } else if (report.status === 'NEEDS_REVIEW') {
         process.stdout.write(`\n${C.yellow}${C.bold}Sentinel Check: NEEDS_REVIEW${C.reset}\n`);
       } else if (report.status === 'GAP') {
