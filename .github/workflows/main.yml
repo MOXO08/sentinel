@@ -25,19 +25,14 @@ jobs:
       - name: Run TEST 1 (manifest-lie)
         run: |
           set +e
-          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/manifest-lie/sentinel.manifest.json --json)
+          RAW_OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/manifest-lie/sentinel.manifest.json --json 2>&1)
           CLI_EXIT=$?
           set -e
-
-          echo "RAW_OUTPUT:"
-          echo "$OUTPUT"
-
-          echo "$OUTPUT" | jq . > test1_manifest_lie.json
-          STATUS=$(echo "$OUTPUT" | jq -r '.status')
-
+          JSON_OUTPUT=$(echo "$RAW_OUTPUT" | sed -n '/^{/,$p')
+          echo "$JSON_OUTPUT" > test1_manifest_lie.json
+          STATUS=$(echo "$JSON_OUTPUT" | jq -r '.status')
           echo "CLI_EXIT=$CLI_EXIT"
           echo "STATUS=$STATUS"
-
           if [ "$STATUS" != "FAIL" ]; then
             echo "❌ Expected FAIL but got $STATUS"
             exit 1
@@ -46,19 +41,14 @@ jobs:
       - name: Run TEST 2 (dead-code)
         run: |
           set +e
-          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/dead-code/sentinel.manifest.json --json)
+          RAW_OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/dead-code/sentinel.manifest.json --json 2>&1)
           CLI_EXIT=$?
           set -e
-
-          echo "RAW_OUTPUT:"
-          echo "$OUTPUT"
-
-          echo "$OUTPUT" | jq . > test2_dead_code.json
-          STATUS=$(echo "$OUTPUT" | jq -r '.status')
-
+          JSON_OUTPUT=$(echo "$RAW_OUTPUT" | sed -n '/^{/,$p')
+          echo "$JSON_OUTPUT" > test2_dead_code.json
+          STATUS=$(echo "$JSON_OUTPUT" | jq -r '.status')
           echo "CLI_EXIT=$CLI_EXIT"
           echo "STATUS=$STATUS"
-
           if [ "$STATUS" != "FAIL" ]; then
             echo "❌ Expected FAIL but got $STATUS"
             exit 1
@@ -67,18 +57,23 @@ jobs:
       - name: Run TEST 3A (partial)
         run: |
           set +e
-          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/partial/sentinel.manifest.json --json)
+          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/partial/sentinel.manifest.json --json 2>&1)
           CLI_EXIT=$?
-          set -e
-
+          
           echo "RAW_OUTPUT:"
           echo "$OUTPUT"
 
-          echo "$OUTPUT" | jq . > test3_partial.json
-          STATUS=$(echo "$OUTPUT" | jq -r '.status')
+          JSON_OUTPUT=$(echo "$OUTPUT" | sed -n '/^{/,$p')
+          
+          echo "JSON_OUTPUT:"
+          echo "$JSON_OUTPUT"
+          
+          echo "$JSON_OUTPUT" | jq .
 
-          echo "CLI_EXIT=$CLI_EXIT"
+          echo "STATUS_FROM_JSON:"
+          STATUS=$(echo "$JSON_OUTPUT" | jq -r '.status')
           echo "STATUS=$STATUS"
+          echo "CLI_EXIT=$CLI_EXIT"
 
           if [ "$STATUS" != "GAP" ]; then
             echo "❌ Expected GAP but got $STATUS"
@@ -88,19 +83,14 @@ jobs:
       - name: Run TEST 3B (full)
         run: |
           set +e
-          OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/full/sentinel.manifest.json --json)
+          RAW_OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/full/sentinel.manifest.json --json 2>&1)
           CLI_EXIT=$?
           set -e
-
-          echo "RAW_OUTPUT:"
-          echo "$OUTPUT"
-
-          echo "$OUTPUT" | jq . > test4_full.json
-          STATUS=$(echo "$OUTPUT" | jq -r '.status')
-
+          JSON_OUTPUT=$(echo "$RAW_OUTPUT" | sed -n '/^{/,$p')
+          echo "$JSON_OUTPUT" > test4_full.json
+          STATUS=$(echo "$JSON_OUTPUT" | jq -r '.status')
           echo "CLI_EXIT=$CLI_EXIT"
           echo "STATUS=$STATUS"
-
           if [ "$STATUS" != "PASS" ]; then
             echo "❌ Expected PASS but got $STATUS"
             exit 1
