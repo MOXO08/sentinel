@@ -2859,6 +2859,7 @@ async function runPortfolio(args) {
 }
 
 async function runCheck(args, productionHash = null, isStrict = false, buildId = null) {
+  let __debug_step = "start";
   let result = null;
   let exitCode = 0;
   const isEvidence = args.includes('--evidence');
@@ -2883,6 +2884,7 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     let report = await performAudit(manifestPath, threshold, { engine, productionHash, strict: isStrict, buildId, isJson });
     
     // 3. Enterprise Upgrade
+    __debug_step = "before_pre_auditor";
     try {
       const manifestDir = path.dirname(path.resolve(manifestPath));
       const lockedStatus = report.status;
@@ -2891,6 +2893,7 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     } catch (err) {
       if (!isJson) console.error(`Sentinel Pre-Auditor Error: ${err.message}`);
     }
+    __debug_step = "after_pre_auditor";
 
     // 4. Finalize Result
     // CLEANUP: Remove legacy dual-track blocks to prevent auditor confusion
@@ -2901,6 +2904,7 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     const defensibilityNote = "Reflects signal coverage of this scan, not tool validity. Increase evidence signals (CI/CD, test files, correlated patterns) to raise to STRONG.";
     
     // Sibling field addition (ensuring order for JSON output)
+    __debug_step = "before_final_report";
     const finalReport = {};
     for (const key of Object.keys(report)) {
       finalReport[key] = report[key];
@@ -2908,16 +2912,19 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
         finalReport.defensibility_note = defensibilityNote;
       }
     }
+    __debug_step = "after_final_report";
     
     result = finalReport;
     exitCode = finalReport.exit_code;
 
     // 4.1 Auditor Package V1 (Orchestration)
     if (isEvidence) {
+      __debug_step = "before_evidence_pack";
       const { dossierName } = generateEvidencePack(report, manifestPath);
       if (!isJson) {
         process.stdout.write(`\n${C.green}${C.bold}✔ AUDITOR PACKAGE GENERATED: ${dossierName}${C.reset}\n`);
       }
+      __debug_step = "after_evidence_pack";
     }
 
     // 5. Pretty Output (Gated)
@@ -2949,7 +2956,11 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
       schema: "sentinel.audit.v1",
       status: "FAIL",
       error: true,
-      message: err.message
+      message: err.message,
+      _debug_catch: true,
+      _debug_last_step: __debug_step,
+      _debug_error_message: err.message,
+      _debug_error_stack_top: err.stack ? err.stack.split('\n').slice(0, 3) : []
     };
     if (process.env.SENTINEL_DEBUG === 'true' && !isJson) {
       console.error(err.stack);
@@ -2957,6 +2968,7 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     exitCode = 1;
   } finally {
     if (isJson && result) {
+      __debug_step = "before_output";
       process.stdout.write(JSON.stringify(result));
       process.exit(exitCode);
     } else {
