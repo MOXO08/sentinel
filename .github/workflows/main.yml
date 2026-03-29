@@ -24,8 +24,10 @@ jobs:
 
       - name: Run TEST 1 (manifest-lie)
         run: |
+          set +e
           OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/manifest-lie/sentinel.manifest.json --json)
           CLI_EXIT=$?
+          set -e
 
           echo "RAW_OUTPUT:"
           echo "$OUTPUT"
@@ -43,8 +45,10 @@ jobs:
 
       - name: Run TEST 2 (dead-code)
         run: |
+          set +e
           OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/dead-code/sentinel.manifest.json --json)
           CLI_EXIT=$?
+          set -e
 
           echo "RAW_OUTPUT:"
           echo "$OUTPUT"
@@ -62,8 +66,10 @@ jobs:
 
       - name: Run TEST 3A (partial)
         run: |
+          set +e
           OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/partial/sentinel.manifest.json --json)
           CLI_EXIT=$?
+          set -e
 
           echo "RAW_OUTPUT:"
           echo "$OUTPUT"
@@ -81,8 +87,10 @@ jobs:
 
       - name: Run TEST 3B (full)
         run: |
+          set +e
           OUTPUT=$(node bin/sentinel-scan.js check --manifest ./test-fixtures/full/sentinel.manifest.json --json)
           CLI_EXIT=$?
+          set -e
 
           echo "RAW_OUTPUT:"
           echo "$OUTPUT"
