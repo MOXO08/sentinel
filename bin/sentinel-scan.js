@@ -2885,7 +2885,9 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
     // 3. Enterprise Upgrade
     try {
       const manifestDir = path.dirname(path.resolve(manifestPath));
+      const lockedStatus = report.status;
       report = await PreAuditor.upgrade(report, manifestDir, { generateHtml: !isJson, engine });
+      report.status = lockedStatus;
     } catch (err) {
       if (!isJson) console.error(`Sentinel Pre-Auditor Error: ${err.message}`);
     }
