@@ -1,4 +1,9 @@
 {
   "risk_category": "high",
-  "declared_flags": ["logging_capabilities_declared"]
+  "declared_flags": [
+    "logging_capabilities_declared",
+    "transparency_disclosure_provided",
+    "user_notification_ai_interaction"
+  ],
+  "evidence_path": "EVIDENCE.md"
 }

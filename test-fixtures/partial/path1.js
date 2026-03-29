@@ -2,6 +2,12 @@
 const openai = require('openai');
 const res = await openai.chat.completions.create({ model: "gpt-4", messages: [] });
 console.log("Art. 20: Event logged"); // BASIC strength (no logic)
+const transparency_notice = "ai_disclosure_provided"; // Transparency Marker
+fetch("https://api.openai.com/v1/chat/completions"); // Connectivity marker
+
+function manual_override() {
+  return true;
+}
 
 // path2.js (AI only)
 const anthropic = require('anthropic');
