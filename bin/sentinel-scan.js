@@ -2449,6 +2449,24 @@ async function performAudit(manifestPath, threshold, options = {}) {
     );
   });
 
+  // 3.5 Diagnostic Metadata (Temporary)
+  report._debug_verdict = {
+    contradictions_count: contradictions.length,
+    missingMandatory_count: missingMandatory.length,
+    gaps_count: gaps.length,
+    contradictions_sample: contradictions.slice(0,3).map(f => ({
+      rule_id: f.rule_id,
+      source: f.source,
+      hard_fail: f.hard_fail,
+      description: f.description
+    })),
+    missingMandatory_sample: missingMandatory.slice(0,3).map(f => ({
+      rule_id: f.rule_id,
+      source: f.source,
+      hardening_verdict: f.hardening_verdict
+    }))
+  };
+
   // Rule 4: Single Source of Truth
   const finalState = resolveFinalVerdict(contradictions, missingMandatory, gaps);
   
@@ -2950,24 +2968,6 @@ async function runCheck(args, productionHash = null, isStrict = false, buildId =
  * Derives PASS/FAIL/NEEDS_REVIEW from technical pulse.
  */
 function resolveFinalVerdict(contradictions, missingMandatory, gaps) {
-  process.stderr.write(JSON.stringify({
-    debug_resolveFinalVerdict: true,
-    contradictions_count: contradictions.length,
-    missingMandatory_count: missingMandatory.length,
-    gaps_count: gaps.length,
-    contradictions_sample: contradictions.slice(0,3).map(f => ({
-      rule_id: f.rule_id,
-      source: f.source,
-      hard_fail: f.hard_fail,
-      description: f.description
-    })),
-    missingMandatory_sample: missingMandatory.slice(0,3).map(f => ({
-      rule_id: f.rule_id,
-      source: f.source,
-      hardening_verdict: f.hardening_verdict
-    }))
-  }, null, 2) + '\n');
-
   if (contradictions.length > 0) return "FAIL";
   if (missingMandatory.length > 0) return "FAIL";
   if (gaps.length > 0) return "GAP";
