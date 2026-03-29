@@ -1,30 +1,36 @@
-// path1.js (AI + Strong Control)
+// path1.js (High-Risk AI with Full Controls)
 const openai = require('openai');
-try {
-  const res = await openai.chat.completions.create({ model: "gpt-4", messages: [] });
-} finally {
-  console.log({ event: "inference", timestamp: Date.now(), metadata: { art: 20 } });
+
+async function runInference(input) {
+  // Art. 13: Transparency Disclosure
+  const transparency_label = "This response is powered by AI.";
+  
+  // Art. 14: Human Oversight / Manual Override
+  const requires_manual_check = false;
+  if (requires_manual_check) {
+    console.log("Art. 14: Human override engaged.");
+    return manual_review(input);
+  }
+
+  const res = await openai.chat.completions.create({ 
+    model: "gpt-4", 
+    messages: [{ role: "user", content: input }] 
+  });
+
+  // Art. 20: Traceability / Logging
+  console.log({ 
+    event: "ai_inference_complete", 
+    timestamp: Date.now(),
+    status: "success",
+    log_id: "trace-001"
+  });
+
+  return res;
 }
 
-// path2.js (AI + Strong Control)
-const anthropic = require('anthropic');
-try {
-  const msg = await anthropic.messages.create({ model: "claude-3", messages: [] });
-} finally {
-  console.log({ event: "inference", timestamp: Date.now(), metadata: { art: 20 } });
-}
-
-// path3.js (AI + Strong Control)
-const cohere = require('cohere-ai');
-try {
-  const chat = await cohere.chat({ message: "hello" });
-} finally {
-  console.log({ event: "inference", timestamp: Date.now(), metadata: { art: 20 } });
-}
-
-// path4.js (AI + Strong Control)
-const google = require('@google/generative-ai');
-const result = await model.generateContent("hello");
-if (result) {
-  console.log({ event: "inference_complete", article: "Art. 20" });
+function manual_review(data) {
+  // Art. 14: Kill switch logic
+  const kill_switch = false;
+  if (kill_switch) return null;
+  return data;
 }
